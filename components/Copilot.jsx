@@ -20,7 +20,7 @@ const Copilot = () => {
   const handleSubmit = async () => {
     setIsLoading(true)
     try {
-      const res = await fetch('/api/gemini', {
+      const res = await fetch('/api/assistant', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -33,8 +33,8 @@ const Copilot = () => {
       const data = await res.json()
       setResponse(data.response)
     } catch (error) {
-      console.error('Failed to fetch Gemini API:', error)
-      setResponse('Failed to get response from Gemini API.')
+      console.error('Failed to fetch Mistral API:', error)
+      setResponse('Failed to get response from Mistral API.')
     } finally {
       setIsLoading(false)
     }

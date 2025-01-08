@@ -1,6 +1,6 @@
 # AI Productivity Assistant
 
-    This project is a Next.js application that implements an AI-powered productivity assistant similar to Office 365 Copilot, using the Gemini AI API.
+    This project is a Next.js application that implements an AI-powered productivity assistant similar to Office 365 Copilot, using the Mistral AI API.
 
     ## Tech Stack
 
@@ -8,7 +8,7 @@
     - JavaScript (JSX files only, no TypeScript)
     - Tailwind CSS
     - shadcn/ui
-    - API routes for Gemini AI integration
+    - API routes for Mistral AI integration
     - ESLint + Prettier configuration
     - Import alias using '@' prefix
 
@@ -17,7 +17,7 @@
     ```
     app/
     ├── api/
-    │   └── gemini/
+    │   └── assistant/
     │       └── route.js
     components/
     │   └── ui/
