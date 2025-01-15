@@ -10,14 +10,22 @@ export async function POST(req) {
   }
 
   try {
-    const response = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent', {
+    const response = await fetch('https://api.mistral.ai/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-goog-api-key': apiKey,
+        Authorization: `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
-        contents: [{ parts: [{ text: prompt }] }],
+        model: 'mistral-large-latest',
+        messages: [
+          {
+            role: 'user',
+            content: prompt,
+          },
+        ],
+        temperature: 0.7,
+        max_tokens: 1000,
       }),
     })
 
@@ -31,7 +39,7 @@ export async function POST(req) {
     }
 
     const data = await response.json()
-    const generatedText = data.candidates[0].content.parts[0].text
+    const generatedText = data.choices[0].message.content
     return new Response(JSON.stringify({ response: generatedText }), {
       status: 200,
       headers: { 'Content-Type': 'application/json' },
