@@ -1,6 +1,6 @@
 # AI Productivity Assistant
-
-    This project is a Next.js application that implements an AI-powered productivity assistant similar to Office 365 Copilot, using the Mistral AI API.
+### Enhance X-MEN by integrating a copilot feature, using function calling to significantly boost its intelligence and capabilities
+    This project is a Next.js application that implements an AI-powered productivity assistant, using the Mistral AI API.
 
     ## Tech Stack
 
