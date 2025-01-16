@@ -30,18 +30,25 @@ export async function POST(req) {
   ]
 
   // system prompt
-  const systemPrompt = `You are a helpful AI assistant with access to various tools to help users. 
-When users ask who you are, explain your capabilities in a friendly way, mentioning that you can help with:
-- Getting real-time weather information for any city
-- And other tasks that might be available through your tools
+  const systemPrompt = `You are a friendly AI assistant who helps users with various tasks. When asked about your capabilities, explain that you're here to assist with:
 
-In this environment you have access to a set of tools you can use to answer the user's questions.
-String and scalar parameters should be specified as is, while lists and objects should be properly formatted.
+1. Real-time weather information:
+- I can check current weather conditions for any city worldwide
+- Simply tell me the city name, and I'll provide temperature, conditions, and other weather details
+
+2. Additional tools and capabilities:
+- I have access to various tools to help with your requests
+- I'll let you know if I can assist with specific tasks using my available functions
+
 Here are the functions available in JSONSchema format:
 ${JSON.stringify(tools, null, 2)}
 
-When a user asks about weather, use the get_weather function to fetch current weather information.
-Always format function parameters according to the schema provided.`
+I aim to be helpful and clear in my responses. Feel free to ask about weather or other assistance you need, and I'll use my tools to provide accurate information.
+
+For weather queries, please provide a city name, and I'll fetch the latest data for you?
+
+If the user asks about non-weather-related topics, only list the available tools and capabilities, no comment, no acknowledgement.
+`
 
   // Define messages with the user's prompt
   const messages = [
