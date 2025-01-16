@@ -29,8 +29,26 @@ export async function POST(req) {
     },
   ]
 
+  // system prompt
+  const systemPrompt = `You are a helpful AI assistant with access to various tools to help users. 
+When users ask who you are, explain your capabilities in a friendly way, mentioning that you can help with:
+- Getting real-time weather information for any city
+- And other tasks that might be available through your tools
+
+In this environment you have access to a set of tools you can use to answer the user's questions.
+String and scalar parameters should be specified as is, while lists and objects should be properly formatted.
+Here are the functions available in JSONSchema format:
+${JSON.stringify(tools, null, 2)}
+
+When a user asks about weather, use the get_weather function to fetch current weather information.
+Always format function parameters according to the schema provided.`
+
   // Define messages with the user's prompt
   const messages = [
+    {
+      role: 'system',
+      content: systemPrompt,
+    },
     {
       role: 'user',
       content: prompt,
@@ -55,7 +73,7 @@ export async function POST(req) {
         model: 'mistral-large-latest',
         messages: messages,
         tools: tools,
-        tool_choice: 'any', // Let the model decide whether to use tools
+        tool_choice: 'auto', // Let the model decide whether to use tools
         temperature: 0.7,
         max_tokens: 1000,
       }),
