@@ -1,60 +1,16 @@
+import { INSTANCE_TOOLS, LOG_TOOLS, SYSTEM_PROMPT } from '@/prompts'
 export async function POST(req) {
   const { prompt } = await req.json()
   const apiKey = process.env.MISTRAL_API_KEY
 
-  // Define the weather tool
-  const tools = [
-    {
-      type: 'function',
-      function: {
-        name: 'get_weather',
-        description:
-          'Get the current weather in a given location. This tool provides real-time weather information including temperature and conditions for any specified city. It should be used when users ask about current weather conditions in a specific location.',
-        parameters: {
-          type: 'object',
-          properties: {
-            location: {
-              type: 'string',
-              description: 'The city and state, e.g. San Francisco, CA',
-            },
-            unit: {
-              type: 'string',
-              enum: ['celsius', 'fahrenheit'],
-              description: 'The unit of temperature to return',
-            },
-          },
-          required: ['location'],
-        },
-      },
-    },
-  ]
-
-  // system prompt
-  const systemPrompt = `You are a friendly AI assistant who helps users with various tasks. When asked about your capabilities, explain that you're here to assist with:
-
-1. Real-time weather information:
-- I can check current weather conditions for any city worldwide
-- Simply tell me the city name, and I'll provide temperature, conditions, and other weather details
-
-2. Additional tools and capabilities:
-- I have access to various tools to help with your requests
-- I'll let you know if I can assist with specific tasks using my available functions
-
-Here are the functions available in JSONSchema format:
-${JSON.stringify(tools, null, 2)}
-
-I aim to be helpful and clear in my responses. Feel free to ask about weather or other assistance you need, and I'll use my tools to provide accurate information.
-
-For weather queries, please provide a city name, and I'll fetch the latest data for you?
-
-If the user asks about non-weather-related topics, only list the available tools and capabilities, no comment, no acknowledgement.
-`
+  // Define the all tools
+  const tools = [...INSTANCE_TOOLS, ...LOG_TOOLS]
 
   // Define messages with the user's prompt
   const messages = [
     {
       role: 'system',
-      content: systemPrompt,
+      content: SYSTEM_PROMPT,
     },
     {
       role: 'user',
