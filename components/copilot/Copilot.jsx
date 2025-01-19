@@ -1,13 +1,30 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { Send } from 'lucide-react'
 
 const Copilot = () => {
   const [isOpen, setIsOpen] = useState(false)
   const [prompt, setPrompt] = useState('')
-  const [response, setResponse] = useState('')
+  const [messages, setMessages] = useState([])
   const [isLoading, setIsLoading] = useState(false)
+  const [chatId, setChatId] = useState(null)
+
+  useEffect(() => {
+    // Create a new chat when component mounts
+    const createNewChat = async () => {
+      try {
+        const res = await fetch('/api/chat', {
+          method: 'POST',
+        })
+        const data = await res.json()
+        setChatId(data.chatId)
+      } catch (error) {
+        console.error('Failed to create chat:', error)
+      }
+    }
+    createNewChat()
+  }, [])
 
   const handleToggle = () => {
     setIsOpen(!isOpen)
@@ -18,23 +35,33 @@ const Copilot = () => {
   }
 
   const handleSubmit = async () => {
+    if (!prompt.trim() || !chatId) return
+
     setIsLoading(true)
+    // Add user message immediately
+    const userMessage = { role: 'user', content: prompt }
+    setMessages(prev => [...prev, userMessage])
+    setPrompt('')
+
     try {
       const res = await fetch('/api/assistant', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ prompt }),
+        body: JSON.stringify({ prompt, chatId }),
       })
+      
       if (!res.ok) {
         throw new Error(`HTTP error! status: ${res.status}`)
       }
+      
       const data = await res.json()
-      setResponse(data.response)
+      // Add assistant message
+      setMessages(prev => [...prev, { role: 'assistant', content: data.response }])
     } catch (error) {
       console.error('Failed to fetch Mistral API:', error)
-      setResponse('Failed to get response from Mistral API.')
+      setMessages(prev => [...prev, { role: 'assistant', content: 'Failed to get response from Mistral API.' }])
     } finally {
       setIsLoading(false)
     }
@@ -60,7 +87,21 @@ const Copilot = () => {
       </button>
       {isOpen && (
         <div className="absolute bottom-20 right-0 w-96 bg-white dark:bg-gray-800 rounded-lg shadow-lg p-4">
-          <div className="flex flex-col space-y-2">
+          <div className="flex flex-col h-[500px]">
+            <div className="flex-1 overflow-y-auto mb-4 space-y-4">
+              {messages.map((message, index) => (
+                <div
+                  key={index}
+                  className={`p-3 rounded-lg ${
+                    message.role === 'user'
+                      ? 'bg-blue-100 dark:bg-blue-900 ml-auto'
+                      : 'bg-gray-100 dark:bg-gray-700 mr-auto'
+                  } max-w-[80%]`}
+                >
+                  {message.content}
+                </div>
+              ))}
+            </div>
             <div className="flex items-center space-x-2">
               <input
                 type="text"
@@ -68,6 +109,7 @@ const Copilot = () => {
                 className="flex-1 p-2 border rounded-md text-gray-800 dark:text-white dark:bg-gray-700"
                 value={prompt}
                 onChange={handleInputChange}
+                onKeyPress={(e) => e.key === 'Enter' && handleSubmit()}
               />
               <button
                 onClick={handleSubmit}
@@ -77,11 +119,6 @@ const Copilot = () => {
                 {isLoading ? 'Loading...' : <Send />}
               </button>
             </div>
-            {response && (
-              <div className="p-2 rounded-md bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-white">
-                {response}
-              </div>
-            )}
           </div>
         </div>
       )}

@@ -1,7 +1,24 @@
+import { PrismaClient } from '@prisma/client'
 import { INSTANCE_TOOLS, LOG_TOOLS, SYSTEM_PROMPT } from '@/prompts'
+
+const prisma = new PrismaClient()
+
 export async function POST(req) {
-  const { prompt } = await req.json()
+  const { prompt, chatId } = await req.json()
   const apiKey = process.env.MISTRAL_API_KEY
+
+  // Store user message
+  try {
+    await prisma.message.create({
+      data: {
+        content: prompt,
+        role: 'user',
+        chatId: chatId,
+      },
+    })
+  } catch (error) {
+    console.error('Failed to store user message:', error)
+  }
 
   // Define the all tools
   const tools = [...INSTANCE_TOOLS, ...LOG_TOOLS]
@@ -72,6 +89,14 @@ export async function POST(req) {
 
     // If no tool call, return the regular response
     const generatedText = data.choices[0].message.content
+    await prisma.message.create({
+      data: {
+        content: generatedText,
+        role: 'assistant',
+        chatId: chatId,
+      },
+    })
+
     return new Response(JSON.stringify({ response: generatedText }), {
       status: 200,
       headers: { 'Content-Type': 'application/json' },
