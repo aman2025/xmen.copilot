@@ -23,34 +23,21 @@ export async function POST() {
 }
 
 // Get chat history
-export async function GET(req) {
-  const searchParams = req.nextUrl.searchParams
-  const chatId = searchParams.get('chatId')
-
-  if (!chatId) {
-    return new Response(JSON.stringify({ error: 'Chat ID is required' }), {
-      status: 400,
-      headers: { 'Content-Type': 'application/json' },
-    })
-  }
-
+export async function GET() {
   try {
-    const messages = await prisma.message.findMany({
-      where: {
-        chatId: chatId,
-      },
+    const chats = await prisma.chat.findMany({
       orderBy: {
-        createdAt: 'asc',
+        createdAt: 'desc',
       },
     })
 
-    return new Response(JSON.stringify({ messages }), {
+    return new Response(JSON.stringify({ chats }), {
       status: 200,
       headers: { 'Content-Type': 'application/json' },
     })
   } catch (error) {
-    console.error('Failed to fetch chat messages:', error)
-    return new Response(JSON.stringify({ error: 'Failed to fetch chat messages' }), {
+    console.error('Failed to fetch chats:', error)
+    return new Response(JSON.stringify({ error: 'Failed to fetch chats' }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' },
     })

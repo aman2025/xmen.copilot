@@ -2,27 +2,31 @@
 
 import React, { useState, useEffect } from 'react'
 import { Send } from 'lucide-react'
+import ChatHistory from './History'
+import Messages from './Messages'
 
 const Copilot = () => {
   const [isOpen, setIsOpen] = useState(false)
+  const [showHistory, setShowHistory] = useState(false)
   const [prompt, setPrompt] = useState('')
   const [messages, setMessages] = useState([])
   const [isLoading, setIsLoading] = useState(false)
   const [chatId, setChatId] = useState(null)
 
+  const createNewChat = async () => {
+    try {
+      const res = await fetch('/api/chat', {
+        method: 'POST',
+      })
+      const data = await res.json()
+      setChatId(data.chatId)
+    } catch (error) {
+      console.error('Failed to create chat:', error)
+    }
+  }
+
   useEffect(() => {
     // Create a new chat when component mounts
-    const createNewChat = async () => {
-      try {
-        const res = await fetch('/api/chat', {
-          method: 'POST',
-        })
-        const data = await res.json()
-        setChatId(data.chatId)
-      } catch (error) {
-        console.error('Failed to create chat:', error)
-      }
-    }
     createNewChat()
   }, [])
 
@@ -67,6 +71,10 @@ const Copilot = () => {
     }
   }
 
+  const handleHistoryToggle = () => {
+    setShowHistory(!showHistory)
+  }
+
   return (
     <div className="fixed bottom-4 right-4 z-50">
       <button
@@ -88,37 +96,51 @@ const Copilot = () => {
       {isOpen && (
         <div className="absolute bottom-20 right-0 w-96 bg-white dark:bg-gray-800 rounded-lg shadow-lg p-4">
           <div className="flex flex-col h-[500px]">
-            <div className="flex-1 overflow-y-auto mb-4 space-y-4">
-              {messages.map((message, index) => (
-                <div
-                  key={index}
-                  className={`p-3 rounded-lg ${
-                    message.role === 'user'
-                      ? 'bg-blue-100 dark:bg-blue-900 ml-auto'
-                      : 'bg-gray-100 dark:bg-gray-700 mr-auto'
-                  } max-w-[80%]`}
-                >
-                  {message.content}
-                </div>
-              ))}
-            </div>
-            <div className="flex items-center space-x-2">
-              <input
-                type="text"
-                placeholder="Ask me anything..."
-                className="flex-1 p-2 border rounded-md text-gray-800 dark:text-white dark:bg-gray-700"
-                value={prompt}
-                onChange={handleInputChange}
-                onKeyPress={(e) => e.key === 'Enter' && handleSubmit()}
-              />
+            <div className="flex justify-end mb-2 space-x-2">
               <button
-                onClick={handleSubmit}
-                className="p-2 rounded-md bg-blue-500 hover:bg-blue-600 text-white disabled:bg-gray-400 disabled:cursor-not-allowed"
-                disabled={isLoading}
+                onClick={() => {
+                  createNewChat()
+                  setMessages([])
+                }}
+                className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full"
+                title="New Chat"
               >
-                {isLoading ? 'Loading...' : <Send />}
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  strokeWidth={1.5}
+                  stroke="currentColor"
+                  className="w-5 h-5"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                </svg>
+              </button>
+              <button
+                onClick={handleHistoryToggle}
+                className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full"
+                title="Chat History"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  strokeWidth={1.5}
+                  stroke="currentColor"
+                  className="w-5 h-5"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+                </svg>
               </button>
             </div>
+            {showHistory ? (
+              <ChatHistory onSelectChat={(selectedChatId) => {
+                setChatId(selectedChatId)
+                setShowHistory(false)
+              }} />
+            ) : (
+              <Messages chatId={chatId} />
+            )}
           </div>
         </div>
       )}
