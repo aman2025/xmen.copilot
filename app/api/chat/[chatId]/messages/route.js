@@ -12,10 +12,10 @@ export async function GET(request, { params }) {
       include: {
         messages: {
           orderBy: {
-            createdAt: 'asc'
-          }
-        }
-      }
+            createdAt: 'asc',
+          },
+        },
+      },
     })
 
     if (!chat) {
@@ -47,7 +47,7 @@ export async function POST(request, { params }) {
 
     // Verify the chat exists
     const chat = await prisma.chat.findUnique({
-      where: { id: chatId }
+      where: { id: chatId },
     })
 
     if (!chat) {
@@ -62,8 +62,8 @@ export async function POST(request, { params }) {
       data: {
         content,
         role,
-        chatId
-      }
+        chatId,
+      },
     })
 
     return new Response(JSON.stringify({ message }), {

@@ -7,14 +7,17 @@ export async function POST(req) {
   const { prompt, chatId } = await req.json()
   const apiKey = process.env.MISTRAL_API_KEY
 
-  // Store user message
+  // Store user message using the existing endpoint
   try {
-    await prisma.message.create({
-      data: {
+    await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/chat/${chatId}/messages`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
         content: prompt,
         role: 'user',
-        chatId: chatId,
-      },
+      }),
     })
   } catch (error) {
     console.error('Failed to store user message:', error)
@@ -87,14 +90,19 @@ export async function POST(req) {
       )
     }
 
-    // If no tool call, return the regular response
+    // If no tool call, store and return the regular response
     const generatedText = data.choices[0].message.content
-    await prisma.message.create({
-      data: {
+
+    // Store assistant message using the existing endpoint
+    await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/chat/${chatId}/messages`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
         content: generatedText,
         role: 'assistant',
-        chatId: chatId,
-      },
+      }),
     })
 
     return new Response(JSON.stringify({ response: generatedText }), {

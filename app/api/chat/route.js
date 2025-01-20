@@ -2,13 +2,18 @@ import { PrismaClient } from '@prisma/client'
 
 const prisma = new PrismaClient()
 
-export async function POST() {
+export async function POST(request) {
   try {
-    // Create a new chat
+    const body = await request.json()
+    const { title } = body
+
+    // Create a new chat with title
     const chat = await prisma.chat.create({
-      data: {},
+      data: {
+        title: title || null, // Allow title to be set during creation
+      },
     })
-    
+
     return new Response(JSON.stringify({ chatId: chat.id }), {
       status: 200,
       headers: { 'Content-Type': 'application/json' },

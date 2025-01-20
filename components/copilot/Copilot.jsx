@@ -7,67 +7,11 @@ import ChatBox from './ChatBox'
 
 const Copilot = () => {
   const [isOpen, setIsOpen] = useState(false)
-  const [showHistory, setShowHistory] = useState(false)
-  const [prompt, setPrompt] = useState('')
-  const [messages, setMessages] = useState([])
-  const [isLoading, setIsLoading] = useState(false)
   const [chatId, setChatId] = useState(null)
   const [view, setView] = useState('chat') // 'chat' or 'history'
 
-  const createNewChat = async () => {
-    try {
-      const res = await fetch('/api/chat', {
-        method: 'POST',
-      })
-      const data = await res.json()
-      setChatId(data.chatId)
-    } catch (error) {
-      console.error('Failed to create chat:', error)
-    }
-  }
-
   const handleToggle = () => {
     setIsOpen(!isOpen)
-  }
-
-  const handleInputChange = (e) => {
-    setPrompt(e.target.value)
-  }
-
-  const handleSubmit = async () => {
-    if (!prompt.trim() || !chatId) return
-
-    setIsLoading(true)
-    // Add user message immediately
-    const userMessage = { role: 'user', content: prompt }
-    setMessages((prev) => [...prev, userMessage])
-    setPrompt('')
-
-    try {
-      const res = await fetch('/api/assistant', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ prompt, chatId }),
-      })
-
-      if (!res.ok) {
-        throw new Error(`HTTP error! status: ${res.status}`)
-      }
-
-      const data = await res.json()
-      // Add assistant message
-      setMessages((prev) => [...prev, { role: 'assistant', content: data.response }])
-    } catch (error) {
-      console.error('Failed to fetch Mistral API:', error)
-      setMessages((prev) => [
-        ...prev,
-        { role: 'assistant', content: 'Failed to get response from Mistral API.' },
-      ])
-    } finally {
-      setIsLoading(false)
-    }
   }
 
   const handleHistoryToggle = () => {
@@ -75,7 +19,6 @@ const Copilot = () => {
   }
 
   const handleNewChat = () => {
-    setMessages([])
     setView('chat')
   }
 
