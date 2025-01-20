@@ -1,7 +1,7 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
-import { Send } from 'lucide-react'
+import React, { useState } from 'react'
+import { Sparkles, Plus, History } from 'lucide-react'
 import ChatHistory from './History'
 import Messages from './Messages'
 
@@ -25,11 +25,6 @@ const Copilot = () => {
     }
   }
 
-  useEffect(() => {
-    // Create a new chat when component mounts
-    createNewChat()
-  }, [])
-
   const handleToggle = () => {
     setIsOpen(!isOpen)
   }
@@ -44,7 +39,7 @@ const Copilot = () => {
     setIsLoading(true)
     // Add user message immediately
     const userMessage = { role: 'user', content: prompt }
-    setMessages(prev => [...prev, userMessage])
+    setMessages((prev) => [...prev, userMessage])
     setPrompt('')
 
     try {
@@ -55,17 +50,20 @@ const Copilot = () => {
         },
         body: JSON.stringify({ prompt, chatId }),
       })
-      
+
       if (!res.ok) {
         throw new Error(`HTTP error! status: ${res.status}`)
       }
-      
+
       const data = await res.json()
       // Add assistant message
-      setMessages(prev => [...prev, { role: 'assistant', content: data.response }])
+      setMessages((prev) => [...prev, { role: 'assistant', content: data.response }])
     } catch (error) {
       console.error('Failed to fetch Mistral API:', error)
-      setMessages(prev => [...prev, { role: 'assistant', content: 'Failed to get response from Mistral API.' }])
+      setMessages((prev) => [
+        ...prev,
+        { role: 'assistant', content: 'Failed to get response from Mistral API.' },
+      ])
     } finally {
       setIsLoading(false)
     }
@@ -79,65 +77,39 @@ const Copilot = () => {
     <div className="fixed bottom-4 right-4 z-50">
       <button
         onClick={handleToggle}
-        className="w-16 h-16 rounded-full bg-blue-500 hover:bg-blue-600 text-white flex items-center justify-center shadow-lg transition-transform duration-200 transform hover:scale-105"
+        className="flex h-14 w-14 transform items-center justify-center rounded-full bg-blue-500 text-white shadow-lg transition-transform duration-200 hover:scale-105 hover:bg-blue-600"
       >
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          fill="none"
-          viewBox="0 0 24 24"
-          strokeWidth="1.5"
-          stroke="currentColor"
-          className="w-8 h-8"
-        >
-          <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 6a7.5 7.5 0 107.5 7.5h-7.5V6z" />
-          <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 10.5H21A7.5 7.5 0 0013.5 3v7.5z" />
-        </svg>
+        <Sparkles className="h-7 w-7" />
       </button>
       {isOpen && (
-        <div className="absolute bottom-20 right-0 w-96 bg-white dark:bg-gray-800 rounded-lg shadow-lg p-4">
-          <div className="flex flex-col h-[500px]">
-            <div className="flex justify-end mb-2 space-x-2">
+        <div className="absolute bottom-20 right-0 w-96 rounded-lg bg-white p-4 shadow-lg dark:bg-gray-800">
+          <div className="flex h-[500px] flex-col">
+            <div className="mb-2 flex justify-end space-x-2">
               <button
                 onClick={() => {
-                  createNewChat()
                   setMessages([])
+                  setShowHistory(false)
                 }}
-                className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full"
+                className="rounded-full p-2 hover:bg-gray-100 dark:hover:bg-gray-700"
                 title="New Chat"
               >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  strokeWidth={1.5}
-                  stroke="currentColor"
-                  className="w-5 h-5"
-                >
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-                </svg>
+                <Plus className="h-5 w-5" />
               </button>
               <button
                 onClick={handleHistoryToggle}
-                className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full"
+                className="rounded-full p-2 hover:bg-gray-100 dark:hover:bg-gray-700"
                 title="Chat History"
               >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  strokeWidth={1.5}
-                  stroke="currentColor"
-                  className="w-5 h-5"
-                >
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
-                </svg>
+                <History className="h-5 w-5" />
               </button>
             </div>
             {showHistory ? (
-              <ChatHistory onSelectChat={(selectedChatId) => {
-                setChatId(selectedChatId)
-                setShowHistory(false)
-              }} />
+              <ChatHistory
+                onSelectChat={(selectedChatId) => {
+                  setChatId(selectedChatId)
+                  setShowHistory(false)
+                }}
+              />
             ) : (
               <Messages chatId={chatId} />
             )}

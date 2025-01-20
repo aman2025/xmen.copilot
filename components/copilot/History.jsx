@@ -21,7 +21,7 @@ const ChatHistory = ({ onSelectChat }) => {
   }, [])
 
   if (isLoading) {
-    return <div className="flex justify-center items-center h-full">Loading...</div>
+    return <div className="flex h-full items-center justify-center">Loading...</div>
   }
 
   if (!chats) {
@@ -31,16 +31,14 @@ const ChatHistory = ({ onSelectChat }) => {
   return (
     <div className="flex-1 overflow-y-auto">
       {chats.length === 0 ? (
-        <div className="text-center text-gray-500 dark:text-gray-400">
-          No chat history found
-        </div>
+        <div className="text-center text-gray-500 dark:text-gray-400">No chat history found</div>
       ) : (
         <div className="space-y-2">
           {chats.map((chat) => (
             <button
               key={chat.id}
               onClick={() => onSelectChat(chat.id)}
-              className="w-full text-left p-3 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+              className="w-full rounded-lg p-3 text-left transition-colors hover:bg-gray-100 dark:hover:bg-gray-700"
             >
               <div className="font-medium">{chat.title || 'Chat ' + chat.id}</div>
               <div className="text-sm text-gray-500 dark:text-gray-400">

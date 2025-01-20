@@ -10,7 +10,7 @@ const Messages = ({ chatId }) => {
   useEffect(() => {
     const fetchMessages = async () => {
       if (!chatId) return
-      
+
       try {
         const res = await fetch(`/api/chat/${chatId}/messages`)
         const data = await res.json()
@@ -44,7 +44,7 @@ const Messages = ({ chatId }) => {
 
       const data = await res.json()
       if (data.message) {
-        setMessages(prev => [...prev, data.message])
+        setMessages((prev) => [...prev, data.message])
         setInput('')
       }
     } catch (error) {
@@ -55,16 +55,16 @@ const Messages = ({ chatId }) => {
   }
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex h-full flex-col">
       {/* Messages list */}
-      <div className="flex-1 overflow-y-auto mb-4 space-y-4">
+      <div className="mb-4 flex-1 space-y-4 overflow-y-auto">
         {messages.map((message) => (
           <div
             key={message.id}
-            className={`p-3 rounded-lg ${
+            className={`rounded-lg p-3 ${
               message.role === 'user'
-                ? 'bg-blue-100 dark:bg-blue-900 ml-auto'
-                : 'bg-gray-100 dark:bg-gray-700 mr-auto'
+                ? 'ml-auto bg-blue-100 dark:bg-blue-900'
+                : 'mr-auto bg-gray-100 dark:bg-gray-700'
             } max-w-[80%]`}
           >
             {message.content}
@@ -79,13 +79,13 @@ const Messages = ({ chatId }) => {
           value={input}
           onChange={(e) => setInput(e.target.value)}
           placeholder="Type your message..."
-          className="flex-1 p-2 border rounded-md text-gray-800 dark:text-white dark:bg-gray-700"
+          className="flex-1 rounded-md border p-2 text-gray-800 dark:bg-gray-700 dark:text-white"
           disabled={isLoading}
         />
         <button
           type="submit"
           disabled={isLoading}
-          className="p-2 rounded-md bg-blue-500 hover:bg-blue-600 text-white disabled:bg-gray-400 disabled:cursor-not-allowed"
+          className="rounded-md bg-blue-500 p-2 text-white hover:bg-blue-600 disabled:cursor-not-allowed disabled:bg-gray-400"
         >
           {isLoading ? 'Sending...' : <Send size={20} />}
         </button>
