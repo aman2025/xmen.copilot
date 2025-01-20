@@ -1,9 +1,9 @@
 'use client'
 
 import React, { useState } from 'react'
-import { Sparkles, Plus, History } from 'lucide-react'
+import { Sparkles, Plus, History, ArrowLeft } from 'lucide-react'
 import ChatHistory from './History'
-import Messages from './Messages'
+import ChatBox from './ChatBox'
 
 const Copilot = () => {
   const [isOpen, setIsOpen] = useState(false)
@@ -12,6 +12,7 @@ const Copilot = () => {
   const [messages, setMessages] = useState([])
   const [isLoading, setIsLoading] = useState(false)
   const [chatId, setChatId] = useState(null)
+  const [view, setView] = useState('chat') // 'chat' or 'history'
 
   const createNewChat = async () => {
     try {
@@ -70,7 +71,16 @@ const Copilot = () => {
   }
 
   const handleHistoryToggle = () => {
-    setShowHistory(!showHistory)
+    setView('history')
+  }
+
+  const handleNewChat = () => {
+    setMessages([])
+    setView('chat')
+  }
+
+  const handleBack = () => {
+    setView('chat')
   }
 
   return (
@@ -84,34 +94,46 @@ const Copilot = () => {
       {isOpen && (
         <div className="absolute bottom-20 right-0 w-96 rounded-lg bg-white p-4 shadow-lg dark:bg-gray-800">
           <div className="flex h-[500px] flex-col">
-            <div className="mb-2 flex justify-end space-x-2">
-              <button
-                onClick={() => {
-                  setMessages([])
-                  setShowHistory(false)
-                }}
-                className="rounded-full p-2 hover:bg-gray-100 dark:hover:bg-gray-700"
-                title="New Chat"
-              >
-                <Plus className="h-5 w-5" />
-              </button>
-              <button
-                onClick={handleHistoryToggle}
-                className="rounded-full p-2 hover:bg-gray-100 dark:hover:bg-gray-700"
-                title="Chat History"
-              >
-                <History className="h-5 w-5" />
-              </button>
+            <div className="mb-2 flex items-center justify-between">
+              {view === 'history' && (
+                <div className="flex items-center">
+                  <button
+                    onClick={handleBack}
+                    className="mr-2 rounded-full p-2 hover:bg-gray-100 dark:hover:bg-gray-700"
+                  >
+                    <ArrowLeft className="h-5 w-5" />
+                  </button>
+                  <span>All Chats</span>
+                </div>
+              )}
+              <div className="ml-auto flex space-x-2">
+                <button
+                  onClick={handleNewChat}
+                  className="rounded-full p-2 hover:bg-gray-100 dark:hover:bg-gray-700"
+                  title="New Chat"
+                >
+                  <Plus className="h-5 w-5" />
+                </button>
+                {view !== 'history' && (
+                  <button
+                    onClick={handleHistoryToggle}
+                    className="rounded-full p-2 hover:bg-gray-100 dark:hover:bg-gray-700"
+                    title="Chat History"
+                  >
+                    <History className="h-5 w-5" />
+                  </button>
+                )}
+              </div>
             </div>
-            {showHistory ? (
+            {view === 'history' ? (
               <ChatHistory
                 onSelectChat={(selectedChatId) => {
                   setChatId(selectedChatId)
-                  setShowHistory(false)
+                  setView('chat')
                 }}
               />
             ) : (
-              <Messages chatId={chatId} />
+              <ChatBox chatId={chatId} />
             )}
           </div>
         </div>
