@@ -1,9 +1,11 @@
 'use client'
 import React, { useState, useEffect } from 'react'
+import useChatStore from '../../store/useChatStore'
 
-const ChatHistory = ({ onSelectChat }) => {
+const ChatHistory = () => {
   const [chats, setChats] = useState([])
   const [isLoading, setIsLoading] = useState(true)
+  const { setCurrentChatId, setView } = useChatStore()
 
   useEffect(() => {
     const fetchChatHistory = async () => {
@@ -29,6 +31,11 @@ const ChatHistory = ({ onSelectChat }) => {
     return <div className="text-center text-gray-500 dark:text-gray-400">Error loading chats</div>
   }
 
+  const handleSelectChat = (chatId) => {
+    setCurrentChatId(chatId)
+    setView('chat')
+  }
+
   return (
     <div className="flex-1 overflow-y-auto">
       {chats.length === 0 ? (
@@ -38,7 +45,7 @@ const ChatHistory = ({ onSelectChat }) => {
           {chats.map((chat) => (
             <button
               key={chat.id}
-              onClick={() => onSelectChat(chat.id)}
+              onClick={() => handleSelectChat(chat.id)}
               className="w-full rounded-lg p-3 text-left transition-colors hover:bg-gray-100 dark:hover:bg-gray-700"
             >
               <div className="font-medium">{chat.title || 'Chat ' + chat.id}</div>

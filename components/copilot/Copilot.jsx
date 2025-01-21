@@ -4,11 +4,11 @@ import React, { useState } from 'react'
 import { Sparkles, Plus, History, ArrowLeft } from 'lucide-react'
 import ChatHistory from './History'
 import ChatBox from './ChatBox'
+import useChatStore from '../../store/useChatStore'
 
 const Copilot = () => {
   const [isOpen, setIsOpen] = useState(false)
-  const [chatId, setChatId] = useState(null)
-  const [view, setView] = useState('chat') // 'chat' or 'history'
+  const { view, setView, setCurrentChatId } = useChatStore()
 
   const handleToggle = () => {
     setIsOpen(!isOpen)
@@ -19,6 +19,7 @@ const Copilot = () => {
   }
 
   const handleNewChat = () => {
+    setCurrentChatId(null)
     setView('chat')
   }
 
@@ -68,16 +69,7 @@ const Copilot = () => {
                 )}
               </div>
             </div>
-            {view === 'history' ? (
-              <ChatHistory
-                onSelectChat={(selectedChatId) => {
-                  setChatId(selectedChatId)
-                  setView('chat')
-                }}
-              />
-            ) : (
-              <ChatBox chatId={chatId} />
-            )}
+            {view === 'history' ? <ChatHistory /> : <ChatBox />}
           </div>
         </div>
       )}
