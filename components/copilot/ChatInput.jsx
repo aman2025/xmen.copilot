@@ -3,8 +3,11 @@
 import { Send } from 'lucide-react'
 import useChatStore from '../../store/useChatStore'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useState } from 'react'
 
-const ChatInput = ({ input, setInput, isLoading, onSubmit }) => {
+const ChatInput = () => {
+  const [input, setInput] = useState('')
+  const [isLoading, setIsLoading] = useState(false)
   const queryClient = useQueryClient()
   // Get currentChatId and setter from Zustand store
   const { currentChatId, setCurrentChatId } = useChatStore()
@@ -20,8 +23,15 @@ const ChatInput = ({ input, setInput, isLoading, onSubmit }) => {
       return response.json()
     },
     onSuccess: (data, variables) => {
-      // Optimistically update the messages cache
-      queryClient.setQueryData(['messages', variables.chatId], (old = []) => [...old, data.message])
+      // Update to handle both single message and multiple messages responses, example: { message: {...} } or { messages: [{...}, {...}] }
+      queryClient.setQueryData(['messages', variables.chatId], (old = []) => {
+        // If API returns multiple messages (user + assistant), add both
+        if (Array.isArray(data.messages)) {
+          return [...old, ...data.messages]
+        }
+        // If API returns single message, add just that one
+        return [...old, data.message]
+      })
     },
   })
 
@@ -29,6 +39,7 @@ const ChatInput = ({ input, setInput, isLoading, onSubmit }) => {
     e.preventDefault()
     if (!input.trim()) return
 
+    setIsLoading(true)
     try {
       // Create a new chat if there's no currentChatId
       let activeChatId = currentChatId
@@ -50,11 +61,11 @@ const ChatInput = ({ input, setInput, isLoading, onSubmit }) => {
         chatId: activeChatId,
       })
 
-      // Call the original onSubmit to handle the AI response
-      await onSubmit(e)
       setInput('')
     } catch (error) {
       console.error('Error:', error)
+    } finally {
+      setIsLoading(false)
     }
   }
 
