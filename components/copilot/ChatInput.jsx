@@ -1,9 +1,29 @@
+'use client'
+
 import { Send } from 'lucide-react'
-import useChatStore from '@/store/useChatStore'
+import useChatStore from '../../store/useChatStore'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 
 const ChatInput = ({ input, setInput, isLoading, onSubmit }) => {
+  const queryClient = useQueryClient()
   // Get currentChatId and setter from Zustand store
   const { currentChatId, setCurrentChatId } = useChatStore()
+
+  // Mutation for creating a new message
+  const createMessageMutation = useMutation({
+    mutationFn: async ({ content, role, chatId }) => {
+      const response = await fetch(`/api/chat/${chatId}/messages`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content, role }),
+      })
+      return response.json()
+    },
+    onSuccess: (data, variables) => {
+      // Optimistically update the messages cache
+      queryClient.setQueryData(['messages', variables.chatId], (old = []) => [...old, data.message])
+    },
+  })
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -11,25 +31,28 @@ const ChatInput = ({ input, setInput, isLoading, onSubmit }) => {
 
     try {
       // Create a new chat if there's no currentChatId
+      let activeChatId = currentChatId
       if (!currentChatId) {
         const response = await fetch('/api/chat', {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            title: input.slice(0, 100), // Use first message as title
-          }),
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ title: input.slice(0, 100) }),
         })
         const { chatId } = await response.json()
-        setCurrentChatId(chatId) // Store chatId in global state
-
-        // Wait for chat creation before submitting the message
-        await onSubmit(e)
-      } else {
-        // If chatId exists, directly submit the message
-        await onSubmit(e)
+        setCurrentChatId(chatId)
+        activeChatId = chatId
       }
+
+      // Optimistically add user message
+      await createMessageMutation.mutateAsync({
+        content: input,
+        role: 'user',
+        chatId: activeChatId,
+      })
+
+      // Call the original onSubmit to handle the AI response
+      await onSubmit(e)
+      setInput('')
     } catch (error) {
       console.error('Error:', error)
     }

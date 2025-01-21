@@ -1,36 +1,24 @@
+'use client'
+
 import { useState } from 'react'
 import Messages from './Messages'
 import ChatInput from './ChatInput'
-import useChatStore from '@/store/useChatStore'
+import useChatStore from '../../store/useChatStore'
 
 const ChatBox = () => {
   const [input, setInput] = useState('')
   const [isLoading, setIsLoading] = useState(false)
-  const { currentChatId } = useChatStore() // Get currentChatId from store
+  const { currentChatId } = useChatStore()
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    if (!input.trim() || !currentChatId) return
+    if (!input.trim()) return
 
     setIsLoading(true)
     try {
-      const res = await fetch(`/api/chat/${currentChatId}/messages`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          content: input,
-          role: 'user',
-        }),
-      })
-
-      const data = await res.json()
-      if (data.message) {
-        setInput('')
-      }
+      setInput('')
     } catch (error) {
-      console.error('Failed to send message:', error)
+      console.error('Error in chat interaction:', error)
     } finally {
       setIsLoading(false)
     }

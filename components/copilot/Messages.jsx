@@ -1,26 +1,22 @@
+'use client'
+
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState, useEffect } from 'react'
 
 const Messages = ({ chatId }) => {
-  const [messages, setMessages] = useState([])
+  const queryClient = useQueryClient()
 
-  // Fetch messages when chatId changes
-  useEffect(() => {
-    const fetchMessages = async () => {
-      if (!chatId) return
-
-      try {
-        const res = await fetch(`/api/chat/${chatId}/messages`)
-        const data = await res.json()
-        if (data.messages) {
-          setMessages(data.messages)
-        }
-      } catch (error) {
-        console.error('Failed to fetch messages:', error)
-      }
-    }
-
-    fetchMessages()
-  }, [chatId])
+  // Use React Query to fetch and cache messages
+  const { data: messages = [] } = useQuery({
+    queryKey: ['messages', chatId],
+    queryFn: async () => {
+      if (!chatId) return []
+      const res = await fetch(`/api/chat/${chatId}/messages`)
+      const data = await res.json()
+      return data.messages || []
+    },
+    enabled: !!chatId, // Only fetch when chatId exists
+  })
 
   return (
     <div className="mb-4 flex-1 space-y-4 overflow-y-auto">

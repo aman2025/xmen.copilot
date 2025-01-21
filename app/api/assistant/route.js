@@ -93,22 +93,31 @@ export async function POST(req) {
     // If no tool call, store and return the regular response
     const generatedText = data.choices[0].message.content
 
-    // Store assistant message using the existing endpoint
-    await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/chat/${chatId}/messages`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        content: generatedText,
-        role: 'assistant',
-      }),
-    })
+    // Store assistant message
+    const messageResponse = await fetch(
+      `${process.env.NEXT_PUBLIC_BASE_URL}/api/chat/${chatId}/messages`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          content: generatedText,
+          role: 'assistant',
+        }),
+      }
+    )
 
-    return new Response(JSON.stringify({ response: generatedText }), {
-      status: 200,
-      headers: { 'Content-Type': 'application/json' },
-    })
+    const messageData = await messageResponse.json()
+
+    return new Response(
+      JSON.stringify({
+        response: generatedText,
+        message: messageData.message, // Include the created message data
+      }),
+      {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      }
+    )
   } catch (error) {
     console.error('Error calling Mistral API:', error)
     return new Response(JSON.stringify({ error: 'Internal server error' }), {
