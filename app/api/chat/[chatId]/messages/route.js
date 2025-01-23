@@ -1,6 +1,6 @@
 import { PrismaClient } from '@prisma/client'
 import { INSTANCE_TOOLS, LOG_TOOLS, SYSTEM_PROMPT } from '@/prompts'
-
+import { createMistral, formatMistralResponse } from '@/utils/ai-sdk/mistral'
 const prisma = new PrismaClient()
 
 export async function GET(request, { params }) {
@@ -76,28 +76,10 @@ export async function POST(request, { params }) {
         { role: 'user', content },
       ]
 
-      const mistralResponse = await fetch('https://api.mistral.ai/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${process.env.MISTRAL_API_KEY}`,
-        },
-        body: JSON.stringify({
-          model: 'mistral-large-latest',
-          messages,
-          tools,
-          tool_choice: 'auto',
-          temperature: 0.7,
-          max_tokens: 1000,
-        }),
-      })
-
-      if (!mistralResponse.ok) {
-        throw new Error('Failed to generate AI response')
-      }
-
-      const aiData = await mistralResponse.json()
-      const aiContent = aiData.choices[0].message.content
+      const mistralResponse = await createMistral(messages, tools)
+      const { content: aiContent, toolCalls } = await formatMistralResponse(mistralResponse)
+      console.log('aiContent:', aiContent)
+      console.log('toolCalls:', toolCalls)
 
       // Create the assistant message
       const assistantMessage = await prisma.message.create({
