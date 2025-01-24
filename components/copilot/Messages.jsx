@@ -1,7 +1,7 @@
 'use client'
 
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { get_weather } from '@/tool-calls'
 import ToolBox from '@/components/ToolBox'
 
@@ -21,15 +21,31 @@ const Messages = ({ chatId }) => {
     enabled: !!chatId,
   })
 
-  const handleToolCall = () => {
-    // This is a test call - you would normally get the tool name from the API
-    const { tool, params } = get_weather('London')
-    setToolState({
-      isOpen: true,
-      tool,
-      params,
-    })
+  const handleToolCall = (toolName, toolArgs) => {
+    console.log('toolName:', toolName)
+    console.log('toolArgs:', toolArgs)
+    try {
+      const parsedArgs = typeof toolArgs === 'string' ? JSON.parse(toolArgs) : toolArgs
+      const toolCall = TOOL_CALLS[toolName](parsedArgs.location)
+
+      setToolState({
+        isOpen: true,
+        tool: toolCall.tool,
+        params: toolCall.params,
+      })
+    } catch (error) {
+      console.error('Failed to process tool call:', error)
+    }
   }
+
+  // Watch for tool_calls in messages
+  useEffect(() => {
+    const lastMessage = messages[messages.length - 1]
+    if (lastMessage?.tool_calls?.[0]) {
+      const toolCall = lastMessage.tool_calls[0]
+      handleToolCall(toolCall.function.name, toolCall.function.arguments)
+    }
+  }, [messages])
 
   const handleToolComplete = (result) => {
     setToolState({ isOpen: false, tool: null, params: null })
@@ -57,9 +73,6 @@ const Messages = ({ chatId }) => {
             {message?.content}
           </div>
         ))}
-        <button onClick={handleToolCall} className="rounded bg-blue-500 px-4 py-2 text-white">
-          Call Tool
-        </button>
       </div>
       <ToolBox
         isOpen={toolState.isOpen}
