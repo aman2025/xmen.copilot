@@ -2,7 +2,7 @@
 
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState, useEffect } from 'react'
-import { get_weather } from '@/tool-calls'
+import { TOOL_CALLS } from '@/tool-calls'
 import ToolBox from '@/components/ToolBox'
 
 const Messages = ({ chatId }) => {
