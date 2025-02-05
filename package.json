@@ -23,7 +23,9 @@
     "react-dom": "18.2.0",
     "tailwind-merge": "^2.2.1",
     "tailwindcss-animate": "^1.0.7",
-    "zustand": "^5.0.1"
+    "zustand": "^5.0.1",
+    "dotenv": "^16.4.7",
+    "openai": "^4.52.7"
   },
   "devDependencies": {
     "autoprefixer": "^10.4.20",
