@@ -22,16 +22,36 @@ const ChatInput = () => {
       })
       return response.json()
     },
-    onSuccess: (data, variables) => {
-      // Update to handle both single message and multiple messages responses, example: { message: {...} } or { messages: [{...}, {...}] }
-      queryClient.setQueryData(['messages', variables.chatId], (old = []) => {
-        // If API returns multiple messages (user + assistant), add both
-        if (Array.isArray(data.messages)) {
-          return [...old, ...data.messages]
-        }
-        // If API returns single message, add just that one
-        return [...old, data.message]
-      })
+    onMutate: async ({ content, role, chatId }) => {
+      // Cancel any outgoing refetches
+      await queryClient.cancelQueries({ queryKey: ['messages', chatId] })
+
+      // Snapshot the previous value
+      const previousMessages = queryClient.getQueryData(['messages', chatId]) || []
+
+      // Optimistically update to the new value
+      queryClient.setQueryData(
+        ['messages', chatId],
+        [
+          ...previousMessages,
+          {
+            id: 'temp-' + Date.now(),
+            content,
+            role,
+            createdAt: new Date().toISOString(),
+          },
+        ]
+      )
+
+      return { previousMessages }
+    },
+    onError: (err, variables, context) => {
+      // If the mutation fails, use the context to roll back
+      queryClient.setQueryData(['messages', variables.chatId], context.previousMessages)
+    },
+    onSettled: (data, error, variables) => {
+      // Always refetch after error or success
+      queryClient.invalidateQueries({ queryKey: ['messages', variables.chatId] })
     },
   })
 
@@ -50,11 +70,13 @@ const ChatInput = () => {
           body: JSON.stringify({ title: input.slice(0, 100) }),
         })
         const { chatId } = await response.json()
-        setCurrentChatId(chatId)
         activeChatId = chatId
+        setCurrentChatId(chatId)
+
+        // Initialize the messages cache for the new chat
+        queryClient.setQueryData(['messages', chatId], [])
       }
 
-      // Optimistically add user message
       await createMessageMutation.mutateAsync({
         content: input,
         role: 'user',

@@ -1,6 +1,6 @@
 'use client'
 
-import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query'
 import { useState, useEffect } from 'react'
 import { TOOL_CALLS } from '@/tool-calls'
 import ToolBox from '@/components/ToolBox'
@@ -18,7 +18,44 @@ const Messages = ({ chatId }) => {
       const data = await res.json()
       return data.messages || []
     },
-    enabled: !!chatId,
+    enabled: !!chatId, // Ensure immediate refetch
+  })
+
+  // Mutation for sending messages
+  const { mutate: sendMessage } = useMutation({
+    mutationFn: async ({ content, role }) => {
+      const res = await fetch(`/api/chat/${chatId}/messages`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content, role }),
+      })
+      const data = await res.json()
+      return data
+    },
+    onMutate: async (newMessage) => {
+      await queryClient.cancelQueries({ queryKey: ['messages', chatId] })
+      const previousMessages = queryClient.getQueryData(['messages', chatId]) || []
+
+      // Always create a new array with the new message
+      const updatedMessages = [
+        ...previousMessages,
+        {
+          ...newMessage,
+          id: 'temp-' + Date.now(),
+          createdAt: new Date().toISOString(),
+        },
+      ]
+
+      queryClient.setQueryData(['messages', chatId], updatedMessages)
+
+      return { previousMessages }
+    },
+    onError: (err, newMessage, context) => {
+      queryClient.setQueryData(['messages', chatId], context.previousMessages)
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['messages', chatId] })
+    },
   })
 
   const handleToolCall = (toolName, toolArgs) => {
