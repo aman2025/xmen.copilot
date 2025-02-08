@@ -31,7 +31,7 @@ export const formatMistralResponse = async (response) => {
   const isToolCall = response.choices[0].finish_reason === 'tool_calls'
 
   return {
-    content: isToolCall ? null : message.content,
+    content: isToolCall ? '' : message.content,
     toolCalls: isToolCall ? message.tool_calls : [],
   }
 }
