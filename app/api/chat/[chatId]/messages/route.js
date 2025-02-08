@@ -78,13 +78,11 @@ export async function POST(request, { params }) {
 
       const mistralResponse = await createMistral(messages, tools)
       const { content: aiContent, toolCalls } = await formatMistralResponse(mistralResponse)
-      console.log('toolCalls:', toolCalls)
       // Format assistant content based on toolCalls
       const formattedContent =
-        !aiContent && toolCalls?.length > 0
-          ? `calling ${toolCalls[0].function.name}(${toolCalls[0].function.arguments})`
+        toolCalls.length > 0
+          ? `calling ${toolCalls[0].function.name}(${JSON.stringify(toolCalls[0].function.arguments)})`
           : aiContent
-      console.log('formattedContent:', formattedContent)
       // Create the assistant message with tool_calls
       const assistantMessage = await prisma.message.create({
         data: {
