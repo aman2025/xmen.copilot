@@ -44,11 +44,18 @@ export async function POST(request, { params }) {
 
   try {
     const body = await request.json()
-    const { content, role } = body
+    const { content, role, toolCallId } = body
 
-    // Verify the chat exists
+    // Verify the chat exists and get previous messages for context
     const chat = await prisma.chat.findUnique({
       where: { id: chatId },
+      include: {
+        messages: {
+          orderBy: {
+            createdAt: 'asc',
+          },
+        },
+      },
     })
 
     if (!chat) {
@@ -58,22 +65,30 @@ export async function POST(request, { params }) {
       })
     }
 
-    // Create the user message
-    const userMessage = await prisma.message.create({
+    // Create the message with optional tool call fields
+    const newMessage = await prisma.message.create({
       data: {
         content,
         role,
+        toolCallId,
         chatId,
       },
     })
 
-    // If it's a user message, generate AI response
-    if (role === 'user') {
-      // Call Mistral API
+    // If it's a user message or tool response, generate AI response
+    if (role === 'user' || role === 'tool') {
+      // Prepare context with all previous messages
       const tools = [...INSTANCE_TOOLS, ...LOG_TOOLS]
       const messages = [
         { role: 'system', content: SYSTEM_PROMPT },
-        { role: 'user', content },
+        ...chat.messages.map((msg) => ({
+          role: msg.role,
+          content: msg.content,
+          ...(msg.toolCallId && { tool_call_id: msg.toolCallId }),
+          ...(msg.toolCalls && { tool_calls: msg.toolCalls }),
+        })),
+        // For tool responses, include the tool response with its tool_call_id
+        role === 'tool' ? { role, content, tool_call_id: toolCallId } : { role, content },
       ]
 
       const mistralResponse = await createMistral(messages, tools)
@@ -84,22 +99,18 @@ export async function POST(request, { params }) {
         data: {
           content: aiContent,
           role: 'assistant',
+          toolCalls: toolCalls.length ? toolCalls : undefined,
           chatId,
         },
       })
 
-      // Only include tool_calls in the response if they exist
-      const responseMessage = toolCalls?.length
-        ? Object.assign(assistantMessage, { tool_calls: toolCalls })
-        : assistantMessage
-
-      return new Response(JSON.stringify({ messages: [responseMessage] }), {
+      return new Response(JSON.stringify({ messages: [assistantMessage] }), {
         status: 200,
         headers: { 'Content-Type': 'application/json' },
       })
     }
 
-    return new Response(JSON.stringify({ message: userMessage }), {
+    return new Response(JSON.stringify({ messages: [newMessage] }), {
       status: 200,
       headers: { 'Content-Type': 'application/json' },
     })
