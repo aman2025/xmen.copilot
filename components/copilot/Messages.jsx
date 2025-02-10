@@ -1,7 +1,7 @@
 'use client'
 
 import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query'
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { TOOL_CALLS } from '@/tool-calls'
 import ToolBox from '@/components/ToolBox'
 
@@ -9,16 +9,30 @@ const Messages = ({ chatId }) => {
   const [toolState, setToolState] = useState({ isOpen: false, tool: null, params: null })
   const queryClient = useQueryClient()
 
-  // Add error handling and loading state
+  // Filter out tool-related messages and process tool calls
+  const filterAndProcessMessages = (messages) => {
+    return messages.filter((message) => {
+      // Process tool calls from assistant messages
+      if (message.role === 'assistant' && message.toolCalls?.length > 0) {
+        const toolCall = message.toolCalls[0]
+        handleToolCall(toolCall.function.name, toolCall.function.arguments)
+        return false // Don't show assistant messages with tool calls
+      }
+      // Filter out tool response messages
+      return message.role !== 'tool'
+    })
+  }
+
+  // Update the query to filter messages
   const { data: messages = [], isLoading } = useQuery({
     queryKey: ['messages', chatId],
     queryFn: async () => {
       if (!chatId) return []
       const res = await fetch(`/api/chat/${chatId}/messages`)
       const data = await res.json()
-      return data.messages || []
+      return filterAndProcessMessages(data.messages || [])
     },
-    enabled: !!chatId, // Ensure immediate refetch
+    enabled: !!chatId,
   })
 
   // Mutation for sending messages
@@ -30,6 +44,7 @@ const Messages = ({ chatId }) => {
         body: JSON.stringify({ content, role }),
       })
       const data = await res.json()
+      console.log('data: ', data)
       return data
     },
     onMutate: async (newMessage) => {
@@ -74,15 +89,6 @@ const Messages = ({ chatId }) => {
       console.error('Failed to process tool call:', error)
     }
   }
-
-  // Watch for tool_calls in messages
-  useEffect(() => {
-    const lastMessage = messages[messages.length - 1]
-    if (lastMessage?.tool_calls?.[0]) {
-      const toolCall = lastMessage.tool_calls[0]
-      handleToolCall(toolCall.function.name, toolCall.function.arguments)
-    }
-  }, [messages])
 
   const handleToolComplete = (result) => {
     setToolState({ isOpen: false, tool: null, params: null })
