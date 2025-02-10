@@ -6,7 +6,12 @@ import { TOOL_CALLS } from '@/tool-calls'
 import ToolBox from '@/components/ToolBox'
 
 const Messages = ({ chatId }) => {
-  const [toolState, setToolState] = useState({ isOpen: false, tool: null, params: null })
+  const [toolState, setToolState] = useState({
+    isOpen: false,
+    tool: null,
+    params: null,
+    toolCallId: null,
+  })
   const queryClient = useQueryClient()
 
   // Filter out tool-related messages and process tool calls
@@ -15,7 +20,7 @@ const Messages = ({ chatId }) => {
       // Process tool calls from assistant messages
       if (message.role === 'assistant' && message.toolCalls?.length > 0) {
         const toolCall = message.toolCalls[0]
-        handleToolCall(toolCall.function.name, toolCall.function.arguments)
+        handleToolCall(toolCall.function.name, toolCall.function.arguments, message)
         return false // Don't show assistant messages with tool calls
       }
       // Filter out tool response messages
@@ -37,11 +42,11 @@ const Messages = ({ chatId }) => {
 
   // Mutation for sending messages
   const { mutate: sendMessage } = useMutation({
-    mutationFn: async ({ content, role }) => {
+    mutationFn: async ({ content, role, toolCallId }) => {
       const res = await fetch(`/api/chat/${chatId}/messages`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ content, role }),
+        body: JSON.stringify({ content, role, toolCallId }),
       })
       const data = await res.json()
       console.log('data: ', data)
@@ -73,7 +78,7 @@ const Messages = ({ chatId }) => {
     },
   })
 
-  const handleToolCall = (toolName, toolArgs) => {
+  const handleToolCall = (toolName, toolArgs, message) => {
     console.log('toolName:', toolName)
     console.log('toolArgs:', toolArgs)
     try {
@@ -84,6 +89,7 @@ const Messages = ({ chatId }) => {
         isOpen: true,
         tool: toolCall.tool,
         params: toolCall.params,
+        toolCallId: message.toolCalls[0].id, // Store the toolCallId
       })
     } catch (error) {
       console.error('Failed to process tool call:', error)
@@ -91,11 +97,19 @@ const Messages = ({ chatId }) => {
   }
 
   const handleToolComplete = (result) => {
-    setToolState({ isOpen: false, tool: null, params: null })
-    // Handle the result as needed
-    console.log('Tool completed with result:', result)
-  }
+    // Stringify the result object before sending
+    const stringifiedResult = JSON.stringify(result)
 
+    // Send message with the stringified content
+    sendMessage({
+      content: stringifiedResult,
+      role: 'tool',
+      toolCallId: toolState.toolCallId,
+    })
+
+    // Then reset the tool state
+    setToolState({ isOpen: false, tool: null, params: null, toolCallId: null })
+  }
   // Add loading state and null check for messages
   if (isLoading) {
     return <div className="flex-1">Loading messages...</div>
@@ -117,12 +131,14 @@ const Messages = ({ chatId }) => {
           </div>
         ))}
       </div>
-      <ToolBox
-        isOpen={toolState.isOpen}
-        onClose={handleToolComplete}
-        tool={toolState.tool}
-        params={toolState.params}
-      />
+      {toolState.isOpen && (
+        <ToolBox
+          isOpen={true}
+          onClose={handleToolComplete}
+          tool={toolState.tool}
+          params={toolState.params}
+        />
+      )}
     </>
   )
 }
