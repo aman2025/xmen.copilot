@@ -20,7 +20,15 @@ const Messages = ({ chatId }) => {
       // Process tool calls from assistant messages
       if (message.role === 'assistant' && message.toolCalls?.length > 0) {
         const toolCall = message.toolCalls[0]
-        handleToolCall(toolCall.function.name, toolCall.function.arguments, message)
+        // Check if there's already a tool response for this toolCallId
+        const hasToolResponse = messages.some(
+          (m) => m.role === 'tool' && m.toolCallId === toolCall.id
+        )
+        
+        // Only handle tool call if there's no existing tool response
+        if (!hasToolResponse) {
+          handleToolCall(toolCall.function.name, toolCall.function.arguments, message)
+        }
         return false // Don't show assistant messages with tool calls
       }
       // Filter out tool response messages
@@ -97,17 +105,22 @@ const Messages = ({ chatId }) => {
   }
 
   const handleToolComplete = (result) => {
-    // Stringify the result object before sending
-    const stringifiedResult = JSON.stringify(result)
+    // Check if there's already a tool response for this toolCallId
+    const hasToolResponse = queryClient
+      .getQueryData(['messages', chatId])
+      ?.some((m) => m.role === 'tool' && m.toolCallId === toolState.toolCallId)
 
-    // Send message with the stringified content
-    sendMessage({
-      content: stringifiedResult,
-      role: 'tool',
-      toolCallId: toolState.toolCallId,
-    })
+    if (!hasToolResponse) {
+      // Only send message if there's no existing tool response
+      const stringifiedResult = JSON.stringify(result)
+      sendMessage({
+        content: stringifiedResult,
+        role: 'tool',
+        toolCallId: toolState.toolCallId,
+      })
+    }
 
-    // Then reset the tool state
+    // Reset the tool state regardless
     setToolState({ isOpen: false, tool: null, params: null, toolCallId: null })
   }
   // Add loading state and null check for messages
