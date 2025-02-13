@@ -22,4 +22,25 @@ export const INSTANCE_TOOLS = [
       },
     },
   },
+  {
+    type: 'function',
+    function: {
+      name: 'get_flight_info',
+      description: 'Returns information about the next flight between two cities. This includes the name of the airline, flight number and the date and time of the next flight',
+      parameters: {
+        type: 'object',
+        properties: {
+          originCity: {
+            type: 'string',
+            description: 'The name of the city where the flight originates',
+          },
+          destinationCity: {
+            type: 'string',
+            description: 'The flight destination city',
+          },
+        },
+        required: ['originCity', 'destinationCity'],
+      },
+    },
+  },
 ]
