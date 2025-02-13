@@ -2,7 +2,6 @@
 
 import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query'
 import { useState } from 'react'
-import { TOOL_CALLS } from '@/tool-calls'
 import ToolBox from '@/components/ToolBox'
 
 const Messages = ({ chatId }) => {
@@ -89,12 +88,11 @@ const Messages = ({ chatId }) => {
   const handleToolCall = (toolName, toolArgs, message) => {
     try {
       const parsedArgs = typeof toolArgs === 'string' ? JSON.parse(toolArgs) : toolArgs
-      const toolCall = TOOL_CALLS[toolName](parsedArgs)
-
+      
       setToolState({
         isOpen: true,
-        tool: toolCall.tool,
-        params: toolCall.params,
+        tool: toolName,
+        params: parsedArgs,
         toolCallId: message.toolCalls[0].id,
       })
     } catch (error) {
