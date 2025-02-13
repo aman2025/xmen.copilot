@@ -24,7 +24,7 @@ const Messages = ({ chatId }) => {
         const hasToolResponse = messages.some(
           (m) => m.role === 'tool' && m.toolCallId === toolCall.id
         )
-        
+
         // Only handle tool call if there's no existing tool response
         if (!hasToolResponse) {
           handleToolCall(toolCall.function.name, toolCall.function.arguments, message)
@@ -87,17 +87,15 @@ const Messages = ({ chatId }) => {
   })
 
   const handleToolCall = (toolName, toolArgs, message) => {
-    console.log('toolName:', toolName)
-    console.log('toolArgs:', toolArgs)
     try {
       const parsedArgs = typeof toolArgs === 'string' ? JSON.parse(toolArgs) : toolArgs
-      const toolCall = TOOL_CALLS[toolName](parsedArgs.location)
+      const toolCall = TOOL_CALLS[toolName](parsedArgs)
 
       setToolState({
         isOpen: true,
         tool: toolCall.tool,
         params: toolCall.params,
-        toolCallId: message.toolCalls[0].id, // Store the toolCallId
+        toolCallId: message.toolCalls[0].id,
       })
     } catch (error) {
       console.error('Failed to process tool call:', error)

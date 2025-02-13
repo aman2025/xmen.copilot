@@ -1,6 +1,6 @@
 'use client'
 
-const GetWeather = ({ params, onComplete }) => {
+const get_weather = ({ params, onComplete }) => {
   const { location } = params || {}
 
   return (
@@ -16,4 +16,4 @@ const GetWeather = ({ params, onComplete }) => {
   )
 }
 
-export default GetWeather
+export default get_weather
