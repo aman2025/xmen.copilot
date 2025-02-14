@@ -1,0 +1,22 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "copilot",
+      "runtimeExecutable": "${env:HOME}/.nvm/versions/node/v20.16.0/bin/node",
+      "program": "${workspaceFolder}/node_modules/next/dist/bin/next",
+      "args": ["dev"],
+      "env": {
+        "NEXT_DISABLE_VERSION_CHECK": "1",
+        "NODE_TLS_REJECT_UNAUTHORIZED": "0",
+        "NEXT_TELEMETRY_DISABLED": "1",
+        "HTTP_PROXY": "",
+        "HTTPS_PROXY": ""
+      },
+      "console": "integratedTerminal",
+      "internalConsoleOptions": "neverOpen"
+    }
+  ]
+}
