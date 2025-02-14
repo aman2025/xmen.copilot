@@ -1,28 +1,31 @@
 'use client'
 
-import React, { forwardRef, useImperativeHandle } from 'react'
+import React, { useEffect } from 'react'
 
-const get_weather = forwardRef(({ params, onComplete }, ref) => {
+const get_weather = ({ params, onComplete, registerActions }) => {
   const { location } = params || {}
 
-  // Expose methods to parent
-  useImperativeHandle(ref, () => ({
-    handleAccept: () => {
-      const weatherData = { success: true, data: { temperature: '22°C' } }
-      onComplete(weatherData)
-    },
-    handleReject: () => {
-      onComplete(false)
-    },
-  }))
+  const handleAccept = () => {
+    const weatherData = { success: true, data: { temperature: '22°C' } }
+    onComplete(weatherData)
+  }
+
+  const handleReject = () => {
+    onComplete(false)
+  }
+
+  // Register the action callbacks when the component mounts
+  useEffect(() => {
+    if (registerActions) {
+      registerActions({ handleAccept, handleReject })
+    }
+  }, [registerActions])
 
   return (
     <div className="flex h-full flex-col">
       <div>Getting weather for location: {location}</div>
     </div>
   )
-})
-
-get_weather.displayName = 'get_weather'
+}
 
 export default get_weather

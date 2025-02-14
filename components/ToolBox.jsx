@@ -1,32 +1,36 @@
 'use client'
 
-import React from 'react'
+import React, { useState } from 'react'
 import { Dialog, DialogContent, DialogFooter, DialogTitle } from '@/components/ui/dialog'
 import { VisuallyHidden } from '@radix-ui/react-visually-hidden'
 import { Button } from '@/components/ui/button'
 
 const ToolBox = ({ isOpen, onClose, tool, params }) => {
-  const toolRef = React.useRef(null)
+  const [toolActions, setToolActions] = useState({})
 
   const renderTool = () => {
     if (!tool) return null
 
-    // Directly import the component based on tool name
+    // Directly import the component based on tool name and pass registerActions prop
     const ToolComponent = require(`@/tool-calls/${tool}`).default
-    return <ToolComponent ref={toolRef} params={params} onComplete={(result) => onClose(result)} />
+    return (
+      <ToolComponent
+        params={params}
+        onComplete={(result) => onClose(result)}
+        registerActions={setToolActions}
+      />
+    )
   }
 
   const handleAccept = () => {
-    // Trigger the tool component's handleAccept
-    if (toolRef.current?.handleAccept) {
-      toolRef.current.handleAccept()
+    if (toolActions.handleAccept) {
+      toolActions.handleAccept()
     }
   }
 
   const handleReject = () => {
-    // Trigger the tool component's handleReject
-    if (toolRef.current?.handleReject) {
-      toolRef.current.handleReject()
+    if (toolActions.handleReject) {
+      toolActions.handleReject()
     }
   }
 
