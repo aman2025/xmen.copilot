@@ -88,7 +88,7 @@ const Messages = ({ chatId }) => {
   const handleToolCall = (toolName, toolArgs, message) => {
     try {
       const parsedArgs = typeof toolArgs === 'string' ? JSON.parse(toolArgs) : toolArgs
-      
+
       setToolState({
         isOpen: true,
         tool: toolName,
@@ -127,21 +127,22 @@ const Messages = ({ chatId }) => {
   return (
     <>
       <div className="mb-4 flex-1 space-y-4 overflow-y-auto">
-        {messages?.map((message) => (
-          // Only render messages that are not tool messages
-          message?.role !== 'tool' && (
-            <div
-              key={message?.id}
-              className={`rounded-lg p-3 ${
-                message?.role === 'user'
-                  ? 'ml-auto bg-blue-100 dark:bg-blue-900'
-                  : 'mr-auto bg-gray-100 dark:bg-gray-700'
-              } max-w-[80%]`}
-            >
-              {message?.content}
-            </div>
-          )
-        ))}
+        {messages?.map(
+          (message) =>
+            // Only render messages that are not tool messages
+            message?.role !== 'tool' && (
+              <div
+                key={message?.id}
+                className={`rounded-lg p-3 ${
+                  message?.role === 'user'
+                    ? 'ml-auto bg-blue-100 dark:bg-blue-900'
+                    : 'mr-auto bg-gray-100 dark:bg-gray-700'
+                } max-w-[80%]`}
+              >
+                {message?.content}
+              </div>
+            )
+        )}
       </div>
       {toolState.isOpen && (
         <ToolBox

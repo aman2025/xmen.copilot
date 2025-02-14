@@ -1,5 +1,7 @@
 'use client'
 
+import { Button } from '@/components/ui/button'
+
 const get_flight_info = ({ params, onComplete }) => {
   const { originCity, destinationCity } = params || {}
 
@@ -12,8 +14,8 @@ const get_flight_info = ({ params, onComplete }) => {
       flight_date: 'May 7th, 2024',
       flight_time: '10:00AM',
       origin: originCity,
-      destination: destinationCity
-    }
+      destination: destinationCity,
+    },
   }
 
   return (
@@ -23,14 +25,11 @@ const get_flight_info = ({ params, onComplete }) => {
         <div className="text-sm text-gray-600">From: {originCity}</div>
         <div className="text-sm text-gray-600">To: {destinationCity}</div>
       </div>
-      <button
-        onClick={() => onComplete(mockFlightData)}
-        className="mt-4 rounded bg-blue-500 px-4 py-2 text-white hover:bg-blue-600 transition-colors"
-      >
+      <Button onClick={() => onComplete(mockFlightData)} className="w-200 rounded-[10px]">
         Complete Search
-      </button>
+      </Button>
     </div>
   )
 }
 
-export default get_flight_info 
+export default get_flight_info
