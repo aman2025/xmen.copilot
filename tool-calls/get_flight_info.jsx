@@ -1,8 +1,8 @@
 'use client'
 
-import { Button } from '@/components/ui/button'
+import React, { useEffect } from 'react'
 
-const get_flight_info = ({ params, onComplete }) => {
+const get_flight_info = ({ params, onComplete, registerActions }) => {
   const { originCity, destinationCity } = params || {}
 
   // Mock flight data - in a real application, this would come from an API
@@ -18,6 +18,21 @@ const get_flight_info = ({ params, onComplete }) => {
     },
   }
 
+  const handleAccept = () => {
+    onComplete(mockFlightData)
+  }
+
+  const handleReject = () => {
+    onComplete(false)
+  }
+
+  // Register the action callbacks when the component mounts
+  useEffect(() => {
+    if (registerActions) {
+      registerActions({ handleAccept, handleReject })
+    }
+  }, [registerActions])
+
   return (
     <div className="flex h-full flex-col">
       <div className="space-y-2">
@@ -25,9 +40,6 @@ const get_flight_info = ({ params, onComplete }) => {
         <div className="text-sm text-gray-600">From: {originCity}</div>
         <div className="text-sm text-gray-600">To: {destinationCity}</div>
       </div>
-      <Button onClick={() => onComplete(mockFlightData)} className="w-200 rounded-[10px]">
-        Complete Search
-      </Button>
     </div>
   )
 }
