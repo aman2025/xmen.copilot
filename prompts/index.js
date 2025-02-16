@@ -18,16 +18,20 @@ export const SYSTEM_PROMPT = `You are a friendly AI assistant for a application 
    <name>get_instances</name>
    <description>get all instances provides a list of all instances contain fields: id, instanceId, instanceName, serviceName, ip, port, instanceStatus, statusDesc</description>
 	 <parameters>
-		<name>instance_id</name>
-		<description>the id of the instance to get</description>
+		<parameter>
+			<name>instance_id</name>
+			<description>the id of the instance to get</description>
+		</parameter>
 	 </parameters>
  </tool>
  <tool>
    <name>start_instance</name>
-   <description>start an instance</description>
+   <description>start an instance when the instance is stopped</description>
 	 <parameters>
-		<name>instance_id</name>
-		<description>the id of the instance to start</description>
+		<parameter>
+			<name>instance_id</name>
+			<description>the id of the instance to start</description>
+		</parameter>
 	 </parameters>
  </tool>
 </tools>
