@@ -6,6 +6,8 @@ const useChatStore = create((set) => ({
   view: 'chat',
   setCurrentChatId: (id) => set({ currentChatId: id }),
   setView: (view) => set({ view }),
+  messageInput: '',
+  setMessageInput: (text) => set({ messageInput: text }),
 }))
 
 export default useChatStore

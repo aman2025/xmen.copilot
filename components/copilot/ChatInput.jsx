@@ -6,11 +6,10 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 
 const ChatInput = () => {
-  const [input, setInput] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const queryClient = useQueryClient()
-  // Get currentChatId and setter from Zustand store
-  const { currentChatId, setCurrentChatId } = useChatStore()
+  // Get currentChatId and message input from Zustand store
+  const { currentChatId, setCurrentChatId, messageInput, setMessageInput } = useChatStore()
 
   // Mutation for creating a new message
   const createMessageMutation = useMutation({
@@ -57,7 +56,7 @@ const ChatInput = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    if (!input.trim()) return
+    if (!messageInput.trim()) return
 
     setIsLoading(true)
     try {
@@ -67,7 +66,7 @@ const ChatInput = () => {
         const response = await fetch('/api/chat', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ title: input.slice(0, 100) }),
+          body: JSON.stringify({ title: messageInput.slice(0, 100) }),
         })
         const { chatId } = await response.json()
         activeChatId = chatId
@@ -78,12 +77,12 @@ const ChatInput = () => {
       }
 
       await createMessageMutation.mutateAsync({
-        content: input,
+        content: messageInput,
         role: 'user',
         chatId: activeChatId,
       })
 
-      setInput('')
+      setMessageInput('')
     } catch (error) {
       console.error('Error:', error)
     } finally {
@@ -95,8 +94,8 @@ const ChatInput = () => {
     <form onSubmit={handleSubmit} className="flex items-center space-x-2">
       <input
         type="text"
-        value={input}
-        onChange={(e) => setInput(e.target.value)}
+        value={messageInput}
+        onChange={(e) => setMessageInput(e.target.value)}
         placeholder="Type your message..."
         className="flex-1 rounded-md border p-2 text-gray-800 dark:bg-gray-700 dark:text-white"
         disabled={isLoading}

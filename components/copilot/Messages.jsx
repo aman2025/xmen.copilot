@@ -5,6 +5,7 @@ import { useState } from 'react'
 import ToolBox from '@/components/ToolBox'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
+import useChatStore from '../../store/useChatStore'
 
 const Messages = ({ chatId }) => {
   const [toolState, setToolState] = useState({
@@ -14,6 +15,7 @@ const Messages = ({ chatId }) => {
     toolCallId: null,
   })
   const queryClient = useQueryClient()
+  const { setMessageInput } = useChatStore()
 
   // Filter out tool-related messages and process tool calls
   const filterAndProcessMessages = (messages) => {
@@ -121,6 +123,28 @@ const Messages = ({ chatId }) => {
     // Reset the tool state regardless
     setToolState({ isOpen: false, tool: null, params: null, toolCallId: null })
   }
+
+  // Add custom components for ReactMarkdown
+  const components = {
+    a: ({ href, children }) => {
+      if (href === 'send_to_message_box') {
+        return (
+          <a
+            href="#"
+            onClick={(e) => {
+              e.preventDefault()
+              setMessageInput(children.toString())
+            }}
+            className="text-blue-500 hover:text-blue-600 cursor-pointer underline"
+          >
+            {children}
+          </a>
+        )
+      }
+      return <a href={href}>{children}</a>
+    }
+  }
+
   // Add loading state and null check for messages
   if (isLoading) {
     return <div className="flex-1">Loading messages...</div>
@@ -144,6 +168,7 @@ const Messages = ({ chatId }) => {
                   <ReactMarkdown 
                     remarkPlugins={[remarkGfm]}
                     className="prose dark:prose-invert max-w-none"
+                    components={components}
                   >
                     {message?.content}
                   </ReactMarkdown>
