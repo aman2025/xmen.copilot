@@ -26,14 +26,13 @@ const get_weather = ({ params, onComplete, registerActions }) => {
   }, [])
 
   const handleAccept = () => {
-    // Include instance data in the weather response if available
-    const instanceData = {
+    // Fix typo in 'result' and ensure we're using current instanceData
+    const resultMessage = {
       success: true,
       data: {
-        reuslt: "get instances success",
+        result: instanceData,
       },
     }
-    const resultMessage = "just show getting instances success"
     onComplete(resultMessage)
   }
 
@@ -41,12 +40,12 @@ const get_weather = ({ params, onComplete, registerActions }) => {
     onComplete(false)
   }
 
-  // Register the action callbacks when the component mounts
+  // Update the registerActions effect to include instanceData in dependencies
   useEffect(() => {
     if (registerActions) {
       registerActions({ handleAccept, handleReject })
     }
-  }, [registerActions])
+  }, [registerActions, instanceData])
 
   return (
     <div className="flex h-full flex-col">
