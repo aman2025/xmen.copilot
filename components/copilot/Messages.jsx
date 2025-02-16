@@ -3,6 +3,8 @@
 import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query'
 import { useState } from 'react'
 import ToolBox from '@/components/ToolBox'
+import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
 
 const Messages = ({ chatId }) => {
   const [toolState, setToolState] = useState({
@@ -129,17 +131,25 @@ const Messages = ({ chatId }) => {
       <div className="mb-4 flex-1 space-y-4 overflow-y-auto">
         {messages?.map(
           (message) =>
-            // Only render messages that are not tool messages
             message?.role !== 'tool' && (
               <div
                 key={message?.id}
-                className={`rounded-lg p-3 ${
+                className={`p-3 ${
                   message?.role === 'user'
-                    ? 'ml-auto bg-blue-100 dark:bg-blue-900'
-                    : 'mr-auto bg-gray-100 dark:bg-gray-700'
-                } max-w-[80%]`}
+                    ? 'ml-auto rounded-lg bg-blue-100 dark:bg-blue-900 max-w-[80%]'
+                    : 'mr-auto'
+                }`}
               >
-                {message?.content}
+                {message?.role === 'assistant' ? (
+                  <ReactMarkdown 
+                    remarkPlugins={[remarkGfm]}
+                    className="prose dark:prose-invert max-w-none"
+                  >
+                    {message?.content}
+                  </ReactMarkdown>
+                ) : (
+                  message?.content
+                )}
               </div>
             )
         )}
