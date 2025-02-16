@@ -36,11 +36,13 @@ const ToolBox = ({ isOpen, onClose, tool, params }) => {
 
   return (
     <Dialog open={isOpen} onOpenChange={() => onClose(false)}>
-      <DialogContent className="h-[80vh] bg-white sm:max-w-[888px]">
+      <DialogContent className="flex h-[80vh] flex-col bg-white sm:max-w-[888px]">
         <VisuallyHidden asChild>
           <DialogTitle></DialogTitle>
         </VisuallyHidden>
-        {renderTool()}
+        <div className="flex-1 overflow-y-auto">
+          {renderTool()}
+        </div>
         <DialogFooter className="mt-auto">
           <Button variant="outline" onClick={handleReject}>
             Cancel
