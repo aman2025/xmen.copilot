@@ -11,7 +11,7 @@ const HomePage = () => {
       </div>
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
         <h2 className="text-xl font-semibold mb-4">逻辑部署图</h2>
-        <DeploymentGraph />
+        <p>This is the logical deployment information container.</p>
       </div>
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
         <h2 className="text-xl font-semibold mb-4">物理部署图</h2>
