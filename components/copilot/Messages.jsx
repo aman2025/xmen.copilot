@@ -17,36 +17,41 @@ const Messages = ({ chatId }) => {
   const queryClient = useQueryClient()
   const { setMessageInput } = useChatStore()
 
-  // Filter out tool-related messages and process tool calls
-  const filterAndProcessMessages = (messages) => {
+  // Separate filtering from processing
+  const filterMessages = (messages) => {
     return messages.filter((message) => {
-      // Process tool calls from assistant messages
       if (message.role === 'assistant' && message.toolCalls?.length > 0) {
-        const toolCall = message.toolCalls[0]
         // Check if there's already a tool response for this toolCallId
         const hasToolResponse = messages.some(
-          (m) => m.role === 'tool' && m.toolCallId === toolCall.id
+          (m) => m.role === 'tool' && m.toolCallId === message.toolCalls[0].id
         )
-
-        // Only handle tool call if there's no existing tool response
+        
+        // Process tool call only if there's no existing response
         if (!hasToolResponse) {
-          handleToolCall(toolCall.function.name, toolCall.function.arguments, message)
+          const toolCall = message.toolCalls[0]
+          // Use setTimeout to avoid state updates during render
+          setTimeout(() => {
+            handleToolCall(
+              toolCall.function.name,
+              toolCall.function.arguments,
+              message
+            )
+          }, 0)
         }
         return false // Don't show assistant messages with tool calls
       }
-      // Filter out tool response messages
-      return message.role !== 'tool'
+      return message.role !== 'tool' // Filter out tool response messages
     })
   }
 
-  // Update the query to filter messages
+  // Update the query to use the new filter
   const { data: messages = [], isLoading } = useQuery({
     queryKey: ['messages', chatId],
     queryFn: async () => {
       if (!chatId) return []
       const res = await fetch(`/api/chat/${chatId}/messages`)
       const data = await res.json()
-      return filterAndProcessMessages(data.messages || [])
+      return filterMessages(data.messages || [])
     },
     enabled: !!chatId,
   })
@@ -92,16 +97,57 @@ const Messages = ({ chatId }) => {
   const handleToolCall = (toolName, toolArgs, message) => {
     try {
       const parsedArgs = typeof toolArgs === 'string' ? JSON.parse(toolArgs) : toolArgs
+      const toolCallId = message.toolCalls[0].id
+      
+      // Check if this tool call has already been processed
+      const hasToolResponse = queryClient
+        .getQueryData(['messages', chatId])
+        ?.some((m) => m.role === 'tool' && m.toolCallId === toolCallId)
+      
+      if (hasToolResponse) return // Skip if already processed
 
-      setToolState({
-        isOpen: true,
-        tool: toolName,
-        params: parsedArgs,
-        toolCallId: message.toolCalls[0].id,
-      })
+      // Auto-fetch for get_instances tool
+      if (toolName === 'get_instances') {
+        fetchInstanceData().then(result => {
+          sendMessage({
+            content: JSON.stringify({
+              success: true,
+              data: {
+                result: result.instances
+              }
+            }),
+            role: 'tool',
+            toolCallId: toolCallId,
+          })
+        }).catch(error => {
+          sendMessage({
+            content: JSON.stringify({
+              success: false,
+              error: 'Failed to fetch instance data'
+            }),
+            role: 'tool',
+            toolCallId: toolCallId,
+          })
+        })
+      } else {
+        // Manual interaction for other tools
+        setToolState({
+          isOpen: true,
+          tool: toolName,
+          params: parsedArgs,
+          toolCallId: toolCallId,
+        })
+      }
     } catch (error) {
       console.error('Failed to process tool call:', error)
     }
+  }
+
+  // Add fetchInstanceData function
+  const fetchInstanceData = async () => {
+    const response = await fetch('/api/proxy/instances')
+    const data = await response.json()
+    return data
   }
 
   const handleToolComplete = (result) => {

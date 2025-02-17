@@ -7,6 +7,11 @@ import { Button } from '@/components/ui/button'
 
 const ToolBox = ({ isOpen, onClose, tool, params }) => {
   const [toolActions, setToolActions] = useState({})
+  
+  // Don't render if autoFetch is true
+  if (params?.autoFetch) {
+    return null
+  }
 
   const renderTool = () => {
     if (!tool) return null
