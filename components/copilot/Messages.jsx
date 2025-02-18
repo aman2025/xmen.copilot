@@ -12,48 +12,43 @@ const Messages = ({ chatId }) => {
     isOpen: false,
     tool: null,
     params: null,
-    toolCallId: null,
+    toolCallId: null
   })
   const queryClient = useQueryClient()
   const { setMessageInput } = useChatStore()
 
-  // Separate filtering from processing
-  const filterMessages = (messages) => {
+  // Filter out tool-related messages and process tool calls
+  const filterAndProcessMessages = (messages) => {
     return messages.filter((message) => {
+      // Process tool calls from assistant messages
       if (message.role === 'assistant' && message.toolCalls?.length > 0) {
+        const toolCall = message.toolCalls[0]
         // Check if there's already a tool response for this toolCallId
         const hasToolResponse = messages.some(
-          (m) => m.role === 'tool' && m.toolCallId === message.toolCalls[0].id
+          (m) => m.role === 'tool' && m.toolCallId === toolCall.id
         )
-        
-        // Process tool call only if there's no existing response
+
+        // Only handle tool call if there's no existing tool response
         if (!hasToolResponse) {
-          const toolCall = message.toolCalls[0]
-          // Use setTimeout to avoid state updates during render
-          setTimeout(() => {
-            handleToolCall(
-              toolCall.function.name,
-              toolCall.function.arguments,
-              message
-            )
-          }, 0)
+          handleToolCall(toolCall.function.name, toolCall.function.arguments, message)
         }
         return false // Don't show assistant messages with tool calls
       }
-      return message.role !== 'tool' // Filter out tool response messages
+      // Filter out tool response messages
+      return message.role !== 'tool'
     })
   }
 
-  // Update the query to use the new filter
+  // Update the query to filter messages
   const { data: messages = [], isLoading } = useQuery({
     queryKey: ['messages', chatId],
     queryFn: async () => {
       if (!chatId) return []
       const res = await fetch(`/api/chat/${chatId}/messages`)
       const data = await res.json()
-      return filterMessages(data.messages || [])
+      return filterAndProcessMessages(data.messages || [])
     },
-    enabled: !!chatId,
+    enabled: !!chatId
   })
 
   // Mutation for sending messages
@@ -62,7 +57,7 @@ const Messages = ({ chatId }) => {
       const res = await fetch(`/api/chat/${chatId}/messages`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ content, role, toolCallId }),
+        body: JSON.stringify({ content, role, toolCallId })
       })
       const data = await res.json()
       console.log('data: ', data)
@@ -78,8 +73,8 @@ const Messages = ({ chatId }) => {
         {
           ...newMessage,
           id: 'temp-' + Date.now(),
-          createdAt: new Date().toISOString(),
-        },
+          createdAt: new Date().toISOString()
+        }
       ]
 
       queryClient.setQueryData(['messages', chatId], updatedMessages)
@@ -91,63 +86,22 @@ const Messages = ({ chatId }) => {
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['messages', chatId] })
-    },
+    }
   })
 
   const handleToolCall = (toolName, toolArgs, message) => {
     try {
       const parsedArgs = typeof toolArgs === 'string' ? JSON.parse(toolArgs) : toolArgs
-      const toolCallId = message.toolCalls[0].id
-      
-      // Check if this tool call has already been processed
-      const hasToolResponse = queryClient
-        .getQueryData(['messages', chatId])
-        ?.some((m) => m.role === 'tool' && m.toolCallId === toolCallId)
-      
-      if (hasToolResponse) return // Skip if already processed
 
-      // Auto-fetch for get_instances tool
-      if (toolName === 'get_instances') {
-        fetchInstanceData().then(result => {
-          sendMessage({
-            content: JSON.stringify({
-              success: true,
-              data: {
-                result: result.instances
-              }
-            }),
-            role: 'tool',
-            toolCallId: toolCallId,
-          })
-        }).catch(error => {
-          sendMessage({
-            content: JSON.stringify({
-              success: false,
-              error: 'Failed to fetch instance data'
-            }),
-            role: 'tool',
-            toolCallId: toolCallId,
-          })
-        })
-      } else {
-        // Manual interaction for other tools
-        setToolState({
-          isOpen: true,
-          tool: toolName,
-          params: parsedArgs,
-          toolCallId: toolCallId,
-        })
-      }
+      setToolState({
+        isOpen: true,
+        tool: toolName,
+        params: parsedArgs,
+        toolCallId: message.toolCalls[0].id
+      })
     } catch (error) {
       console.error('Failed to process tool call:', error)
     }
-  }
-
-  // Add fetchInstanceData function
-  const fetchInstanceData = async () => {
-    const response = await fetch('/api/proxy/instances')
-    const data = await response.json()
-    return data
   }
 
   const handleToolComplete = (result) => {
@@ -162,7 +116,7 @@ const Messages = ({ chatId }) => {
       sendMessage({
         content: stringifiedResult,
         role: 'tool',
-        toolCallId: toolState.toolCallId,
+        toolCallId: toolState.toolCallId
       })
     }
 
@@ -181,7 +135,7 @@ const Messages = ({ chatId }) => {
               e.preventDefault()
               setMessageInput(children.toString())
             }}
-            className="text-blue-500 hover:text-blue-600 cursor-pointer underline"
+            className="cursor-pointer text-blue-500 underline hover:text-blue-600"
           >
             {children}
           </a>
@@ -206,14 +160,14 @@ const Messages = ({ chatId }) => {
                 key={message?.id}
                 className={`p-3 ${
                   message?.role === 'user'
-                    ? 'ml-auto rounded-lg bg-blue-100 dark:bg-blue-900 max-w-[80%]'
+                    ? 'ml-auto max-w-[80%] rounded-lg bg-blue-100 dark:bg-blue-900'
                     : 'mr-auto'
                 }`}
               >
                 {message?.role === 'assistant' ? (
-                  <ReactMarkdown 
+                  <ReactMarkdown
                     remarkPlugins={[remarkGfm]}
-                    className="prose dark:prose-invert max-w-none"
+                    className="prose max-w-none dark:prose-invert"
                     components={components}
                   >
                     {message?.content}

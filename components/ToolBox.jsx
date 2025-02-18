@@ -7,11 +7,6 @@ import { Button } from '@/components/ui/button'
 
 const ToolBox = ({ isOpen, onClose, tool, params }) => {
   const [toolActions, setToolActions] = useState({})
-  
-  // Don't render if autoFetch is true
-  if (params?.autoFetch) {
-    return null
-  }
 
   const renderTool = () => {
     if (!tool) return null
@@ -45,9 +40,7 @@ const ToolBox = ({ isOpen, onClose, tool, params }) => {
         <VisuallyHidden asChild>
           <DialogTitle></DialogTitle>
         </VisuallyHidden>
-        <div className="flex-1 overflow-y-auto">
-          {renderTool()}
-        </div>
+        <div className="flex-1 overflow-y-auto">{renderTool()}</div>
         <DialogFooter className="mt-auto">
           <Button variant="outline" onClick={handleReject}>
             Cancel
