@@ -7,7 +7,7 @@ import ChatBox from './ChatBox'
 import useChatStore from '../../store/useChatStore'
 
 const Copilot = () => {
-  const [isOpen, setIsOpen] = useState(false)
+  const [isOpen, setIsOpen] = useState(true)
   const { view, setView, setCurrentChatId, isFullscreen, setIsFullscreen } = useChatStore()
 
   const handleToggle = () => {

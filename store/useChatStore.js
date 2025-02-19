@@ -4,7 +4,7 @@ import { create } from 'zustand'
 const useChatStore = create((set) => ({
   currentChatId: null,
   view: 'chat',
-  isFullscreen: false,
+  isFullscreen: true,
   setCurrentChatId: (id) => set({ currentChatId: id }),
   setView: (view) => set({ view }),
   setIsFullscreen: (isFullscreen) => set({ isFullscreen }),
