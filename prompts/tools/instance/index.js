@@ -10,12 +10,12 @@ export const INSTANCE_TOOLS = [
         properties: {
           instance_id: {
             type: 'string',
-            description: 'The id of the instance to get',
+            description: 'The id of the instance to get'
           }
         },
-        required: [],
-      },
-    },
+        required: []
+      }
+    }
   },
   {
     type: 'function',
@@ -27,11 +27,11 @@ export const INSTANCE_TOOLS = [
         properties: {
           instance_id: {
             type: 'string',
-            description: 'The id of the instance to start',
+            description: 'The id of the instance to start'
           }
         },
-        required: ['instance_id'],
-      },
-    },
-  },
+        required: ['instance_id']
+      }
+    }
+  }
 ]

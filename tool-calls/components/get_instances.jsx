@@ -29,7 +29,6 @@ const GetInstances = ({ onComplete, registerActions, sendMessage, toolCallId }) 
       content: 'Get instances success',
       toolResult: instanceData
     }
-    console.log(2, toolCallId, resultMessage)
     sendMessage({
       content: JSON.stringify(resultMessage),
       role: 'tool',
