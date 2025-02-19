@@ -2,18 +2,17 @@
 
 import React, { useEffect, useState } from 'react'
 
-const get_instances = ({ params, onComplete, registerActions }) => {
+const GetInstances = ({ onComplete, registerActions }) => {
   const [instanceData, setInstanceData] = useState(null)
   const [isLoading, setIsLoading] = useState(true)
 
-  // Fetch instance data from the other Next.js server
   useEffect(() => {
     const fetchInstanceData = async () => {
       try {
         const response = await fetch('/api/proxy/instances')
         const data = await response.json()
-        console.log(data)
         setInstanceData(data.instances)
+        console.log('instanceData', data.instances)
       } catch (error) {
         console.error('Error fetching instance data:', error)
       } finally {
@@ -25,6 +24,7 @@ const get_instances = ({ params, onComplete, registerActions }) => {
   }, [])
 
   const handleAccept = () => {
+    console.log(11)
     // Fix typo in 'result' and ensure we're using current instanceData
     const resultMessage = {
       success: true,
@@ -45,6 +45,12 @@ const get_instances = ({ params, onComplete, registerActions }) => {
       registerActions({ handleAccept, handleReject })
     }
   }, [registerActions, instanceData])
+
+  if (isLoading) {
+    return <div>Loading instance data...</div>
+  }
+
+  if (!instanceData) return <div>No instance data available</div>
 
   return (
     <div className="flex h-full flex-col">
@@ -116,12 +122,4 @@ const get_instances = ({ params, onComplete, registerActions }) => {
   )
 }
 
-export default get_instances
-
-const fetchInstances = async () => {
-  const response = await fetch('/api/proxy/instances')
-  const data = await response.json()
-  return data.instances
-}
-
-export { fetchInstances }
+export default GetInstances
