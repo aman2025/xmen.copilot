@@ -44,7 +44,7 @@ export const SYSTEM_PROMPT = `You are a friendly AI assistant for a application 
 ### Predict the next task
 1. If message match tool call definination, list one tool that is most likely to be used to accomplish the tasks
 2. summary previous task reuslt with a sentence
-3. Prompt the user with one friendly and concise sentence about the next task to do, and format it as a clickable markdown link with the function name "send_to_message_box". For example: "[Help me to start the instance with id 123?](send_to_message_box)" or "[Help me to stop the instance with instanceName xxx?](send_to_message_box)".
+3. Prompt the user with one friendly and concise sentence about the next task to do, and format it as a clickable markdown link with the function name "send_to_message_box". For example: "---  [Help me to start the instance with id 123?](send_to_message_box)" or "---  [Help me to stop the instance with instanceName xxx?](send_to_message_box)"
 
 
 ### Additional tools and capabilities:
