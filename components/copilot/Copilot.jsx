@@ -8,8 +8,7 @@ import useChatStore from '../../store/useChatStore'
 
 const Copilot = () => {
   const [isOpen, setIsOpen] = useState(false)
-  const [isFullscreen, setIsFullscreen] = useState(false)
-  const { view, setView, setCurrentChatId } = useChatStore()
+  const { view, setView, setCurrentChatId, isFullscreen, setIsFullscreen } = useChatStore()
 
   const handleToggle = () => {
     setIsOpen(!isOpen)
@@ -41,11 +40,13 @@ const Copilot = () => {
         <Sparkles className="h-7 w-7" />
       </button>
       {isOpen && (
-        <div className={`${
-          isFullscreen 
-            ? 'fixed inset-0 bottom-0 right-0 w-full h-full rounded-none'
-            : 'absolute bottom-20 right-0 w-96 rounded-lg'
-        } bg-white p-4 shadow-lg dark:bg-gray-800`}>
+        <div
+          className={`${
+            isFullscreen
+              ? 'fixed inset-0 bottom-0 right-0 h-full w-full rounded-none'
+              : 'absolute bottom-20 right-0 w-96 rounded-lg'
+          } bg-white p-4 shadow-lg dark:bg-gray-800`}
+        >
           <div className={`flex ${isFullscreen ? 'h-full' : 'h-[500px]'} flex-col`}>
             <div className="mb-2 flex items-center justify-between">
               {view === 'history' && (
@@ -63,7 +64,7 @@ const Copilot = () => {
                 <button
                   onClick={handleFullscreenToggle}
                   className="rounded-full p-2 hover:bg-gray-100 dark:hover:bg-gray-700"
-                  title={isFullscreen ? "Exit Fullscreen" : "Enter Fullscreen"}
+                  title={isFullscreen ? 'Exit Fullscreen' : 'Enter Fullscreen'}
                 >
                   {isFullscreen ? (
                     <Minimize2 className="h-5 w-5" />
