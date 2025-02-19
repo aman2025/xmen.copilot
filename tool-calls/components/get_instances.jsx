@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react'
 
-const GetInstances = ({ onComplete, registerActions }) => {
+const GetInstances = ({ onComplete, registerActions, sendMessage, toolCallId }) => {
   const [instanceData, setInstanceData] = useState(null)
   const [isLoading, setIsLoading] = useState(true)
 
@@ -23,26 +23,25 @@ const GetInstances = ({ onComplete, registerActions }) => {
     fetchInstanceData()
   }, [])
 
-  const handleAccept = () => {
-    console.log(11)
+  const handleComplete = () => {
     // Fix typo in 'result' and ensure we're using current instanceData
     const resultMessage = {
-      success: true,
-      data: {
-        result: instanceData
-      }
+      content: 'Get instances success',
+      toolResult: instanceData
     }
-    onComplete(resultMessage)
-  }
-
-  const handleReject = () => {
-    onComplete(false)
+    console.log(2, toolCallId, resultMessage)
+    sendMessage({
+      content: JSON.stringify(resultMessage),
+      role: 'tool',
+      toolCallId: toolCallId
+    })
+    onComplete()
   }
 
   // Update the registerActions effect to include instanceData in dependencies
   useEffect(() => {
     if (registerActions) {
-      registerActions({ handleAccept, handleReject })
+      registerActions({ handleComplete })
     }
   }, [registerActions, instanceData])
 

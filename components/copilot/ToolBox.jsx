@@ -4,12 +4,11 @@ import React, { useState, useEffect } from 'react'
 import { Dialog, DialogContent, DialogFooter, DialogTitle } from '@/components/ui/dialog'
 import { VisuallyHidden } from '@radix-ui/react-visually-hidden'
 import { Button } from '@/components/ui/button'
-import GetInstances from '@/tool-calls/components/get_instances'
 
 /**
  * Combined ToolBox component that handles both dialog display and tool execution
  */
-export const ToolBox = ({ toolState, onToolComplete }) => {
+export const ToolBox = ({ toolState, onToolComplete, sendMessage }) => {
   const [toolActions, setToolActions] = useState({})
   const [dialogOpen, setDialogOpen] = useState(false)
 
@@ -25,15 +24,9 @@ export const ToolBox = ({ toolState, onToolComplete }) => {
     }
   }
 
-  const handleAccept = () => {
-    if (toolActions.handleAccept) {
-      toolActions.handleAccept()
-    }
-  }
-
-  const handleReject = () => {
-    if (toolActions.handleReject) {
-      toolActions.handleReject()
+  const handleComplete = () => {
+    if (toolActions.handleComplete) {
+      toolActions.handleComplete()
     }
   }
 
@@ -46,8 +39,10 @@ export const ToolBox = ({ toolState, onToolComplete }) => {
     return (
       <ToolComponent
         params={toolState.params}
-        onComplete={(result) => onToolComplete(result)}
+        onComplete={() => onToolComplete()}
         registerActions={setToolActions}
+        sendMessage={sendMessage}
+        toolCallId={toolState.toolCallId}
       />
     )
   }
@@ -62,10 +57,7 @@ export const ToolBox = ({ toolState, onToolComplete }) => {
         </VisuallyHidden>
         <div className="flex-1 overflow-y-auto">{renderTool()}</div>
         <DialogFooter className="mt-auto">
-          <Button variant="outline" onClick={handleReject}>
-            Cancel
-          </Button>
-          <Button onClick={handleAccept}>Accept</Button>
+          <Button onClick={handleComplete}>complete</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
