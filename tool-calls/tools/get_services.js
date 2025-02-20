@@ -9,11 +9,7 @@ const get_services = async ({ serviceName }) => {
     throw new Error('serviceName is required')
   }
 
-  const response = await fetch('/api/proxy/services', {
-    method: 'GET',
-    headers: { 'Content-Type': 'application/json' },
-    params: { serviceName } // Changed from body to params since it's a GET request
-  })
+  const response = await fetch(`/api/proxy/services?serviceName=${encodeURIComponent(serviceName)}`)
   const data = await response.json()
   return data.result
 }

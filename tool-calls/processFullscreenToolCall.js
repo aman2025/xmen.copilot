@@ -14,9 +14,10 @@ export const processFullscreenToolCall = async (toolName, toolArgs, toolCallId, 
     const toolFunction = toolCalls.find((tool) => tool.name === toolName)
     console.log('toolName: ', toolName)
     console.log('toolArgs: ', toolArgs)
+    console.log(typeof toolArgs)
     if (toolFunction) {
       // Execute the tool function
-      const result = await toolFunction(toolArgs)
+      const result = await toolFunction(JSON.parse(toolArgs))
 
       // Send the result back to the assistant
       sendMessage({
