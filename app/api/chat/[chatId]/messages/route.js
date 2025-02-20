@@ -13,28 +13,28 @@ export async function GET(request, { params }) {
       include: {
         messages: {
           orderBy: {
-            createdAt: 'asc',
-          },
-        },
-      },
+            createdAt: 'asc'
+          }
+        }
+      }
     })
 
     if (!chat) {
       return new Response(JSON.stringify({ error: 'Chat not found' }), {
         status: 404,
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json' }
       })
     }
 
     return new Response(JSON.stringify({ messages: chat.messages }), {
       status: 200,
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json' }
     })
   } catch (error) {
     console.error('Failed to fetch messages:', error)
     return new Response(JSON.stringify({ error: 'Failed to fetch messages' }), {
       status: 500,
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json' }
     })
   }
 }
@@ -52,16 +52,16 @@ export async function POST(request, { params }) {
       include: {
         messages: {
           orderBy: {
-            createdAt: 'asc',
-          },
-        },
-      },
+            createdAt: 'asc'
+          }
+        }
+      }
     })
 
     if (!chat) {
       return new Response(JSON.stringify({ error: 'Chat not found' }), {
         status: 404,
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json' }
       })
     }
 
@@ -71,8 +71,8 @@ export async function POST(request, { params }) {
         content,
         role,
         toolCallId,
-        chatId,
-      },
+        chatId
+      }
     })
 
     // If it's a user message or tool response, generate AI response
@@ -85,10 +85,10 @@ export async function POST(request, { params }) {
           role: msg.role,
           content: msg.content,
           ...(msg.toolCallId && { tool_call_id: msg.toolCallId }),
-          ...(msg.toolCalls && { tool_calls: msg.toolCalls }),
+          ...(msg.toolCalls && { tool_calls: msg.toolCalls })
         })),
         // For tool responses, include the tool response with its tool_call_id
-        role === 'tool' ? { role, content, tool_call_id: toolCallId } : { role, content },
+        role === 'tool' ? { role, content, tool_call_id: toolCallId } : { role, content }
       ]
 
       const mistralResponse = await createMistral(messages, tools)
@@ -100,25 +100,25 @@ export async function POST(request, { params }) {
           content: aiContent,
           role: 'assistant',
           toolCalls: toolCalls.length ? toolCalls : undefined,
-          chatId,
-        },
+          chatId
+        }
       })
 
       return new Response(JSON.stringify({ messages: [assistantMessage] }), {
         status: 200,
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json' }
       })
     }
 
     return new Response(JSON.stringify({ messages: [newMessage] }), {
       status: 200,
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json' }
     })
   } catch (error) {
     console.error('Failed to process message:', error)
     return new Response(JSON.stringify({ error: 'Failed to process message' }), {
       status: 500,
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json' }
     })
   }
 }
