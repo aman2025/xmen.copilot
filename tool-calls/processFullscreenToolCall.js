@@ -12,7 +12,8 @@ export const processFullscreenToolCall = async (toolName, toolArgs, toolCallId, 
   try {
     // Find the corresponding tool function from toolCalls array
     const toolFunction = toolCalls.find((tool) => tool.name === toolName)
-
+    console.log('toolName: ', toolName)
+    console.log('toolArgs: ', toolArgs)
     if (toolFunction) {
       // Execute the tool function
       const result = await toolFunction(toolArgs)

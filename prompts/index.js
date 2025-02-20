@@ -13,13 +13,23 @@ export const SYSTEM_PROMPT = `You are a friendly AI assistant for a application 
 
 ### Tools definition
 <tools>
+<tool>
+   <name>get_services</name>
+   <description>Retrieves service information from the application instance management system. Each service represents a distinct application type (e.g., dfa-crc, tomcat) that can have multiple running instances. Returns service details including id, serviceId, and serviceName.</description>
+	 <parameters>
+		<parameter>
+			<name>serviceName</name>
+			<description>Filter to get details of a specific service by its name (e.g., "dfa-crc" or "tomcat"). It need to be provided.</description>
+		</parameter>
+	 </parameters>
+ </tool>
  <tool>
    <name>get_instances</name>
    <description>get all instances provides a list of all instances contain fields: id, instanceId, instanceName, serviceName, ip, port, instanceStatus, statusDesc</description>
 	 <parameters>
 		<parameter>
-			<name>instance_id</name>
-			<description>the id of the instance to get</description>
+			<name>serviceId</name>
+			<description>Filter instances by service ID (e.g., 10001 for dfa-crc, 10002 for tomcat). Each service has unique instances associated with it. It need to be provided.</description>
 		</parameter>
 	 </parameters>
  </tool>
@@ -28,7 +38,7 @@ export const SYSTEM_PROMPT = `You are a friendly AI assistant for a application 
    <description>start an instance when the instance is stopped</description>
 	 <parameters>
 		<parameter>
-			<name>instance_id</name>
+			<name>instanceId</name>
 			<description>the id of the instance to start</description>
 		</parameter>
 	 </parameters>
@@ -36,9 +46,9 @@ export const SYSTEM_PROMPT = `You are a friendly AI assistant for a application 
 </tools>
 
 ### Response considerations
-1.  You have access to tools, but only use them when necessary. If a tool is not required, respond as normal. 
-  For example: 
-	 * start_instance function need access parameter 'instance_id'
+1. You have access to tools, but only use them when necessary. If a tool is not required, respond as normal. 
+2. if user don't provide requied parameter, response a friendly message
+
 
 
 ### Predict the next task
