@@ -3,7 +3,7 @@
 import React, { useEffect } from 'react'
 
 const start_instance = ({ params, onComplete, registerActions }) => {
-  const { instance_id } = params || {}
+  const { instanceId } = params || {}
 
   const handleAccept = () => {
     const resultMessage = { success: true, data: { isntanceName: 'dfa-crc@10.168.106.95' } }
@@ -23,7 +23,7 @@ const start_instance = ({ params, onComplete, registerActions }) => {
 
   return (
     <div className="flex h-full flex-col">
-      <div>get the instance: {instance_id}</div>
+      <div>get the instance: {instanceId}</div>
     </div>
   )
 }
