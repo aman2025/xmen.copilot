@@ -36,7 +36,7 @@ export const SYSTEM_PROMPT = `You are a friendly AI assistant for an application
    </tool>
    <tool>
       <name>start_instance</name>
-      <description>Start an instance when it is stopped.</description>
+      <description>Start an instance when it is stopped or waiting.</description>
       <parameters>
          <parameter>
             <name>instanceId</name>
