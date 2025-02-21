@@ -8,9 +8,8 @@
     - JavaScript (JSX files only, no TypeScript)
     - Tailwind CSS
     - shadcn/ui
-    - API routes for Mistral AI integration
+    - API routes for Mistral AI, OpenAI integration
     - ESLint + Prettier configuration
-    - Import alias using '@' prefix
 
     ## Project Structure
 
