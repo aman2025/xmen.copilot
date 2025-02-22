@@ -91,27 +91,29 @@ const ChatInput = () => {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="flex items-center space-x-2">
-      <input
-        id="copilot-input"
-        type="text"
-        value={messageInput}
-        onChange={(e) => setMessageInput(e.target.value)}
-        placeholder="Ask Copilot"
-        className="flex-1 bg-transparent px-2 py-2 text-gray-800 placeholder-gray-400 focus:outline-none dark:text-white"
-        disabled={isLoading}
-      />
-      <button
-        type="submit"
-        disabled={isLoading}
-        className={`rounded p-2 transition-colors ${
-          isLoading
-            ? 'bg-red-500 hover:bg-red-600'
-            : 'text-gray-400 hover:text-gray-600 dark:text-gray-300 dark:hover:text-gray-100'
-        }`}
-      >
-        {isLoading ? <Square className="h-4 w-4 text-white" /> : <Send className="h-5 w-5" />}
-      </button>
+    <form onSubmit={handleSubmit} className="relative flex items-center">
+      <div className="flex w-full items-center rounded-2xl border border-gray-200 bg-white px-4 py-2 dark:border-gray-600 dark:bg-gray-800">
+        <input
+          id="copilot-input"
+          type="text"
+          value={messageInput}
+          onChange={(e) => setMessageInput(e.target.value)}
+          placeholder="Ask Copilot"
+          className="flex-1 bg-transparent text-gray-800 placeholder-gray-400 focus:outline-none dark:text-white"
+          disabled={isLoading}
+        />
+        <button
+          type="submit"
+          disabled={isLoading}
+          className={`ml-2 rounded-lg p-2 transition-colors ${
+            isLoading
+              ? 'bg-red-500 hover:bg-red-600'
+              : 'text-gray-400 hover:text-gray-600 dark:text-gray-300 dark:hover:text-gray-100'
+          }`}
+        >
+          {isLoading ? <Square className="h-4 w-4 text-white" /> : <Send className="h-5 w-5" />}
+        </button>
+      </div>
     </form>
   )
 }

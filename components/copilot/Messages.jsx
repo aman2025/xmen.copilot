@@ -137,23 +137,32 @@ const MessageItem = ({ message, setMessageInput }) => {
 
   return (
     <div
-      className={`p-4 ${
-        message?.role === 'user'
-          ? 'ml-auto max-w-[80%] rounded-2xl bg-blue-500 text-white dark:bg-blue-600'
-          : 'mr-auto max-w-[80%] rounded-2xl bg-gray-100 dark:bg-gray-700'
-      }`}
+      className={`flex items-start gap-2 ${message?.role === 'user' ? 'justify-end' : 'justify-start'}`}
     >
-      {message?.role === 'assistant' ? (
-        <ReactMarkdown
-          remarkPlugins={[remarkGfm]}
-          className="prose max-w-none dark:prose-invert"
-          components={components}
-        >
-          {message?.content}
-        </ReactMarkdown>
-      ) : (
-        message?.content
+      {message?.role === 'assistant' && (
+        <div className="h-6 w-6 flex-shrink-0">
+          <img src="/copilot-icon.svg" alt="Copilot" className="h-full w-full" />
+        </div>
       )}
+      <div
+        className={`${
+          message?.role === 'user'
+            ? 'max-w-[80%] rounded-[0.75rem] bg-blue-500 px-4 py-2 text-white'
+            : ''
+        }`}
+      >
+        {message?.role === 'assistant' ? (
+          <ReactMarkdown
+            remarkPlugins={[remarkGfm]}
+            className="prose max-w-none dark:prose-invert"
+            components={components}
+          >
+            {message?.content}
+          </ReactMarkdown>
+        ) : (
+          message?.content
+        )}
+      </div>
     </div>
   )
 }
