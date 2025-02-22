@@ -140,7 +140,7 @@ const MessageItem = ({ message, setMessageInput }) => {
       className={`flex items-start gap-2 ${message?.role === 'user' ? 'justify-end' : 'justify-start'}`}
     >
       {message?.role === 'assistant' && (
-        <div className="h-6 w-6 flex-shrink-0">
+        <div className="h-7 w-7 flex-shrink-0">
           <img src="/copilot-icon.svg" alt="Copilot" className="h-full w-full" />
         </div>
       )}

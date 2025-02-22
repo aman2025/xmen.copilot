@@ -1,6 +1,6 @@
 'use client'
 
-import { Send, Square } from 'lucide-react'
+import { SendHorizontal, Square } from 'lucide-react'
 import useChatStore from '../../store/useChatStore'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
@@ -92,7 +92,7 @@ const ChatInput = () => {
 
   return (
     <form onSubmit={handleSubmit} className="relative flex items-center">
-      <div className="flex w-full items-center rounded-2xl border border-gray-200 bg-white px-4 py-2 dark:border-gray-600 dark:bg-gray-800">
+      <div className="flex w-full items-center rounded-2xl border border-gray-200 bg-white px-4 py-[0.5rem] pr-2 dark:border-gray-600 dark:bg-gray-800">
         <input
           id="copilot-input"
           type="text"
@@ -111,7 +111,11 @@ const ChatInput = () => {
               : 'text-gray-400 hover:text-gray-600 dark:text-gray-300 dark:hover:text-gray-100'
           }`}
         >
-          {isLoading ? <Square className="h-4 w-4 text-white" /> : <Send className="h-5 w-5" />}
+          {isLoading ? (
+            <Square className="h-4 w-4 text-white" />
+          ) : (
+            <SendHorizontal className="h-5 w-5" />
+          )}
         </button>
       </div>
     </form>

@@ -81,7 +81,7 @@ const Copilot = () => {
         >
           <div className={`flex ${isFullscreen ? 'h-full' : 'h-[600px]'} flex-col overflow-hidden`}>
             {/* Header */}
-            <div className="border-b px-4 py-2 dark:border-gray-700 dark:bg-gray-800">
+            <div className="border-b px-4 py-[0.3rem] pr-2 dark:border-gray-700 dark:bg-gray-800">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   {view === 'history' && (
