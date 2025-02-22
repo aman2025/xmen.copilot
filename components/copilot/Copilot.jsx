@@ -9,7 +9,8 @@ import {
   Maximize,
   Minimize,
   SendHorizontal,
-  X
+  X,
+  Square
 } from 'lucide-react'
 import ChatHistory from './History'
 import ChatBox from './ChatBox'
@@ -75,12 +76,12 @@ const Copilot = () => {
           className={`${
             isFullscreen
               ? 'fixed inset-0 bottom-0 right-0 h-full w-full rounded-none'
-              : 'absolute bottom-20 right-0 mt-20 w-[400px] rounded-3xl'
-          } bg-white shadow-xl dark:bg-gray-800`}
+              : 'absolute bottom-20 right-0 w-[400px] rounded-lg border shadow-lg'
+          } bg-white dark:bg-gray-800 dark:border-gray-700`}
         >
           <div className={`flex ${isFullscreen ? 'h-full' : 'h-[600px]'} flex-col overflow-hidden`}>
             {/* Header */}
-            <div className="border-b bg-white px-4 py-3 dark:bg-gray-800">
+            <div className="border-b bg-white px-4 py-3 dark:bg-gray-800 dark:border-gray-700">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   {view === 'history' && (
@@ -92,27 +93,32 @@ const Copilot = () => {
                     </button>
                   )}
                   <span className="text-base font-medium">
-                    {view === 'history' ? 'All Chats' : 'New conversation'}
+                    {view === 'history' ? 'All Chats' : 'What can GitHub Copilot do?'}
                   </span>
                 </div>
-                <div className="flex items-center space-x-2">
+                <div className="flex items-center space-x-1">
                   {view === 'chat' && (
-                    <button
-                      onClick={handleHistoryToggle}
-                      className="rounded-lg p-2 hover:bg-gray-100 dark:hover:bg-gray-700"
-                    >
-                      <History className="h-5 w-5" />
-                    </button>
+                    <>
+                      <button
+                        onClick={handleNewChat}
+                        className="rounded-lg p-2 hover:bg-gray-100 dark:hover:bg-gray-700"
+                        title="New chat"
+                      >
+                        <Plus className="h-5 w-5" />
+                      </button>
+                      <button
+                        onClick={handleHistoryToggle}
+                        className="rounded-lg p-2 hover:bg-gray-100 dark:hover:bg-gray-700"
+                      >
+                        <History className="h-5 w-5" />
+                      </button>
+                    </>
                   )}
                   <button
                     onClick={handleFullscreenToggle}
                     className="rounded-lg p-2 hover:bg-gray-100 dark:hover:bg-gray-700"
                   >
-                    {isFullscreen ? (
-                      <Minimize className="h-5 w-5" />
-                    ) : (
-                      <Maximize className="h-5 w-5" />
-                    )}
+                    {isFullscreen ? <Minimize className="h-5 w-5" /> : <Maximize className="h-5 w-5" />}
                   </button>
                   <button
                     onClick={() => setIsOpen(false)}

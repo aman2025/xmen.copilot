@@ -1,6 +1,6 @@
 'use client'
 
-import { Send } from 'lucide-react'
+import { Send, Square } from 'lucide-react'
 import useChatStore from '../../store/useChatStore'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
@@ -98,15 +98,19 @@ const ChatInput = () => {
         value={messageInput}
         onChange={(e) => setMessageInput(e.target.value)}
         placeholder="Ask Copilot"
-        className="flex-1 rounded-lg border bg-white px-4 py-2 text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+        className="flex-1 bg-transparent px-2 py-2 text-gray-800 placeholder-gray-400 focus:outline-none dark:text-white"
         disabled={isLoading}
       />
       <button
         type="submit"
         disabled={isLoading}
-        className="rounded-lg bg-blue-500 p-2 text-white transition-colors hover:bg-blue-600 disabled:cursor-not-allowed disabled:bg-gray-400"
+        className={`rounded p-2 transition-colors ${
+          isLoading
+            ? 'bg-red-500 hover:bg-red-600'
+            : 'text-gray-400 hover:text-gray-600 dark:text-gray-300 dark:hover:text-gray-100'
+        }`}
       >
-        {isLoading ? 'Sending...' : <Send size={20} />}
+        {isLoading ? <Square className="h-4 w-4 text-white" /> : <Send className="h-5 w-5" />}
       </button>
     </form>
   )
