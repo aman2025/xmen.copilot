@@ -98,18 +98,16 @@ const Messages = ({ chatId }) => {
   }
 
   return (
-    <>
-      <div className="mb-4 flex-1 space-y-4 overflow-y-auto">
-        {messages?.map((message) => (
-          <MessageItem key={message?.id} message={message} setMessageInput={setMessageInput} />
-        ))}
-      </div>
+    <div className="flex flex-col space-y-4 py-4">
+      {messages?.map((message) => (
+        <MessageItem key={message?.id} message={message} setMessageInput={setMessageInput} />
+      ))}
       <ToolBox
         toolState={toolState}
         onToolComplete={handleToolComplete}
         sendMessage={sendMessage}
       />
-    </>
+    </div>
   )
 }
 
@@ -139,10 +137,10 @@ const MessageItem = ({ message, setMessageInput }) => {
 
   return (
     <div
-      className={`p-3 ${
+      className={`p-4 ${
         message?.role === 'user'
-          ? 'ml-auto max-w-[80%] rounded-lg bg-blue-100 dark:bg-blue-900'
-          : 'mr-auto'
+          ? 'ml-auto max-w-[80%] rounded-2xl bg-blue-500 text-white dark:bg-blue-600'
+          : 'mr-auto max-w-[80%] rounded-2xl bg-gray-100 dark:bg-gray-700'
       }`}
     >
       {message?.role === 'assistant' ? (

@@ -17,7 +17,7 @@ const ChatInput = () => {
       const response = await fetch(`/api/chat/${chatId}/messages`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ content, role }),
+        body: JSON.stringify({ content, role })
       })
       return response.json()
     },
@@ -37,8 +37,8 @@ const ChatInput = () => {
             id: 'temp-' + Date.now(),
             content,
             role,
-            createdAt: new Date().toISOString(),
-          },
+            createdAt: new Date().toISOString()
+          }
         ]
       )
 
@@ -51,7 +51,7 @@ const ChatInput = () => {
     onSettled: (data, error, variables) => {
       // Always refetch after error or success
       queryClient.invalidateQueries({ queryKey: ['messages', variables.chatId] })
-    },
+    }
   })
 
   const handleSubmit = async (e) => {
@@ -66,7 +66,7 @@ const ChatInput = () => {
         const response = await fetch('/api/chat', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ title: messageInput.slice(0, 100) }),
+          body: JSON.stringify({ title: messageInput.slice(0, 100) })
         })
         const { chatId } = await response.json()
         activeChatId = chatId
@@ -79,7 +79,7 @@ const ChatInput = () => {
       await createMessageMutation.mutateAsync({
         content: messageInput,
         role: 'user',
-        chatId: activeChatId,
+        chatId: activeChatId
       })
 
       setMessageInput('')
@@ -93,17 +93,18 @@ const ChatInput = () => {
   return (
     <form onSubmit={handleSubmit} className="flex items-center space-x-2">
       <input
+        id="copilot-input"
         type="text"
         value={messageInput}
         onChange={(e) => setMessageInput(e.target.value)}
-        placeholder="Type your message..."
-        className="flex-1 rounded-md border p-2 text-gray-800 dark:bg-gray-700 dark:text-white"
+        placeholder="Ask Copilot"
+        className="flex-1 rounded-lg border bg-white px-4 py-2 text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
         disabled={isLoading}
       />
       <button
         type="submit"
         disabled={isLoading}
-        className="rounded-md bg-blue-500 p-2 text-white hover:bg-blue-600 disabled:cursor-not-allowed disabled:bg-gray-400"
+        className="rounded-lg bg-blue-500 p-2 text-white transition-colors hover:bg-blue-600 disabled:cursor-not-allowed disabled:bg-gray-400"
       >
         {isLoading ? 'Sending...' : <Send size={20} />}
       </button>

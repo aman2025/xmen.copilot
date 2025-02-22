@@ -9,8 +9,12 @@ const ChatBox = () => {
 
   return (
     <div className="flex h-full flex-col">
-      <Messages chatId={currentChatId} />
-      <ChatInput />
+      <div className="flex-1 overflow-y-auto px-4">
+        <Messages chatId={currentChatId} />
+      </div>
+      <div className="sticky bottom-0 border-t bg-white p-4 dark:bg-gray-800">
+        <ChatInput />
+      </div>
     </div>
   )
 }

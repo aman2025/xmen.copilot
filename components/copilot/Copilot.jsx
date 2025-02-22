@@ -1,14 +1,32 @@
 'use client'
 
 import React, { useState } from 'react'
-import { Sparkles, Plus, History, ArrowLeft, Maximize2, Minimize2 } from 'lucide-react'
+import {
+  Sparkles,
+  Plus,
+  History,
+  ArrowLeft,
+  Maximize,
+  Minimize,
+  SendHorizontal,
+  X
+} from 'lucide-react'
 import ChatHistory from './History'
 import ChatBox from './ChatBox'
 import useChatStore from '../../store/useChatStore'
 
 const Copilot = () => {
+  const {
+    view,
+    setView,
+    currentChatId,
+    setCurrentChatId,
+    isFullscreen,
+    setIsFullscreen,
+    messageInput,
+    setMessageInput
+  } = useChatStore()
   const [isOpen, setIsOpen] = useState(true)
-  const { view, setView, setCurrentChatId, isFullscreen, setIsFullscreen } = useChatStore()
 
   const handleToggle = () => {
     setIsOpen(!isOpen)
@@ -31,6 +49,19 @@ const Copilot = () => {
     setIsFullscreen(!isFullscreen)
   }
 
+  const handlePresetQuestion = (question) => {
+    setMessageInput(question)
+    // Focus the input after setting the question
+    const inputElement = document.getElementById('copilot-input')
+    if (inputElement) inputElement.focus()
+  }
+
+  const presetQuestions = [
+    'Can you tell me about this repository?',
+    'How should I get started exploring this repo?',
+    'What questions can I ask?'
+  ]
+
   return (
     <div className="fixed bottom-4 right-4 z-50">
       <button
@@ -44,53 +75,74 @@ const Copilot = () => {
           className={`${
             isFullscreen
               ? 'fixed inset-0 bottom-0 right-0 h-full w-full rounded-none'
-              : 'absolute bottom-20 right-0 w-96 rounded-lg'
-          } bg-white p-4 shadow-lg dark:bg-gray-800`}
+              : 'absolute bottom-20 right-0 mt-20 w-[400px] rounded-3xl'
+          } bg-white shadow-xl dark:bg-gray-800`}
         >
-          <div className={`flex ${isFullscreen ? 'h-full' : 'h-[500px]'} flex-col`}>
-            <div className="mb-2 flex items-center justify-between">
-              {view === 'history' && (
-                <div className="flex items-center">
-                  <button
-                    onClick={handleBack}
-                    className="mr-2 rounded-full p-2 hover:bg-gray-100 dark:hover:bg-gray-700"
-                  >
-                    <ArrowLeft className="h-5 w-5" />
-                  </button>
-                  <span>All Chats</span>
-                </div>
-              )}
-              <div className="ml-auto flex space-x-2">
-                <button
-                  onClick={handleFullscreenToggle}
-                  className="rounded-full p-2 hover:bg-gray-100 dark:hover:bg-gray-700"
-                  title={isFullscreen ? 'Exit Fullscreen' : 'Enter Fullscreen'}
-                >
-                  {isFullscreen ? (
-                    <Minimize2 className="h-5 w-5" />
-                  ) : (
-                    <Maximize2 className="h-5 w-5" />
+          <div className={`flex ${isFullscreen ? 'h-full' : 'h-[600px]'} flex-col overflow-hidden`}>
+            {/* Header */}
+            <div className="border-b bg-white px-4 py-3 dark:bg-gray-800">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  {view === 'history' && (
+                    <button
+                      onClick={handleBack}
+                      className="rounded-lg p-2 hover:bg-gray-100 dark:hover:bg-gray-700"
+                    >
+                      <ArrowLeft className="h-5 w-5" />
+                    </button>
                   )}
-                </button>
-                <button
-                  onClick={handleNewChat}
-                  className="rounded-full p-2 hover:bg-gray-100 dark:hover:bg-gray-700"
-                  title="New Chat"
-                >
-                  <Plus className="h-5 w-5" />
-                </button>
-                {view !== 'history' && (
+                  <span className="text-base font-medium">
+                    {view === 'history' ? 'All Chats' : 'New conversation'}
+                  </span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  {view === 'chat' && (
+                    <button
+                      onClick={handleHistoryToggle}
+                      className="rounded-lg p-2 hover:bg-gray-100 dark:hover:bg-gray-700"
+                    >
+                      <History className="h-5 w-5" />
+                    </button>
+                  )}
                   <button
-                    onClick={handleHistoryToggle}
-                    className="rounded-full p-2 hover:bg-gray-100 dark:hover:bg-gray-700"
-                    title="Chat History"
+                    onClick={handleFullscreenToggle}
+                    className="rounded-lg p-2 hover:bg-gray-100 dark:hover:bg-gray-700"
                   >
-                    <History className="h-5 w-5" />
+                    {isFullscreen ? (
+                      <Minimize className="h-5 w-5" />
+                    ) : (
+                      <Maximize className="h-5 w-5" />
+                    )}
                   </button>
-                )}
+                  <button
+                    onClick={() => setIsOpen(false)}
+                    className="rounded-lg p-2 hover:bg-gray-100 dark:hover:bg-gray-700"
+                  >
+                    <X className="h-5 w-5" />
+                  </button>
+                </div>
               </div>
             </div>
-            {view === 'history' ? <ChatHistory /> : <ChatBox />}
+
+            {/* Main Content Area */}
+            <div className="flex-1 overflow-hidden">
+              {view === 'chat' && !currentChatId && (
+                <div className="flex flex-col space-y-3 p-4">
+                  <div className="text-sm text-gray-500">Ask about the repository:</div>
+                  {presetQuestions.map((question, index) => (
+                    <button
+                      key={index}
+                      onClick={() => handlePresetQuestion(question)}
+                      className="flex items-center rounded-lg border p-3 text-left text-sm hover:bg-gray-50 dark:hover:bg-gray-700"
+                    >
+                      <SendHorizontal className="mr-2 h-4 w-4 rotate-[-45deg]" />
+                      {question}
+                    </button>
+                  ))}
+                </div>
+              )}
+              {view === 'history' ? <ChatHistory /> : <ChatBox />}
+            </div>
           </div>
         </div>
       )}
