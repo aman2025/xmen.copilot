@@ -8,6 +8,7 @@ import useChatStore from '../../store/useChatStore'
 import { processFullscreenToolCall } from '@/tool-calls/processFullscreenToolCall'
 import { processDialogToolCall } from '@/tool-calls/processDialogToolCall'
 import { ToolBox } from './ToolBox'
+import Loading from '../Loading'
 
 const Messages = ({ chatId }) => {
   const [toolState, setToolState] = useState({
@@ -18,7 +19,7 @@ const Messages = ({ chatId }) => {
   })
 
   const queryClient = useQueryClient()
-  const { setMessageInput, isFullscreen } = useChatStore()
+  const { setMessageInput, isFullscreen, isLoading } = useChatStore()
 
   // Filter out tool-related messages and process tool calls
   const filterAndProcessMessages = (messages) => {
@@ -38,7 +39,7 @@ const Messages = ({ chatId }) => {
     })
   }
 
-  const { data: messages = [], isLoading } = useQuery({
+  const { data: messages = [], isLoading: queryLoading } = useQuery({
     queryKey: ['messages', chatId],
     queryFn: async () => {
       if (!chatId) return []
@@ -93,7 +94,7 @@ const Messages = ({ chatId }) => {
     setToolState({ isOpen: false, tool: null, params: null, toolCallId: null })
   }
 
-  if (isLoading) {
+  if (queryLoading) {
     return <div className="flex-1">Loading messages...</div>
   }
 
@@ -102,6 +103,14 @@ const Messages = ({ chatId }) => {
       {messages?.map((message) => (
         <MessageItem key={message?.id} message={message} setMessageInput={setMessageInput} />
       ))}
+      {isLoading && (
+        <div className="flex items-start gap-2">
+          <div className="h-7 w-7 flex-shrink-0">
+            <img src="/copilot-icon.svg" alt="Copilot" className="h-full w-full" />
+          </div>
+          <Loading className="pt-2" />
+        </div>
+      )}
       <ToolBox
         toolState={toolState}
         onToolComplete={handleToolComplete}
