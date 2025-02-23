@@ -12,7 +12,7 @@ model Chat {
   title     String
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
-  messages  Message[]
+  messages  Message[] @relation("ChatToMessages")
 }
 
 model Message {
@@ -23,5 +23,5 @@ model Message {
   toolCallId   String?  // Store tool_call_id for tool responses
   createdAt    DateTime @default(now())
   chatId       String
-  chat         Chat     @relation(fields: [chatId], references: [id])
+  chat         Chat     @relation("ChatToMessages", fields: [chatId], references: [id], onDelete: Cascade)
 } 
