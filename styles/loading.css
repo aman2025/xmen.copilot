@@ -1,0 +1,27 @@
+/* Base dot styling */
+.loading-dot {
+  @apply h-1 w-1 rounded-full bg-gray-300;
+  animation: dotPulse 1.5s infinite;
+}
+
+/* Individual dot animations with delays */
+.loading-dot:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.loading-dot:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+/* Keyframe animation for dots */
+@keyframes dotPulse {
+  0%,
+  100% {
+    transform: scale(1);
+    @apply bg-gray-300;
+  }
+  50% {
+    transform: scale(1.2);
+    @apply bg-blue-500;
+  }
+}
