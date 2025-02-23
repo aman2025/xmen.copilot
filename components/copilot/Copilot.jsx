@@ -58,9 +58,9 @@ const Copilot = () => {
   }
 
   const presetQuestions = [
-    'Can you tell me about this repository?',
-    'How should I get started exploring this repo?',
-    'What questions can I ask?'
+    'How many instances are there?',
+    'Help me start an instance?',
+    'What tasks can I ask?'
   ]
 
   return (
@@ -136,22 +136,13 @@ const Copilot = () => {
 
             {/* Main Content Area */}
             <div className="flex-1 overflow-hidden">
-              {view === 'chat' && !currentChatId && (
-                <div className="flex flex-col space-y-3 p-4">
-                  <div className="text-sm text-gray-500">Ask about the repository:</div>
-                  {presetQuestions.map((question, index) => (
-                    <button
-                      key={index}
-                      onClick={() => handlePresetQuestion(question)}
-                      className="flex items-center rounded-lg border p-3 text-left text-sm hover:bg-gray-50 dark:hover:bg-gray-700"
-                    >
-                      <SendHorizontal className="mr-2 h-4 w-4 rotate-[-45deg]" />
-                      {question}
-                    </button>
-                  ))}
-                </div>
+              {view === 'chat' && (
+                <ChatBox
+                  presetQuestions={presetQuestions}
+                  onPresetQuestionClick={handlePresetQuestion}
+                />
               )}
-              {view === 'history' ? <ChatHistory /> : <ChatBox />}
+              {view === 'history' && <ChatHistory />}
             </div>
           </div>
         </div>
