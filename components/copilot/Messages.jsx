@@ -20,6 +20,7 @@ const CopilotAvatar = () => {
 }
 
 const Messages = ({ chatId }) => {
+  const [isWaitingForAssistant, setIsWaitingForAssistant] = useState(false)
   const [toolState, setToolState] = useState({
     isOpen: false,
     tool: null,
@@ -29,6 +30,30 @@ const Messages = ({ chatId }) => {
 
   const queryClient = useQueryClient()
   const { setMessageInput, isFullscreen, isLoading } = useChatStore()
+
+  // Move useQuery before the useEffect
+  const { data: messages = [], isLoading: queryLoading } = useQuery({
+    queryKey: ['messages', chatId],
+    queryFn: async () => {
+      if (!chatId) return []
+      const res = await fetch(`/api/chat/${chatId}/messages`)
+      const data = await res.json()
+      return filterAndProcessMessages(data.messages || [])
+    },
+    enabled: !!chatId
+  })
+
+  // Now messages is defined when used in useEffect
+  useEffect(() => {
+    if (isLoading) {
+      setIsWaitingForAssistant(true)
+    } else {
+      const lastMessage = messages[messages.length - 1]
+      if (lastMessage?.role === 'assistant') {
+        setIsWaitingForAssistant(false)
+      }
+    }
+  }, [isLoading, messages])
 
   // Filter out tool-related messages and process tool calls
   const filterAndProcessMessages = (messages) => {
@@ -48,20 +73,10 @@ const Messages = ({ chatId }) => {
     })
   }
 
-  const { data: messages = [], isLoading: queryLoading } = useQuery({
-    queryKey: ['messages', chatId],
-    queryFn: async () => {
-      if (!chatId) return []
-      const res = await fetch(`/api/chat/${chatId}/messages`)
-      const data = await res.json()
-      return filterAndProcessMessages(data.messages || [])
-    },
-    enabled: !!chatId
-  })
-
   // Mutation for sending messages
   const { mutate: sendMessage } = useMutation({
     mutationFn: async ({ content, role, toolCallId }) => {
+      // setIsWaitingForAssistant(true) // Set waiting state when mutation starts
       const res = await fetch(`/api/chat/${chatId}/messages`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -88,6 +103,7 @@ const Messages = ({ chatId }) => {
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['messages', chatId] })
+      // setIsWaitingForAssistant(false) // Reset waiting state when mutation completes
     }
   })
 
@@ -103,9 +119,8 @@ const Messages = ({ chatId }) => {
     setToolState({ isOpen: false, tool: null, params: null, toolCallId: null })
   }
 
-  // Check if the last message is from the assistant
-  const isLastMessageAssistant =
-    messages.length > 0 && messages[messages.length - 1]?.role === 'assistant'
+  // Simplified loading state logic
+  const shouldShowLoading = isLoading || isWaitingForAssistant
 
   if (queryLoading) {
     return <div className="flex-1">Loading messages...</div>
@@ -116,11 +131,8 @@ const Messages = ({ chatId }) => {
       {messages?.map((message) => (
         <MessageItem key={message?.id} message={message} setMessageInput={setMessageInput} />
       ))}
-      {isLoading && !isLastMessageAssistant && (
-        <MessageItem
-          message={{ role: 'assistant', content: '', isLoading: true }}
-          setMessageInput={setMessageInput}
-        />
+      {shouldShowLoading && (
+        <MessageItem message={{ role: 'assistant', content: '1111111', isLoading: false }} />
       )}
       <ToolBox
         toolState={toolState}
