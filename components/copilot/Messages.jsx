@@ -155,9 +155,7 @@ const MessageItem = ({ message, setMessageInput }) => {
       )}
       <div
         className={`${
-          message?.role === 'user'
-            ? 'max-w-[80%] rounded-[0.75rem] bg-blue-500 px-4 py-2 text-white'
-            : ''
+          message?.role === 'user' ? 'max-w-[80%] rounded-[0.75rem] bg-blue-100 px-4 py-2' : ''
         }`}
       >
         {message?.role === 'assistant' ? (
