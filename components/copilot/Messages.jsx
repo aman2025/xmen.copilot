@@ -1,7 +1,7 @@
 'use client'
 
 import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import useChatStore from '../../store/useChatStore'
@@ -9,6 +9,39 @@ import { processFullscreenToolCall } from '@/tool-calls/processFullscreenToolCal
 import { processDialogToolCall } from '@/tool-calls/processDialogToolCall'
 import { ToolBox } from './ToolBox'
 import Loading from '../Loading'
+
+// Preload the Copilot avatar image
+const preloadImage = new Image()
+preloadImage.src = '/copilot-icon.svg'
+
+// Enhanced Avatar component with image preloading
+const CopilotAvatar = () => {
+  // Use state to track image loading
+  const [imageLoaded, setImageLoaded] = useState(() => preloadImage.complete)
+
+  useEffect(() => {
+    if (!imageLoaded) {
+      preloadImage.onload = () => setImageLoaded(true)
+    }
+  }, [imageLoaded])
+
+  return (
+    <div className="h-7 w-7 flex-shrink-0">
+      {imageLoaded ? (
+        <img
+          src="/copilot-icon.svg"
+          alt="Copilot"
+          className="h-full w-full"
+          // Use the preloaded image from browser cache
+          crossOrigin="anonymous"
+        />
+      ) : (
+        // Placeholder while image is loading
+        <div className="h-full w-full rounded-full bg-gray-200" />
+      )}
+    </div>
+  )
+}
 
 const Messages = ({ chatId }) => {
   const [toolState, setToolState] = useState({
@@ -94,6 +127,10 @@ const Messages = ({ chatId }) => {
     setToolState({ isOpen: false, tool: null, params: null, toolCallId: null })
   }
 
+  // Check if the last message is from the assistant
+  const isLastMessageAssistant =
+    messages.length > 0 && messages[messages.length - 1]?.role === 'assistant'
+
   if (queryLoading) {
     return <div className="flex-1">Loading messages...</div>
   }
@@ -103,11 +140,9 @@ const Messages = ({ chatId }) => {
       {messages?.map((message) => (
         <MessageItem key={message?.id} message={message} setMessageInput={setMessageInput} />
       ))}
-      {isLoading && (
+      {isLoading && !isLastMessageAssistant && (
         <div className="flex items-start gap-2">
-          <div className="h-7 w-7 flex-shrink-0">
-            <img src="/copilot-icon.svg" alt="Copilot" className="h-full w-full" />
-          </div>
+          <CopilotAvatar />
           <Loading className="pt-2" />
         </div>
       )}
@@ -142,23 +177,19 @@ const MessageItem = ({ message, setMessageInput }) => {
     }
   }
 
-  if (message?.role === 'tool') return null
-
   return (
     <div
       className={`flex items-start gap-2 ${message?.role === 'user' ? 'justify-end' : 'justify-start'}`}
     >
-      {message?.role === 'assistant' && (
-        <div className="h-7 w-7 flex-shrink-0">
-          <img src="/copilot-icon.svg" alt="Copilot" className="h-full w-full" />
-        </div>
-      )}
+      {(message?.role === 'assistant' || message?.role === 'tool') && <CopilotAvatar />}
       <div
         className={`${
           message?.role === 'user' ? 'max-w-[80%] rounded-[0.75rem] bg-blue-100 px-4 py-2' : ''
         }`}
       >
-        {message?.role === 'assistant' ? (
+        {message?.role === 'tool' ? (
+          <Loading className="pt-2" />
+        ) : message?.role === 'assistant' ? (
           <ReactMarkdown
             remarkPlugins={[remarkGfm]}
             className="prose max-w-none dark:prose-invert"
