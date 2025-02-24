@@ -10,35 +10,11 @@ import { processDialogToolCall } from '@/tool-calls/processDialogToolCall'
 import { ToolBox } from './ToolBox'
 import Loading from '../Loading'
 
-// Preload the Copilot avatar image
-const preloadImage = new Image()
-preloadImage.src = '/copilot-icon.svg'
-
 // Enhanced Avatar component with image preloading
 const CopilotAvatar = () => {
-  // Use state to track image loading
-  const [imageLoaded, setImageLoaded] = useState(() => preloadImage.complete)
-
-  useEffect(() => {
-    if (!imageLoaded) {
-      preloadImage.onload = () => setImageLoaded(true)
-    }
-  }, [imageLoaded])
-
   return (
     <div className="h-7 w-7 flex-shrink-0">
-      {imageLoaded ? (
-        <img
-          src="/copilot-icon.svg"
-          alt="Copilot"
-          className="h-full w-full"
-          // Use the preloaded image from browser cache
-          crossOrigin="anonymous"
-        />
-      ) : (
-        // Placeholder while image is loading
-        <div className="h-full w-full rounded-full bg-gray-200" />
-      )}
+      <img src="/copilot-icon.svg" alt="Copilot" className="h-full w-full" />
     </div>
   )
 }
@@ -141,10 +117,10 @@ const Messages = ({ chatId }) => {
         <MessageItem key={message?.id} message={message} setMessageInput={setMessageInput} />
       ))}
       {isLoading && !isLastMessageAssistant && (
-        <div className="flex items-start gap-2">
-          <CopilotAvatar />
-          <Loading className="pt-2" />
-        </div>
+        <MessageItem
+          message={{ role: 'assistant', content: '', isLoading: true }}
+          setMessageInput={setMessageInput}
+        />
       )}
       <ToolBox
         toolState={toolState}
@@ -155,7 +131,7 @@ const Messages = ({ chatId }) => {
   )
 }
 
-// Separate component for rendering individual messages
+// Enhanced MessageItem component to handle all avatar and loading states
 const MessageItem = ({ message, setMessageInput }) => {
   const components = {
     a: ({ href, children }) => {
@@ -177,29 +153,37 @@ const MessageItem = ({ message, setMessageInput }) => {
     }
   }
 
+  const renderContent = () => {
+    if (message.isLoading || message.role === 'tool') {
+      return <Loading className="pt-2" />
+    }
+
+    if (message.role === 'assistant') {
+      return (
+        <ReactMarkdown
+          remarkPlugins={[remarkGfm]}
+          className="prose max-w-none dark:prose-invert"
+          components={components}
+        >
+          {message.content}
+        </ReactMarkdown>
+      )
+    }
+
+    return message.content
+  }
+
   return (
     <div
-      className={`flex items-start gap-2 ${message?.role === 'user' ? 'justify-end' : 'justify-start'}`}
+      className={`flex items-start gap-2 ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
     >
-      {(message?.role === 'assistant' || message?.role === 'tool') && <CopilotAvatar />}
+      {(message.role === 'assistant' || message.role === 'tool') && <CopilotAvatar />}
       <div
         className={`${
-          message?.role === 'user' ? 'max-w-[80%] rounded-[0.75rem] bg-blue-100 px-4 py-2' : ''
+          message.role === 'user' ? 'max-w-[80%] rounded-[0.75rem] bg-blue-100 px-4 py-2' : ''
         }`}
       >
-        {message?.role === 'tool' ? (
-          <Loading className="pt-2" />
-        ) : message?.role === 'assistant' ? (
-          <ReactMarkdown
-            remarkPlugins={[remarkGfm]}
-            className="prose max-w-none dark:prose-invert"
-            components={components}
-          >
-            {message?.content}
-          </ReactMarkdown>
-        ) : (
-          message?.content
-        )}
+        {renderContent()}
       </div>
     </div>
   )
