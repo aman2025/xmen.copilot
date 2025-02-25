@@ -23,14 +23,22 @@ const ChatInput = () => {
     onMutate: async ({ content, role, chatId }) => {
       await queryClient.cancelQueries({ queryKey: ['messages', chatId] })
       const previousMessages = queryClient.getQueryData(['messages', chatId]) || []
+
+      // Add both user message and temporary assistant loading message
       queryClient.setQueryData(
         ['messages', chatId],
         [
           ...previousMessages,
           {
-            id: 'temp-' + Date.now(),
+            id: 'temp-user-' + Date.now(),
             content,
             role,
+            createdAt: new Date().toISOString()
+          },
+          {
+            id: 'temp-assistant-' + Date.now(),
+            content: 'loading',
+            role: 'assistant',
             createdAt: new Date().toISOString()
           }
         ]
