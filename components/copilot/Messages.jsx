@@ -30,8 +30,8 @@ const Messages = ({ chatId }) => {
   const queryClient = useQueryClient()
   const { setMessageInput, isFullscreen, isLoading } = useChatStore()
 
-  // Move useQuery before the useEffect
-  const { data: messages = [], isLoading: queryLoading } = useQuery({
+  // Update useQuery to preserve loading state
+  const { data: messages = [] } = useQuery({
     queryKey: ['messages', chatId],
     queryFn: async () => {
       if (!chatId) return []
@@ -39,25 +39,51 @@ const Messages = ({ chatId }) => {
       const data = await res.json()
       return filterAndProcessMessages(data.messages || [])
     },
-    enabled: !!chatId
+    enabled: !!chatId,
+    // Keep showing loading state until tool calls are complete
+    notifyOnChangeProps: ['data', 'isLoading']
   })
 
-  // Filter out tool-related messages and process tool calls
+  // Update filterAndProcessMessages to preserve loading message
   const filterAndProcessMessages = (messages) => {
-    return messages.filter((message) => {
-      if (message.role === 'assistant' && message.toolCalls?.length > 0) {
-        const toolCall = message.toolCalls[0]
-        const hasToolResponse = messages.some(
-          (m) => m.role === 'tool' && m.toolCallId === toolCall.id
+    const lastMessage = messages[messages.length - 1]
+    const isProcessingTool = messages.some(
+      (message) =>
+        message.role === 'assistant' &&
+        message.toolCalls?.length > 0 &&
+        !messages.some(
+          (m) => m.role === 'assistant' && m.createdAt > message.createdAt && !m.toolCalls
         )
+    )
 
-        if (!hasToolResponse) {
-          handleToolCall(toolCall.function.name, toolCall.function.arguments, message)
+    return messages
+      .filter((message) => {
+        // Filter out tool response messages
+        if (message.role === 'tool') return false
+
+        // Handle assistant messages with tool calls
+        if (message.role === 'assistant' && message.toolCalls?.length > 0) {
+          const toolCall = message.toolCalls[0]
+          if (
+            !messages.some(
+              (m) => m.role === 'assistant' && m.createdAt > message.createdAt && !m.toolCalls
+            )
+          ) {
+            handleToolCall(toolCall.function.name, toolCall.function.arguments, message)
+            return true
+          }
+          return false
         }
-        return false
-      }
-      return message.role !== 'tool'
-    })
+
+        return true
+      })
+      .map((message) => {
+        // Show loading for assistant message that initiated tool call
+        if (isProcessingTool && message.role === 'assistant' && message.toolCalls?.length > 0) {
+          return { ...message, content: 'loading' }
+        }
+        return message
+      })
   }
 
   // Mutation for sending messages
@@ -73,15 +99,20 @@ const Messages = ({ chatId }) => {
     onMutate: async (newMessage) => {
       await queryClient.cancelQueries({ queryKey: ['messages', chatId] })
       const previousMessages = queryClient.getQueryData(['messages', chatId]) || []
-      const updatedMessages = [
-        ...previousMessages,
-        {
-          ...newMessage,
-          id: 'temp-' + Date.now(),
-          createdAt: new Date().toISOString()
-        }
-      ]
-      queryClient.setQueryData(['messages', chatId], updatedMessages)
+
+      // Only add to optimistic update if it's not a tool response
+      if (newMessage.role !== 'tool') {
+        const updatedMessages = [
+          ...previousMessages,
+          {
+            ...newMessage,
+            id: 'temp-' + Date.now(),
+            createdAt: new Date().toISOString()
+          }
+        ]
+        queryClient.setQueryData(['messages', chatId], updatedMessages)
+      }
+      
       return { previousMessages }
     },
     onError: (err, newMessage, context) => {
@@ -104,14 +135,13 @@ const Messages = ({ chatId }) => {
     setToolState({ isOpen: false, tool: null, params: null, toolCallId: null })
   }
 
-  if (queryLoading) {
-    return <div className="flex-1">Loading messages...</div>
-  }
-
   return (
     <div className="flex flex-col space-y-4 py-4">
       {messages?.map((message) => (
-        <MessageItem key={message?.id} message={message} setMessageInput={setMessageInput} />
+        <div>
+          {message.role}:{message.content}
+          <MessageItem key={message?.id} message={message} setMessageInput={setMessageInput} />
+        </div>
       ))}
       <ToolBox
         toolState={toolState}
@@ -146,9 +176,10 @@ const MessageItem = ({ message, setMessageInput }) => {
 
   const renderContent = () => {
     // Show loading component for assistant messages with 'loading' content
+    // or empty content with tool calls (indicating processing)
     if (
-      (message.role === 'assistant' && message.content === 'loading') ||
-      message.role === 'tool'
+      message.role === 'assistant' &&
+      (message.content === 'loading' || (message.toolCalls?.length > 0 && !message.content))
     ) {
       return <Loading className="pt-2" />
     }
@@ -174,7 +205,7 @@ const MessageItem = ({ message, setMessageInput }) => {
     <div
       className={`flex items-start gap-2 ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
     >
-      {(message.role === 'assistant' || message.role === 'tool') && <CopilotAvatar />}
+      {message.role === 'assistant' && <CopilotAvatar />}
       <div
         className={`${
           message.role === 'user' ? 'max-w-[80%] rounded-[0.75rem] bg-blue-100 px-4 py-2' : ''
