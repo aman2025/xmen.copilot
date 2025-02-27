@@ -21,12 +21,15 @@ const ChatBox = ({ presetQuestions, onPresetQuestionClick }) => {
     setUserScrolled(!isAtBottom)
   }
 
-  // Scroll to bottom function
-  const scrollToBottom = () => {
+  // Scroll to bottom function with smooth behavior
+  const scrollToBottom = (immediate = false) => {
     if (scrollAreaRef.current) {
       const viewport = scrollAreaRef.current.querySelector('[data-radix-scroll-area-viewport]')
       if (viewport) {
-        viewport.scrollTop = viewport.scrollHeight
+        viewport.scrollTo({
+          top: viewport.scrollHeight,
+          behavior: immediate ? 'auto' : 'smooth'
+        })
         setUserScrolled(false)
       }
     }
@@ -43,17 +46,23 @@ const ChatBox = ({ presetQuestions, onPresetQuestionClick }) => {
     }
   }, [])
 
-  // Add scroll to bottom to global state
+  // Add scroll to bottom to global state with immediate option
   useEffect(() => {
-    useChatStore.setState({ scrollToBottom })
+    useChatStore.setState({
+      scrollToBottom,
+      scrollToBottomImmediate: () => scrollToBottom(true)
+    })
     return () => {
-      useChatStore.setState({ scrollToBottom: null })
+      useChatStore.setState({
+        scrollToBottom: null,
+        scrollToBottomImmediate: null
+      })
     }
   }, [])
 
   return (
     <div className="flex h-full flex-col">
-      <ScrollArea ref={scrollAreaRef} className="flex-1">
+      <ScrollArea ref={scrollAreaRef} className="flex-1" type="always">
         <div className="px-4">
           <Messages chatId={currentChatId} />
 
