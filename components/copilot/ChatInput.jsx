@@ -49,6 +49,12 @@ const ChatInput = () => {
           }
         ]
       )
+
+      // Immediately scroll to bottom after updating cache
+      setTimeout(() => {
+        useChatStore.getState().scrollToBottomImmediate?.()
+      }, 0)
+
       return { previousMessages }
     },
     onError: (err, variables, context) => {
