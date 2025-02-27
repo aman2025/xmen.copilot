@@ -7,8 +7,14 @@ import { useEffect } from 'react'
 
 const ChatInput = () => {
   const queryClient = useQueryClient()
-  const { currentChatId, setCurrentChatId, messageInput, setMessageInput, setIsLoading } =
-    useChatStore()
+  const {
+    currentChatId,
+    setCurrentChatId,
+    messageInput,
+    setMessageInput,
+    setIsLoading,
+    scrollToBottom
+  } = useChatStore()
 
   // Mutation for creating a new message
   const createMessageMutation = useMutation({
@@ -80,9 +86,11 @@ const ChatInput = () => {
       })
 
       setMessageInput('')
+
+      // Scroll to bottom after sending message
+      scrollToBottom?.()
     } catch (error) {
       console.error('Error:', error)
-    } finally {
     }
   }
 

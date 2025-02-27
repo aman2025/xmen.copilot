@@ -6,6 +6,7 @@ const useChatStore = create((set) => ({
   view: 'chat',
   isFullscreen: true,
   isLoading: false,
+  scrollToBottom: null,
   setCurrentChatId: (id) => set({ currentChatId: id }),
   setView: (view) => set({ view }),
   setIsFullscreen: (isFullscreen) => set({ isFullscreen }),
