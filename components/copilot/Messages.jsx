@@ -112,7 +112,7 @@ const Messages = ({ chatId }) => {
         ]
         queryClient.setQueryData(['messages', chatId], updatedMessages)
       }
-      
+
       return { previousMessages }
     },
     onError: (err, newMessage, context) => {
@@ -139,7 +139,6 @@ const Messages = ({ chatId }) => {
     <div className="flex flex-col space-y-4 py-4">
       {messages?.map((message) => (
         <div>
-          {message.role}:{message.content}
           <MessageItem key={message?.id} message={message} setMessageInput={setMessageInput} />
         </div>
       ))}
@@ -181,7 +180,7 @@ const MessageItem = ({ message, setMessageInput }) => {
       message.role === 'assistant' &&
       (message.content === 'loading' || (message.toolCalls?.length > 0 && !message.content))
     ) {
-      return <Loading className="pt-2" />
+      return <Loading className="mt-1 pt-2" />
     }
 
     // Show markdown for non-loading assistant messages
