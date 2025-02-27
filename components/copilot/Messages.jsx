@@ -46,7 +46,6 @@ const Messages = ({ chatId }) => {
 
   // Update filterAndProcessMessages to preserve loading message
   const filterAndProcessMessages = (messages) => {
-    const lastMessage = messages[messages.length - 1]
     const isProcessingTool = messages.some(
       (message) =>
         message.role === 'assistant' &&
