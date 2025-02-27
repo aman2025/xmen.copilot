@@ -26,21 +26,15 @@ const ChatBox = ({ presetQuestions, onPresetQuestionClick }) => {
     if (scrollAreaRef.current) {
       const viewport = scrollAreaRef.current.querySelector('[data-radix-scroll-area-viewport]')
       if (viewport) {
-        // For immediate scroll (when adding new messages), first scroll without animation
         if (immediate) {
-          viewport.scrollTo({
-            top: viewport.scrollHeight,
-            behavior: 'auto'
-          })
-          // Then apply smooth scroll after a small delay to create animation effect
-          requestAnimationFrame(() => {
+          // Use setTimeout instead of requestAnimationFrame for better animation timing
+          setTimeout(() => {
             viewport.scrollTo({
               top: viewport.scrollHeight,
               behavior: 'smooth'
             })
-          })
+          }, 50) // Add a slight delay to ensure the first scroll completes
         } else {
-          // For normal scroll requests, just use smooth behavior
           viewport.scrollTo({
             top: viewport.scrollHeight,
             behavior: 'smooth'
