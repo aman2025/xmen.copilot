@@ -31,7 +31,7 @@ const Messages = ({ chatId }) => {
   const { setMessageInput, isFullscreen, isLoading } = useChatStore()
 
   // Update useQuery to preserve loading state
-  const { data: messages = [] } = useQuery({
+  const { data: messages = [], isLoading: queryLoading } = useQuery({
     queryKey: ['messages', chatId],
     queryFn: async () => {
       if (!chatId) return []
@@ -132,6 +132,10 @@ const Messages = ({ chatId }) => {
 
   const handleToolComplete = () => {
     setToolState({ isOpen: false, tool: null, params: null, toolCallId: null })
+  }
+
+  if (queryLoading) {
+    return <div className="flex justify-center p-6">Loading messages...</div>
   }
 
   return (
