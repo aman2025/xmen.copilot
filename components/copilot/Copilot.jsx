@@ -1,17 +1,7 @@
 'use client'
 
 import React, { useState } from 'react'
-import {
-  Sparkles,
-  Plus,
-  History,
-  ArrowLeft,
-  Maximize,
-  Minimize,
-  SendHorizontal,
-  X,
-  Square
-} from 'lucide-react'
+import { Plus, History, ArrowLeft, Maximize, Minimize, X } from 'lucide-react'
 import ChatHistory from './History'
 import ChatBox from './ChatBox'
 import useChatStore from '../../store/useChatStore'
@@ -27,7 +17,7 @@ const Copilot = () => {
     messageInput,
     setMessageInput
   } = useChatStore()
-  const [isOpen, setIsOpen] = useState(true)
+  const [isOpen, setIsOpen] = useState(false)
 
   const handleToggle = () => {
     setIsOpen(!isOpen)
