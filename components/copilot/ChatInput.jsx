@@ -104,6 +104,7 @@ const ChatInput = () => {
           placeholder="Ask Copilot"
           className="flex-1 bg-transparent text-gray-800 placeholder-gray-400 focus:outline-none dark:text-white"
           disabled={createMessageMutation.isLoading}
+          autocomplete="off"
         />
         <button
           type="submit"
