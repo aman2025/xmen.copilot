@@ -72,9 +72,15 @@ const ChatBox = ({ presetQuestions, onPresetQuestionClick }) => {
 
   return (
     <div className="flex h-full flex-col">
-      <ScrollArea ref={scrollAreaRef} className="flex-1" type="always">
-        <div className="px-4">
-          <Messages chatId={currentChatId} />
+      <ScrollArea
+        ref={scrollAreaRef}
+        className="flex-1 [&>div:nth-child(2)>div:nth-child(1)]:h-full"
+        type="always"
+      >
+        <div className="flex h-full flex-col justify-between px-4">
+          <div>
+            <Messages chatId={currentChatId} />
+          </div>
 
           {!currentChatId && (
             <div className="py-2 dark:border-gray-700">
