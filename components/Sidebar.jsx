@@ -20,9 +20,13 @@ const Sidebar = () => {
           {menuItems.map((item, index) => (
             <li
               key={index}
-              className="flex h-[88px] flex-col items-center  justify-center rounded-md border border-transparent p-2 text-gray-700 hover:border-[#767ada]"
+              className={`flex h-[88px] flex-col items-center justify-center rounded-md border p-2 
+                ${index === 0 ? 'border-[#767ada] bg-[#767ada] shadow-[0_3px_8px_rgba(118,122,218,0.36)]' : 'border-transparent hover:border-[#767ada]'}`}
             >
-              <a href="#" className="flex flex-col items-center justify-center text-[#6163b5]">
+              <a
+                href="#"
+                className={`flex flex-col items-center justify-center ${index === 0 ? 'text-white' : 'text-[#6163b5]'}`}
+              >
                 <span>{item.icon}</span>
                 <span>{item.label}</span>
               </a>
