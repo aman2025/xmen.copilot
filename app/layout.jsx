@@ -15,10 +15,10 @@ export default function RootLayout({ children }) {
     <html lang="en" suppressHydrationWarning>
       <body suppressHydrationWarning>
         <Providers>
-          <div className="flex h-screen bg-[url('/bg.png')] px-[70px] py-[40px]">
+          <div className="flex h-screen bg-[url('/bg.png')] px-[66px] py-[45px]">
             <div
               className="flex w-full overflow-hidden rounded-xl border border-[#5255ac] bg-[#f5f6f7]"
-              style={{ boxShadow: '0 0 18px rgba(82, 85, 172, 0.32)' }}
+              style={{ boxShadow: '0 0 88px rgba(82, 85, 172, 0.52)' }}
             >
               <Sidebar />
               <main className="mx-auto max-w-7xl flex-1  p-4 md:p-8">{children}</main>

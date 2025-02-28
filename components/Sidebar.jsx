@@ -13,9 +13,11 @@ const Sidebar = () => {
   return (
     <aside className="flex w-[228px] flex-col bg-white ">
       <div className="flex items-center justify-center p-4">
-        <span className="text-xl font-bold text-gray-800 dark:text-white">X-MEN</span>
+        <span className="text-xl font-bold text-gray-800 dark:text-white">
+          <img src="/logo.png" alt="Copilot" style={{ width: '175px' }} />
+        </span>
       </div>
-      <nav className="flex-1 px-8 py-4">
+      <nav className="flex-1 px-8 py-6">
         <ul className="space-y-2">
           {menuItems.map((item, index) => (
             <li
