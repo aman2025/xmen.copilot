@@ -3,11 +3,11 @@ import { HomeIcon, ListTree, LayoutDashboard, ClipboardList, Wrench } from 'luci
 
 const Sidebar = () => {
   const menuItems = [
-    { icon: <HomeIcon />, label: '首页' },
-    { icon: <LayoutDashboard />, label: '应用管理' },
-    { icon: <ListTree />, label: '节点管理' },
-    { icon: <ClipboardList />, label: '日志管理' },
-    { icon: <Wrench />, label: '运维工具集' }
+    { icon: <HomeIcon className="h-8 w-8" />, label: '首页' },
+    { icon: <LayoutDashboard className="h-8 w-8" />, label: '应用管理' },
+    { icon: <ListTree className="h-8 w-8" />, label: '节点管理' },
+    { icon: <ClipboardList className="h-8 w-8" />, label: '日志管理' },
+    { icon: <Wrench className="h-8 w-8" />, label: '运维工具集' }
   ]
 
   return (
@@ -15,15 +15,15 @@ const Sidebar = () => {
       <div className="flex items-center justify-center p-4">
         <span className="text-xl font-bold text-gray-800 dark:text-white">X-MEN</span>
       </div>
-      <nav className="flex-1 p-4">
+      <nav className="flex-1 px-8 py-4">
         <ul className="space-y-2">
           {menuItems.map((item, index) => (
-            <li key={index}>
-              <a
-                href="#"
-                className="flex items-center rounded-md p-2 text-gray-700 hover:bg-gray-200 dark:text-gray-300 dark:hover:bg-gray-800"
-              >
-                <span className="mr-2">{item.icon}</span>
+            <li
+              key={index}
+              className="flex h-[88px] flex-col items-center  justify-center rounded-md border border-transparent p-2 text-gray-700 hover:border-[#767ada]"
+            >
+              <a href="#" className="flex flex-col items-center justify-center text-[#6163b5]">
+                <span>{item.icon}</span>
                 <span>{item.label}</span>
               </a>
             </li>
