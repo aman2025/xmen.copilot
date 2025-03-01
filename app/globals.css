@@ -72,3 +72,25 @@ hr {
   margin-top: 1em !important;
   margin-bottom: 1em !important;
 }
+
+/* 设置滚动条的宽度和颜色 */
+::-webkit-scrollbar {
+  width: 7px; /* 滚动条宽度 */
+}
+
+/* 设置滚动条轨道的颜色 */
+::-webkit-scrollbar-track {
+  background: #fff; /* 轨道颜色 */
+}
+
+/* 设置滚动条滑块的颜色 */
+::-webkit-scrollbar-thumb {
+  background: #d1d5db; /* 滑块颜色 */
+  border-radius: 16px; /* 滑块圆角 */
+}
+
+/* 设置滚动条滑块悬停时的颜色 */
+::-webkit-scrollbar-thumb:hover {
+  background: #d1d5db; /* 悬停时的滑块颜色 */
+}
+
