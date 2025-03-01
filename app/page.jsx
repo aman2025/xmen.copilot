@@ -91,15 +91,74 @@ const HomePage = () => {
       <div className="grid flex-1 grid-cols-2 gap-4">
         <div className="h-full">
           <h2 className="mb-2 text-sm font-semibold">逻辑部署图</h2>
-          <div className="h-[calc(100%-28px)] rounded-lg bg-white p-6 shadow-md dark:bg-gray-800">
-            <p>This is the logical deployment information container.</p>
+          <div className="h-[calc(100%-28px)] overflow-auto rounded-lg bg-white p-6 shadow-md dark:bg-gray-800">
+            <table className="w-full border-collapse">
+              <tbody>
+                <tr>
+                  <td className="w-24 border border-gray-200 p-3 text-center" rowspan="2">
+                    平台
+                  </td>
+                  <td className="border border-gray-200 p-3">DFA-CRC</td>
+                  <td className="border border-gray-200 p-3">DFA-CRC@10.168.106.78:29009</td>
+                </tr>
+                <tr>
+                  <td className="border border-gray-200 p-3">DFA-MCF</td>
+                  <td className="border border-gray-200 p-3">DFA-MCF@10.168.106.78:8080</td>
+                </tr>
+                <tr>
+                  <td className="w-24 border border-gray-200 p-3 text-center">应用</td>
+                  <td className="border border-gray-200 p-3">E-PBOS-BASEFRAME</td>
+                  <td className="border border-gray-200 p-3">
+                    <div>E-PBOS-BASEFRAME@10.168.106.78:8080</div>
+                    <div className="text-sm text-gray-500">(部署于DFA-MCF@10.168.106.78)</div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
           </div>
         </div>
 
         <div className="h-full">
           <h2 className="mb-2 text-sm font-semibold">物理部署图</h2>
-          <div className="h-[calc(100%-28px)] rounded-lg bg-white p-6 shadow-md dark:bg-gray-800">
-            <p>This is the physical deployment diagram container.</p>
+          <div className="h-[calc(100%-28px)] overflow-auto rounded-lg bg-white p-6 shadow-md dark:bg-gray-800">
+            <table className="w-full border-collapse">
+              <tbody>
+                <tr>
+                  <td className="w-48 border border-gray-200 p-3 text-center" rowspan="5">
+                    10.168.106.78
+                  </td>
+                  <td className="border border-gray-200 p-3">shinecrc@10.168.106.78</td>
+                </tr>
+                <tr>
+                  <td className="border border-gray-200 p-3">
+                    bmsf@10.168.106.78
+                    <br />
+                    (启动于Tomcat@10.0.0.2)
+                  </td>
+                </tr>
+                <tr>
+                  <td className="border border-gray-200 p-3">dfa-gateway@10.168.106.78</td>
+                </tr>
+                <tr>
+                  <td className="border border-gray-200 p-3">ibt-web@10.168.106.78</td>
+                </tr>
+                <tr>
+                  <td className="border border-gray-200 p-3">esim-web@10.168.106.78</td>
+                </tr>
+                <tr>
+                  <td className="w-48 border border-gray-200 p-3 text-center" rowspan="3">
+                    10.168.106.11
+                  </td>
+                  <td className="border border-gray-200 p-3">shinecrc@10.168.106.78</td>
+                </tr>
+                <tr>
+                  <td className="border border-gray-200 p-3">bmsf@10.168.106.78</td>
+                </tr>
+                <tr>
+                  <td className="border border-gray-200 p-3">dfa-gateway@10.168.106.78</td>
+                </tr>
+              </tbody>
+            </table>
           </div>
         </div>
       </div>
