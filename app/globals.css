@@ -81,7 +81,7 @@ hr {
 
 /* 设置滚动条轨道的颜色 */
 ::-webkit-scrollbar-track {
-  background: #fff; /* 轨道颜色 */
+  background: transparent; /* 轨道颜色 */
 }
 
 /* 设置滚动条滑块的颜色 */

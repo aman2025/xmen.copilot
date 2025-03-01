@@ -31,7 +31,7 @@ const Sidebar = () => {
   ]
 
   return (
-    <aside className="flex w-[228px] flex-col bg-white">
+    <aside className="flex w-[228px] flex-col bg-white shadow-lg">
       {/* Header */}
       <div className="flex items-center justify-center p-4">
         <span className="text-xl font-bold text-gray-800 dark:text-white">
