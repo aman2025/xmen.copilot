@@ -65,7 +65,7 @@ const Copilot = () => {
         <div
           className={`${
             isFullscreen
-              ? 'fixed inset-0 bottom-0 right-0 h-full w-full rounded-none'
+              ? 'fixed inset-0 top-[45px] bottom-[45px] right-[60px] left-[60px] rounded-2xl'
               : 'absolute bottom-0 right-0 w-[400px] rounded-[1rem] border shadow-lg'
           } bg-white dark:border-gray-700 dark:bg-gray-800`}
         >
