@@ -76,6 +76,7 @@ hr {
 /* 设置滚动条的宽度和颜色 */
 ::-webkit-scrollbar {
   width: 7px; /* 滚动条宽度 */
+  height: 7px;
 }
 
 /* 设置滚动条轨道的颜色 */
