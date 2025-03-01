@@ -5,9 +5,9 @@ const HomePage = () => {
   return (
     <div className="flex h-full flex-col gap-4">
       {/* First row - single full-width item (50% height) */}
-      <div className="flex-1">
+      <div className="min-h-0 flex-1">
         <h2 className="mb-2 text-sm font-semibold">集群信息</h2>
-        <div className="h-[calc(100%-28px)] rounded-lg bg-white p-6 shadow-md dark:bg-gray-800">
+        <div className="h-[calc(100%-28px)] overflow-y-auto rounded-lg bg-white p-6 shadow-md dark:bg-gray-800">
           {/* Platform Group */}
           <div className="mb-8">
             <h3 className="mb-4 text-sm text-gray-500">平台</h3>
@@ -88,10 +88,10 @@ const HomePage = () => {
       </div>
 
       {/* Second row - two equal-width items (50% height) */}
-      <div className="grid flex-1 grid-cols-2 gap-4">
-        <div className="h-full">
+      <div className="grid min-h-0 flex-1 grid-cols-2 gap-4">
+        <div className="min-h-0">
           <h2 className="mb-2 text-sm font-semibold">逻辑部署图</h2>
-          <div className="h-[calc(100%-28px)] overflow-auto rounded-lg bg-white p-6 shadow-md dark:bg-gray-800">
+          <div className="h-[calc(100%-28px)] overflow-y-auto rounded-lg bg-white p-6 shadow-md dark:bg-gray-800">
             <table className="w-full border-collapse">
               <tbody>
                 <tr>
@@ -118,9 +118,9 @@ const HomePage = () => {
           </div>
         </div>
 
-        <div className="h-full">
+        <div className="min-h-0">
           <h2 className="mb-2 text-sm font-semibold">物理部署图</h2>
-          <div className="h-[calc(100%-28px)] overflow-auto rounded-lg bg-white p-6 shadow-md dark:bg-gray-800">
+          <div className="h-[calc(100%-28px)] overflow-y-auto rounded-lg bg-white p-6 shadow-md dark:bg-gray-800">
             <table className="w-full border-collapse">
               <tbody>
                 <tr>
