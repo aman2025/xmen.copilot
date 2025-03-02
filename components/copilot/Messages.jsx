@@ -191,7 +191,7 @@ const MessageItem = ({ message, setMessageInput }) => {
       return (
         <ReactMarkdown
           remarkPlugins={[remarkGfm]}
-          className="prose max-w-none dark:prose-invert"
+          className={`prose overflow-x-auto dark:prose-invert ${useChatStore().isFullscreen ? 'max-w-[888px]' : 'max-w-[328px]'}`}
           components={components}
         >
           {message.content}
