@@ -77,33 +77,38 @@ const ChatBox = ({ presetQuestions, onPresetQuestionClick }) => {
         className="flex-1 [&>div:nth-child(2)>div:nth-child(1)]:h-full"
         type="always"
       >
-        <div className="flex h-full flex-col justify-between px-4">
-          <div>
-            <Messages chatId={currentChatId} />
-          </div>
-
-          {!currentChatId && (
-            <div className="py-2 dark:border-gray-700">
-              <div className="mb-2 text-sm text-gray-500">Ask about tasks:</div>
-              <div className="mb-3 flex flex-wrap gap-2">
-                {presetQuestions.map((question, index) => (
-                  <button
-                    key={index}
-                    onClick={() => onPresetQuestionClick(question)}
-                    className="flex items-center rounded-lg border p-2 text-left text-sm hover:bg-gray-50 dark:hover:bg-gray-700"
-                  >
-                    <SendHorizontal className="mr-2 h-4 w-4 rotate-[-45deg]" />
-                    {question}
-                  </button>
-                ))}
-              </div>
+        <div className="flex h-full flex-col items-center">
+          <div
+            className={`flex h-full w-full flex-col justify-between px-4 ${useChatStore().isFullscreen ? 'max-w-[888px]' : ''}`}
+          >
+            <div>
+              <Messages chatId={currentChatId} />
             </div>
-          )}
+
+            {!currentChatId && (
+              <div className="py-2 dark:border-gray-700">
+                <div className="mb-2 text-sm text-gray-500">Ask about tasks:</div>
+                <div className="mb-3 flex flex-wrap gap-2">
+                  {presetQuestions.map((question, index) => (
+                    <button
+                      key={index}
+                      onClick={() => onPresetQuestionClick(question)}
+                      className="flex items-center rounded-lg border p-2 text-left text-sm hover:bg-gray-50 dark:hover:bg-gray-700"
+                    >
+                      <SendHorizontal className="mr-2 h-4 w-4 rotate-[-45deg]" />
+                      {question}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       </ScrollArea>
-
-      <div className="border-t px-4 py-2 dark:border-gray-700">
-        <ChatInput />
+      <div className="flex  justify-center border-t px-4 py-2">
+        <div className={`w-full ${useChatStore().isFullscreen ? 'max-w-[888px]' : ''}`}>
+          <ChatInput />
+        </div>
       </div>
     </div>
   )
