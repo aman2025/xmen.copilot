@@ -138,15 +138,11 @@ const ChatInput = () => {
           disabled={createMessageMutation.isLoading || isWaitingForAssistant}
           className={`ml-2 rounded-lg p-2 transition-colors ${
             createMessageMutation.isLoading || isWaitingForAssistant
-              ? 'bg-red-500 hover:bg-red-600'
-              : 'text-gray-400 hover:text-gray-600 dark:text-gray-300 dark:hover:text-gray-100'
+              ? 'not-allowed text-gray-300'
+              : 'text-gray-400 hover:text-blue-600 dark:text-gray-300 dark:hover:text-gray-100'
           }`}
         >
-          {createMessageMutation.isLoading || isWaitingForAssistant ? (
-            <Square className="h-4 w-4 text-white" />
-          ) : (
-            <SendHorizontal className="h-5 w-5" />
-          )}
+          <SendHorizontal className="h-5 w-5" />
         </button>
       </div>
     </form>
