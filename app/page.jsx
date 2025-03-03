@@ -62,7 +62,7 @@ const HomePage = () => {
             <table className="w-full border-collapse">
               <tbody>
                 <tr>
-                  <td className="w-24 border border-gray-200 p-3 text-center" rowspan="2">
+                  <td className="w-24 border border-gray-200 p-3 text-center" rowSpan="2">
                     平台
                   </td>
                   <td className="border border-gray-200 p-3">DFA-CRC</td>
@@ -91,7 +91,7 @@ const HomePage = () => {
             <table className="w-full border-collapse">
               <tbody>
                 <tr>
-                  <td className="w-48 border border-gray-200 p-3 text-center" rowspan="3">
+                  <td className="w-48 border border-gray-200 p-3 text-center" rowSpan="3">
                     10.168.106.78
                   </td>
                   <td className="border border-gray-200 p-3">shinecrc@10.168.106.78</td>
@@ -107,7 +107,7 @@ const HomePage = () => {
                   <td className="border border-gray-200 p-3">dfa-gateway@10.168.106.78</td>
                 </tr>
                 <tr>
-                  <td className="w-48 border border-gray-200 p-3 text-center" rowspan="3">
+                  <td className="w-48 border border-gray-200 p-3 text-center" rowSpan="3">
                     10.168.106.11
                   </td>
                   <td className="border border-gray-200 p-3">shinecrc@10.168.106.78</td>
