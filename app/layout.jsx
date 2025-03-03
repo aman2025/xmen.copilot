@@ -21,7 +21,7 @@ export default function RootLayout({ children }) {
               style={{ boxShadow: '0 0 88px rgba(82, 85, 172, 0.52)' }}
             >
               <Sidebar />
-              <main className="mx-auto flex max-w-7xl flex-1 flex-col overflow-hidden p-4 md:p-4">
+              <main className="mx-auto flex flex-1 flex-col overflow-hidden p-4 md:p-4">
                 {children}
               </main>
               <Copilot />

@@ -91,7 +91,7 @@ const HomePage = () => {
             <table className="w-full border-collapse">
               <tbody>
                 <tr>
-                  <td className="w-48 border border-gray-200 p-3 text-center" rowspan="5">
+                  <td className="w-48 border border-gray-200 p-3 text-center" rowspan="3">
                     10.168.106.78
                   </td>
                   <td className="border border-gray-200 p-3">shinecrc@10.168.106.78</td>
@@ -105,12 +105,6 @@ const HomePage = () => {
                 </tr>
                 <tr>
                   <td className="border border-gray-200 p-3">dfa-gateway@10.168.106.78</td>
-                </tr>
-                <tr>
-                  <td className="border border-gray-200 p-3">ibt-web@10.168.106.78</td>
-                </tr>
-                <tr>
-                  <td className="border border-gray-200 p-3">esim-web@10.168.106.78</td>
                 </tr>
                 <tr>
                   <td className="w-48 border border-gray-200 p-3 text-center" rowspan="3">
