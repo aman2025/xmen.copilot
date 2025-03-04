@@ -6,10 +6,21 @@ export async function DELETE(request, { params }) {
   try {
     const chatId = params.chatId
 
-    await prisma.chat.delete({
-      where: {
-        id: chatId
-      }
+    // Delete the chat and all related messages in a transaction
+    await prisma.$transaction(async (tx) => {
+      // Delete all messages first
+      await tx.message.deleteMany({
+        where: {
+          chatId: chatId
+        }
+      })
+
+      // Then delete the chat
+      await tx.chat.delete({
+        where: {
+          id: chatId
+        }
+      })
     })
 
     return new Response(JSON.stringify({ message: 'Chat deleted successfully' }), {
