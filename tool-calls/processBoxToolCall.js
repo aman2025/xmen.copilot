@@ -5,7 +5,7 @@
  * @param {object} message - Original message containing the tool call
  * @param {function} setToolState - Function to update tool state
  */
-export const processDialogToolCall = (toolName, toolArgs, message, setToolState) => {
+export const processBoxToolCall = (toolName, toolArgs, message, setToolState) => {
   try {
     const parsedArgs = typeof toolArgs === 'string' ? JSON.parse(toolArgs) : toolArgs
 

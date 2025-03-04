@@ -5,8 +5,8 @@ import { useState, useEffect } from 'react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import useChatStore from '../../store/useChatStore'
-import { processFullscreenToolCall } from '@/tool-calls/processFullscreenToolCall'
-import { processDialogToolCall } from '@/tool-calls/processDialogToolCall'
+import { processToolCall } from '@/tool-calls/processToolCall'
+import { processBoxToolCall } from '@/tool-calls/processBoxToolCall'
 import { ToolBox } from './ToolBox'
 import Loading from '../Loading'
 
@@ -139,10 +139,12 @@ const Messages = ({ chatId }) => {
   })
 
   const handleToolCall = (toolName, toolArgs, message) => {
-    if (isFullscreen) {
-      processFullscreenToolCall(toolName, toolArgs, message.toolCalls[0].id, sendMessage)
+    if (toolName !== 'start_instance') {
+      console.log(1, toolName)
+      processToolCall(toolName, toolArgs, message.toolCalls[0].id, sendMessage)
     } else {
-      processDialogToolCall(toolName, toolArgs, message, setToolState)
+      console.log(2, toolName)
+      processBoxToolCall(toolName, toolArgs, message, setToolState)
     }
   }
 

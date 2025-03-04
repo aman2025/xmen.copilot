@@ -8,7 +8,7 @@ import { toolCalls } from './index'
  * @param {function} sendMessage - Function to send message back to assistant
  * @returns {Promise<void>}
  */
-export const processFullscreenToolCall = async (toolName, toolArgs, toolCallId, sendMessage) => {
+export const processToolCall = async (toolName, toolArgs, toolCallId, sendMessage) => {
   try {
     // Find the corresponding tool function from toolCalls array
     const toolFunction = toolCalls.find((tool) => tool.name === toolName)

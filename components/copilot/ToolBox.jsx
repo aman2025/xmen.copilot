@@ -1,8 +1,6 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { Dialog, DialogContent, DialogFooter, DialogTitle } from '@/components/ui/dialog'
-import { VisuallyHidden } from '@radix-ui/react-visually-hidden'
 import { Button } from '@/components/ui/button'
 
 /**
@@ -23,10 +21,10 @@ export const ToolBox = ({ toolState, onToolComplete, sendMessage }) => {
       onToolComplete()
     }
   }
-
+  // trigger ToolComponent's handleAccept
   const handleComplete = () => {
-    if (toolActions.handleComplete) {
-      toolActions.handleComplete()
+    if (toolActions.handleAccept) {
+      toolActions.handleAccept()
     }
   }
 
@@ -50,16 +48,11 @@ export const ToolBox = ({ toolState, onToolComplete, sendMessage }) => {
   if (!toolState.isOpen) return null
 
   return (
-    <Dialog open={dialogOpen} onOpenChange={handleOpenChange}>
-      <DialogContent className="flex h-[80vh] flex-col bg-white sm:max-w-[888px]">
-        <VisuallyHidden asChild>
-          <DialogTitle>Tool Execution</DialogTitle>
-        </VisuallyHidden>
-        <div className="flex-1 overflow-y-auto">{renderTool()}</div>
-        <DialogFooter className="mt-auto">
-          <Button onClick={handleComplete}>complete</Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+    <div className="border">
+      <div className="flex-1 overflow-y-auto">{renderTool()}</div>
+      <div>
+        <Button onClick={handleComplete}>complete</Button>
+      </div>
+    </div>
   )
 }
