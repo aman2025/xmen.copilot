@@ -17,8 +17,9 @@ const ChatInput = () => {
   useEffect(() => {
     if (!currentChatId) return
 
-    const subscription = queryClient.getQueryCache().subscribe(({ query }) => {
-      if (query.queryKey[0] === 'messages' && query.queryKey[1] === currentChatId) {
+    const unsubscribe = queryClient.getQueryCache().subscribe(({ query }) => {
+      // Only process if this is a messages query for our current chat
+      if (query?.queryKey[0] === 'messages' && query?.queryKey[1] === currentChatId) {
         const messages = query.state.data || []
         const lastMessage = messages[messages.length - 1]
 
@@ -33,7 +34,11 @@ const ChatInput = () => {
       }
     })
 
-    return () => subscription.unsubscribe()
+    return () => {
+      if (typeof unsubscribe === 'function') {
+        unsubscribe()
+      }
+    }
   }, [currentChatId, queryClient])
 
   // Mutation for creating a new message

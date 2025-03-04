@@ -31,15 +31,31 @@ const Messages = ({ chatId }) => {
   const { setMessageInput, isFullscreen, isLoading } = useChatStore()
 
   // Update useQuery to preserve loading state
-  const { data: messages = [], isLoading: queryLoading } = useQuery({
+  const {
+    data: messages = [],
+    isLoading: queryLoading,
+    error
+  } = useQuery({
     queryKey: ['messages', chatId],
     queryFn: async () => {
       if (!chatId) return []
-      const res = await fetch(`/api/chat/${chatId}/messages`)
-      const data = await res.json()
-      return filterAndProcessMessages(data.messages || [])
+      try {
+        const res = await fetch(`/api/chat/${chatId}/messages`, {
+          // Add timeout and retry options
+          signal: AbortSignal.timeout(5000) // 5 second timeout
+        })
+        if (!res.ok) throw new Error('Failed to fetch messages')
+        const data = await res.json()
+        return filterAndProcessMessages(data.messages || [])
+      } catch (error) {
+        console.error('Error fetching messages:', error)
+        throw error
+      }
     },
     enabled: !!chatId,
+    // Add retry configuration
+    retry: 3,
+    retryDelay: 1000,
     // Keep showing loading state until tool calls are complete
     notifyOnChangeProps: ['data', 'isLoading']
   })
@@ -136,6 +152,14 @@ const Messages = ({ chatId }) => {
 
   if (queryLoading) {
     return <div className="flex justify-center p-6">Loading messages...</div>
+  }
+
+  if (error) {
+    return (
+      <div className="flex justify-center p-6 text-red-500">
+        Error loading messages. Please try again.
+      </div>
+    )
   }
 
   return (
