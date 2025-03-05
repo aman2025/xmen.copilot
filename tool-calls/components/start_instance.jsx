@@ -2,15 +2,18 @@
 
 import React, { useEffect } from 'react'
 
-const start_instance = ({ params, onComplete, registerActions }) => {
+const start_instance = ({ params, onComplete, registerActions, sendMessage, toolCallId }) => {
   const { instanceId } = params || {}
-  console.log('start_instance.jsx component ')
 
   const handleAccept = () => {
-    console.log('click handleAccept')
-
     const resultMessage = { success: true, data: { isntanceName: 'dfa-crc@10.168.106.95' } }
-    onComplete(resultMessage)
+    // Send the tool response message before completing
+    sendMessage({
+      content: JSON.stringify(resultMessage),
+      role: 'tool',
+      toolCallId: toolCallId
+    })
+    onComplete()
   }
 
   const handleReject = () => {

@@ -167,8 +167,8 @@ const Messages = ({ chatId }) => {
   return (
     <div className="flex flex-col space-y-4 py-4">
       {messages?.map((message) => (
-        <div>
-          <MessageItem key={message?.id} message={message} setMessageInput={setMessageInput} />
+        <div key={message?.id}>
+          <MessageItem message={message} setMessageInput={setMessageInput} />
         </div>
       ))}
       <ToolBox
