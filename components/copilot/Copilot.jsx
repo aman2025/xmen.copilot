@@ -17,7 +17,7 @@ const Copilot = () => {
     messageInput,
     setMessageInput
   } = useChatStore()
-  const [isOpen, setIsOpen] = useState(false)
+  const [isOpen, setIsOpen] = useState(true)
 
   const handleToggle = () => {
     setIsOpen(!isOpen)
@@ -65,7 +65,7 @@ const Copilot = () => {
         <div
           className={`${
             isFullscreen
-              ? 'fixed inset-0 top-[45px] bottom-[45px] right-[60px] left-[60px] rounded-2xl'
+              ? 'fixed inset-0 bottom-[45px] left-[60px] right-[60px] top-[45px] rounded-2xl'
               : 'absolute bottom-0 right-0 w-[400px] rounded-[1rem] border shadow-lg'
           } bg-white dark:border-gray-700 dark:bg-gray-800`}
         >

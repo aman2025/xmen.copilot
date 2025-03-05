@@ -3,53 +3,48 @@
 import React, { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 
-/**
- * Combined ToolBox component that handles both dialog display and tool execution
- */
 export const ToolBox = ({ toolState, onToolComplete, sendMessage }) => {
   const [toolActions, setToolActions] = useState({})
-  const [dialogOpen, setDialogOpen] = useState(false)
+  const [ToolComponent, setToolComponent] = useState(null)
 
-  // Sync dialog state with toolState
+  // Load tool component dynamically when toolState.tool changes
   useEffect(() => {
-    setDialogOpen(toolState.isOpen)
-  }, [toolState.isOpen])
-
-  const handleOpenChange = (open) => {
-    setDialogOpen(open)
-    if (!open) {
-      onToolComplete()
+    if (toolState.tool) {
+      const importTool = async () => {
+        try {
+          const component = await import(`@/tool-calls/components/${toolState.tool}`)
+          setToolComponent(() => component.default)
+        } catch (error) {
+          console.error('Error loading tool component:', error)
+        }
+      }
+      importTool()
+    } else {
+      setToolComponent(null)
     }
-  }
-  // trigger ToolComponent's handleAccept
+  }, [toolState.tool])
+
   const handleComplete = () => {
     if (toolActions.handleAccept) {
       toolActions.handleAccept()
     }
   }
 
-  // Render appropriate tool component based on tool name
-  const renderTool = () => {
-    if (!toolState.tool) return null
-
-    // Directly import the component based on tool name and pass registerActions prop
-    const ToolComponent = require(`@/tool-calls/components/${toolState.tool}`).default
-    return (
-      <ToolComponent
-        params={toolState.params}
-        onComplete={() => onToolComplete()}
-        registerActions={setToolActions}
-        sendMessage={sendMessage}
-        toolCallId={toolState.toolCallId}
-      />
-    )
-  }
-
   if (!toolState.isOpen) return null
 
   return (
     <div className="border">
-      <div className="flex-1 overflow-y-auto">{renderTool()}</div>
+      <div className="flex-1 overflow-y-auto">
+        {ToolComponent && (
+          <ToolComponent
+            params={toolState.params}
+            onComplete={() => onToolComplete()}
+            registerActions={setToolActions}
+            sendMessage={sendMessage}
+            toolCallId={toolState.toolCallId}
+          />
+        )}
+      </div>
       <div>
         <Button onClick={handleComplete}>complete</Button>
       </div>
