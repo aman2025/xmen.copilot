@@ -1,11 +1,12 @@
 'use client'
 
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useRef } from 'react'
 
 const start_instance = ({ params, onComplete, registerActions, sendMessage, toolCallId }) => {
   const { instanceId } = params || {}
   const [loading, setLoading] = useState(false)
   const [resultMessage, setResultMessage] = useState(null)
+  const hasStarted = useRef(false)
 
   // Separate method for handling the instance start logic
   const startInstance = async () => {
@@ -20,48 +21,58 @@ const start_instance = ({ params, onComplete, registerActions, sendMessage, tool
       })
 
       const data = await response.json()
-      const result = data.retCode === 0 ? data.result : data.error
-
-      // Format the success message
-      const responseMessage = {
-        success: data.retCode === 0,
-        data: { instanceName: result.instanceName }
-      }
-
+      // Construct response message based on return code
+      const responseMessage =
+        data.retCode === 0
+          ? {
+              success: true,
+              data: { instanceName: data.result?.instanceName }
+            }
+          : {
+              success: false,
+              error: data.error
+            }
+      // Just update the state and wait for user to click complete
       setResultMessage(responseMessage)
-      return responseMessage
     } catch (error) {
       console.error('Failed to start instance:', error)
       const errorMessage = { success: false, error: 'Failed to start instance' }
       setResultMessage(errorMessage)
-      return errorMessage
     } finally {
       setLoading(false)
     }
   }
 
-  // Simplified handleAccept to only handle messaging and completion
-  const handleAccept = async () => {
-    const response = await startInstance()
-    sendMessage({
-      content: JSON.stringify(response),
-      role: 'tool',
-      toolCallId: toolCallId
-    })
-    onComplete()
-  }
-
-  const handleReject = () => {
-    onComplete(false)
-  }
-
   // Register actions and trigger startInstance on mount
   useEffect(() => {
     if (registerActions) {
-      registerActions({ handleAccept, handleReject })
+      // Make sure handleAccept always has access to the latest resultMessage
+      registerActions({
+        handleAccept: () => {
+          sendMessage({
+            content: JSON.stringify(resultMessage),
+            role: 'tool',
+            toolCallId: toolCallId
+          })
+          onComplete()
+        },
+        handleReject: () => {
+          // Send a rejection message if needed
+          sendMessage({
+            content: JSON.stringify({ success: false, error: 'Operation rejected by user' }),
+            role: 'tool',
+            toolCallId: toolCallId
+          })
+          onComplete()
+        }
+      })
     }
-    startInstance() // Start the instance when component mounts
-  }, [registerActions])
+
+    if (!hasStarted.current) {
+      startInstance() // Start the instance when component mounts
+      hasStarted.current = true
+    }
+  }, [registerActions, resultMessage]) // Add resultMessage as a dependency
 
   return (
     <div className="flex h-full flex-col">
