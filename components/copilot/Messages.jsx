@@ -144,6 +144,7 @@ const Messages = ({ chatId }) => {
       processToolCall(toolName, toolArgs, message.toolCalls[0].id, sendMessage)
     } else {
       console.log(2, toolName)
+      console.log(2, toolArgs)
       processBoxToolCall(toolName, toolArgs, message, setToolState)
     }
   }
