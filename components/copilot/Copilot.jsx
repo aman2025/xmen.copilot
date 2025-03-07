@@ -59,7 +59,7 @@ const Copilot = () => {
         onClick={handleToggle}
         className="flex h-14 w-14 transform items-center justify-center rounded-full bg-blue-500 text-white shadow-lg transition-transform duration-200 hover:scale-105 hover:bg-blue-600"
       >
-        <img src="/copilot-icon-white.svg" alt="Copilot" className="h-8 w-8" />
+        <img src="/copilot-icon-white.svg" alt="Copilot" className="h-8 w-8 text-green-500" />
       </button>
       {isOpen && (
         <div
