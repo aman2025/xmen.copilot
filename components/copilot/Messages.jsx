@@ -62,14 +62,21 @@ const Messages = ({ chatId }) => {
 
   // Update filterAndProcessMessages to preserve loading message
   const filterAndProcessMessages = (messages) => {
-    const isProcessingTool = messages.some(
-      (message) =>
-        message.role === 'assistant' &&
-        message.toolCalls?.length > 0 &&
-        !messages.some(
-          (m) => m.role === 'assistant' && m.createdAt > message.createdAt && !m.toolCalls
-        )
-    )
+    // Find the last assistant message with tool calls
+    const lastAssistantWithTools = [...messages]
+      .reverse()
+      .find((msg) => msg.role === 'assistant' && msg.toolCalls?.length > 0)
+
+    // Track if we're still processing a tool call
+    const isProcessingTool =
+      lastAssistantWithTools &&
+      !messages.some(
+        (m) =>
+          m.role === 'assistant' && m.createdAt > lastAssistantWithTools.createdAt && !m.toolCalls
+      )
+
+    // Get all processed tool call IDs
+    const processedToolCallIds = messages.filter((m) => m.role === 'tool').map((m) => m.toolCallId)
 
     return messages
       .filter((message) => {
@@ -78,13 +85,13 @@ const Messages = ({ chatId }) => {
 
         // Handle assistant messages with tool calls
         if (message.role === 'assistant' && message.toolCalls?.length > 0) {
-          const toolCall = message.toolCalls[0]
-          if (
-            !messages.some(
-              (m) => m.role === 'assistant' && m.createdAt > message.createdAt && !m.toolCalls
-            )
-          ) {
-            handleToolCall(toolCall.function.name, toolCall.function.arguments, message)
+          // Only process if this is the last assistant message with tools
+          if (message === lastAssistantWithTools) {
+            const toolCall = message.toolCalls[0]
+            // Only process if this tool call hasn't been handled yet
+            if (!processedToolCallIds.includes(toolCall.id)) {
+              handleToolCall(toolCall.function.name, toolCall.function.arguments, message)
+            }
             return true
           }
           return false
@@ -93,8 +100,8 @@ const Messages = ({ chatId }) => {
         return true
       })
       .map((message) => {
-        // Show loading for assistant message that initiated tool call
-        if (isProcessingTool && message.role === 'assistant' && message.toolCalls?.length > 0) {
+        // Show loading for the last assistant message that initiated tool call
+        if (isProcessingTool && message === lastAssistantWithTools) {
           return { ...message, content: 'loading' }
         }
         return message
