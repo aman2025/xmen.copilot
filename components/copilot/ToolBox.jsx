@@ -33,7 +33,10 @@ export const ToolBox = ({ toolState, onToolComplete, sendMessage }) => {
   if (!toolState.isOpen) return null
 
   return (
-    <div className="border">
+    <div
+      className="z-10 flex h-full flex-col rounded-lg border border-dashed bg-white p-2"
+      style={{ marginTop: '-28px' }}
+    >
       <div className="flex-1 overflow-y-auto">
         {ToolComponent && (
           <ToolComponent
@@ -45,8 +48,10 @@ export const ToolBox = ({ toolState, onToolComplete, sendMessage }) => {
           />
         )}
       </div>
-      <div>
-        <Button onClick={handleComplete}>complete</Button>
+      <div className="flex justify-end">
+        <Button onClick={handleComplete} size="sm">
+          complete
+        </Button>
       </div>
     </div>
   )

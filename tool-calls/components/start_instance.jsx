@@ -26,7 +26,7 @@ const start_instance = ({ params, onComplete, registerActions, sendMessage, tool
         data.retCode === 0
           ? {
               success: true,
-              data: { instanceName: data.result?.instanceName }
+              data: data.result
             }
           : {
               success: false,
@@ -76,14 +76,14 @@ const start_instance = ({ params, onComplete, registerActions, sendMessage, tool
 
   return (
     <div className="flex h-full flex-col">
-      <div className="max-w-md rounded-lg border border-gray-200 p-4">
+      <div className="flex flex-col items-center justify-center gap-2 p-4">
         {loading ? (
           <div className="flex items-center gap-2">
             <div className="h-4 w-4 animate-spin rounded-full border-2 border-blue-500 border-t-transparent" />
             <span>Starting {instanceId}...</span>
           </div>
         ) : resultMessage?.success ? (
-          <div className="text-green-600">Start success! {resultMessage.data.instanceName}</div>
+          <div className="text-blue-600">Start success! {resultMessage.data}</div>
         ) : (
           <div>Instance ID: {instanceId}</div>
         )}
