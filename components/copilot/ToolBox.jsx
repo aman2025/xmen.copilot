@@ -34,7 +34,7 @@ export const ToolBox = ({ toolState, onToolComplete, sendMessage }) => {
 
   return (
     <div
-      className="z-10 flex h-full flex-col rounded-lg border border-dashed bg-white p-2"
+      className="z-10 flex h-full flex-col rounded-lg border border-dashed border-[#dfdee5] bg-white p-2"
       style={{ marginTop: '-28px' }}
     >
       <div className="flex-1 overflow-y-auto">

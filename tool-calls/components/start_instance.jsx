@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useEffect, useState, useRef } from 'react'
+import { Loader2, CheckCircle2 } from 'lucide-react'
 
 const start_instance = ({ params, onComplete, registerActions, sendMessage, toolCallId }) => {
   const { instanceId } = params || {}
@@ -76,16 +77,39 @@ const start_instance = ({ params, onComplete, registerActions, sendMessage, tool
 
   return (
     <div className="flex h-full flex-col">
-      <div className="flex flex-col items-center justify-center gap-2 p-4">
+      <div className="flex flex-col items-center justify-center gap-4 p-6">
         {loading ? (
-          <div className="flex items-center gap-2">
-            <div className="h-4 w-4 animate-spin rounded-full border-2 border-blue-500 border-t-transparent" />
-            <span>Starting {instanceId}...</span>
+          <div className="flex flex-col items-center gap-4 transition-all duration-300">
+            <div className="relative">
+              <Loader2 className="h-12 w-12 animate-spin text-blue-500" strokeWidth={2} />
+            </div>
+            <span className="animate-pulse text-lg font-medium text-gray-700">
+              Starting instance {instanceId}...
+            </span>
+            <div className="h-2 w-48 overflow-hidden rounded-full bg-gray-200">
+              <div className="h-full w-full animate-progressBar bg-blue-500" />
+            </div>
           </div>
         ) : resultMessage?.success ? (
-          <div className="text-blue-600">Start success! {resultMessage.data}</div>
+          <div className="transform space-y-3 transition-all duration-500">
+            <div className="flex items-center justify-center">
+              <CheckCircle2
+                className="h-12 w-12 animate-checkmark  text-green-500"
+                strokeWidth={1}
+              />
+            </div>
+            <div className="text-center">
+              <h3 className="text-lg font-semibold text-green-500">Start Successful!</h3>
+              <p className="mt-1 text-sm" style={{ color: '#aaa' }}>
+                {resultMessage.data}
+              </p>
+            </div>
+          </div>
         ) : (
-          <div>Instance ID: {instanceId}</div>
+          <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm transition-all hover:shadow-md">
+            <h3 className="text-lg font-medium text-gray-600">Instance Details</h3>
+            <p className="mt-2 text-sm text-gray-600">ID: {instanceId}</p>
+          </div>
         )}
       </div>
     </div>
