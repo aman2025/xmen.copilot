@@ -237,6 +237,15 @@ const MessageItem = ({ message, setMessageInput }) => {
     return message.content
   }
 
+  // Add this condition check before rendering
+  const shouldHideComponents =
+    message.role === 'assistant' && message.toolCalls?.length > 0 && !message.content
+
+  // Skip rendering entirely if conditions are met
+  if (shouldHideComponents) {
+    return null
+  }
+
   return (
     <div
       className={`flex items-start gap-2 ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
