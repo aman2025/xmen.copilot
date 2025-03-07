@@ -10,7 +10,7 @@ const get_instances = async ({ serviceId }) => {
 
   const response = await fetch(url)
   const data = await response.json()
-  return data.result
+  return data
 }
 
 export default get_instances

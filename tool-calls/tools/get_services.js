@@ -16,12 +16,7 @@ const get_services = async ({ serviceName }) => {
     )
     const data = await response.json()
 
-    // Check for specific error response
-    if (data.retCode === -1) {
-      return 'Service not found'
-    }
-
-    return data.result
+    return data
   } catch (error) {
     // Handle any fetch or parsing errors
     console.error('Error fetching service:', error)

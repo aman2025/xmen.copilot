@@ -14,14 +14,25 @@ export const processToolCall = async (toolName, toolArgs, toolCallId, sendMessag
     const toolFunction = toolCalls.find((tool) => tool.name === toolName)
     console.log('toolName: ', toolName)
     console.log('toolArgs: ', toolArgs)
-    console.log(typeof toolArgs)
+
     if (toolFunction) {
       // Execute the tool function
-      const result = await toolFunction(JSON.parse(toolArgs))
+      const data = await toolFunction(JSON.parse(toolArgs))
+      const responseMessage =
+        data.retCode === 0
+          ? {
+              success: true,
+              data: data.result
+            }
+          : {
+              success: false,
+              error: data.error
+            }
+      console.log(responseMessage)
 
       // Send the result back to the assistant
       sendMessage({
-        content: JSON.stringify(result),
+        content: JSON.stringify(responseMessage),
         role: 'tool',
         toolCallId: toolCallId
       })
