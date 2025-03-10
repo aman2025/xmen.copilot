@@ -22,18 +22,19 @@ const start_instance = ({ params, onComplete, registerActions, sendMessage, tool
       })
 
       const data = await response.json()
-      // Construct response message based on return code
+      // Format the response message based on return code and data type
       const responseMessage =
         data.retCode === 0
           ? {
               success: true,
-              data: data.result
+              // If data.result is an object, convert it to a formatted string
+              data:
+                typeof data.result === 'object' ? JSON.stringify(data.result, null, 2) : data.result
             }
           : {
               success: false,
               error: data.error
             }
-      // Just update the state and wait for user to click complete
       setResultMessage(responseMessage)
     } catch (error) {
       console.error('Failed to start instance:', error)
@@ -100,8 +101,10 @@ const start_instance = ({ params, onComplete, registerActions, sendMessage, tool
             </div>
             <div className="text-center">
               <h3 className="text-lg font-semibold text-green-500">Start Successful!</h3>
-              <p className="mt-1 text-sm" style={{ color: '#aaa' }}>
-                {resultMessage.data}
+              <p className="mt-1 whitespace-pre-wrap font-mono text-sm" style={{ color: '#aaa' }}>
+                {resultMessage.data.includes('instanceName')
+                  ? JSON.parse(resultMessage.data)?.instanceName
+                  : resultMessage.data}
               </p>
             </div>
           </div>
