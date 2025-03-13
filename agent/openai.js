@@ -22,17 +22,17 @@ export const verifyOpenAI = async (assistantMessage) => {
     Function called: ${functionName}
     Arguments: ${JSON.stringify(functionArgs)}
     Expected validation: ${JSON.stringify(relevantTestCase?.validation)}
-    Current Test case: ${JSON.stringify(relevantTestCase)}
-    All Test cases: ${JSON.stringify(VERIFICATION_INSTANCE_TEST_CASES)}
     
     Verify if this function call is correct based on the test cases and validation rules.
     Return JSON response with:
     {
       "isCorrect": boolean,
-      "error": string | null,
-      "reasoning": string,
-      "correctedFunction": object | null
+      "error": string (max 50 chars) | null,
+      "reasoning": string (max 100 chars),
+      "correctedFunction": { name: string, arguments: object } | null
     }
+    
+    Keep the response brief and focused on essential validation results.
   `
 
   const response = await client.chat.completions.create({
@@ -45,28 +45,38 @@ export const verifyOpenAI = async (assistantMessage) => {
     temperature: 0.7,
     max_tokens: 1000
   })
-  console.log('response: ', response)
 
-  const verification = JSON.parse(response.choices[0].message.content)
-  console.log('verification: ', verification)
-  // If verification failed, create corrected message
-  if (!verification.isCorrect && verification.correctedFunction) {
-    return {
-      isCorrect: false,
-      correctedMessage: {
-        ...assistantMessage,
-        toolCalls: [
-          {
-            ...toolCall,
-            function: verification.correctedFunction
-          }
-        ]
+  console.log('------7-assistantMessage:', assistantMessage)
+
+  try {
+    const verification = JSON.parse(response.choices[0].message.content)
+    console.log('8-verification: ', verification)
+
+    // If verification failed, create corrected message
+    if (!verification.isCorrect) {
+      return {
+        isCorrect: false,
+        message: {
+          ...assistantMessage,
+          content: verification.reasoning,
+          toolCalls: null
+        }
       }
     }
-  }
 
-  return {
-    isCorrect: true,
-    correctedMessage: null
+    return {
+      isCorrect: true,
+      message: null
+    }
+  } catch (error) {
+    console.error('Failed to parse verification response:', error)
+    return {
+      isCorrect: false,
+      message: {
+        ...assistantMessage,
+        toolCalls: null,
+        content: 'Verification failed due to internal error'
+      }
+    }
   }
 }

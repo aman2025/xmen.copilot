@@ -27,17 +27,20 @@ export async function GET(request, { params }) {
       })
     }
     const lastMessage = chat.messages[chat.messages.length - 1]
-    console.log('lastMessage:', lastMessage)
+    console.log('---------1-lastMessage.messages:', lastMessage.messages)
 
     // Only verify if last message is from assistant and has tool calls
     if (lastMessage.role === 'assistant' && lastMessage.toolCalls?.length > 0) {
       const verificationResponse = await verifyOpenAI(lastMessage)
+      // console.log('---------3-toolCalls:', lastMessage.toolCalls)
+      console.log('---------5-verificationResponse-route:', verificationResponse)
 
       // If verification failed, return the corrected response
       if (!verificationResponse.isCorrect) {
+        console.log('--------11-isCorrect: ', isCorrect)
         return new Response(
           JSON.stringify({
-            messages: [...chat.messages.slice(0, -1), verificationResponse.correctedMessage]
+            messages: [...chat.messages.slice(0, -1), verificationResponse.message]
           }),
           {
             status: 200,
@@ -45,6 +48,11 @@ export async function GET(request, { params }) {
           }
         )
       }
+      // If verification passed, continue with original messages
+      return new Response(JSON.stringify({ messages: chat.messages }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' }
+      })
     }
 
     return new Response(JSON.stringify({ messages: chat.messages }), {
