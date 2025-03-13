@@ -1,5 +1,6 @@
 import { PrismaClient } from '@prisma/client'
 import { INSTANCE_TOOLS, LOG_TOOLS, SYSTEM_PROMPT } from '@/prompts'
+import { verifyOpenAI } from '@/agent/openai'
 import { createMistral, formatMistralResponse } from '@/utils/ai-sdk/mistral'
 const prisma = new PrismaClient()
 
@@ -24,6 +25,26 @@ export async function GET(request, { params }) {
         status: 404,
         headers: { 'Content-Type': 'application/json' }
       })
+    }
+    const lastMessage = chat.messages[chat.messages.length - 1]
+    console.log('lastMessage:', lastMessage)
+
+    // Only verify if last message is from assistant and has tool calls
+    if (lastMessage.role === 'assistant' && lastMessage.toolCalls?.length > 0) {
+      const verificationResponse = await verifyOpenAI(lastMessage)
+
+      // If verification failed, return the corrected response
+      if (!verificationResponse.isCorrect) {
+        return new Response(
+          JSON.stringify({
+            messages: [...chat.messages.slice(0, -1), verificationResponse.correctedMessage]
+          }),
+          {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' }
+          }
+        )
+      }
     }
 
     return new Response(JSON.stringify({ messages: chat.messages }), {
