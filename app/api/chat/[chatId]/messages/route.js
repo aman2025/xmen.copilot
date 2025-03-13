@@ -37,7 +37,7 @@ export async function GET(request, { params }) {
 
       // If verification failed, return the corrected response
       if (!verificationResponse.isCorrect) {
-        console.log('--------11-isCorrect: ', isCorrect)
+        console.log('--------11-isCorrect: ', verificationResponse.isCorrect)
         return new Response(
           JSON.stringify({
             messages: [...chat.messages.slice(0, -1), verificationResponse.message]
