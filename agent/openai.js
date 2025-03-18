@@ -1,6 +1,5 @@
 import OpenAI from 'openai'
 import { AGENT_SYSTEM_PROMPT } from './prompt'
-import { VERIFICATION_INSTANCE_TEST_CASES } from './testCases/verification_instance'
 
 export const verifyOpenAI = async (assistantMessage) => {
   const client = new OpenAI({
@@ -12,18 +11,12 @@ export const verifyOpenAI = async (assistantMessage) => {
   const toolCall = assistantMessage.toolCalls[0]
   const { name: functionName, arguments: functionArgs } = toolCall.function
 
-  // Find matching test case based on function name and args
-  const relevantTestCase = VERIFICATION_INSTANCE_TEST_CASES.find(
-    (testCase) => testCase.expectedFunction.name === functionName
-  )
-
-  // Prepare verification prompt
+  // Prepare verification promp
   const verificationPrompt = `
     Function called: ${functionName}
     Arguments: ${JSON.stringify(functionArgs)}
-    Expected validation: ${JSON.stringify(relevantTestCase?.validation)}
     
-    Verify if this function call is correct based on the test cases and validation rules.
+    Verify if this function call is correct based on the test cases.
     Return JSON response with:
     {
       "isCorrect": boolean,
