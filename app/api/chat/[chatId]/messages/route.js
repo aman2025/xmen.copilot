@@ -1,6 +1,6 @@
 import { PrismaClient } from '@prisma/client'
 import { INSTANCE_TOOLS, LOG_TOOLS, SYSTEM_PROMPT } from '@/prompts'
-import { verifyOpenAI } from '@/agent/openai'
+import { evaluator } from '@/agent'
 import { createMistral, formatMistralResponse } from '@/utils/ai-sdk/mistral'
 const prisma = new PrismaClient()
 
@@ -31,16 +31,16 @@ export async function GET(request, { params }) {
 
     // Only verify if last message is from assistant and has tool calls
     if (lastMessage.role === 'assistant' && lastMessage.toolCalls?.length > 0) {
-      const verificationResponse = await verifyOpenAI(lastMessage)
+      const evalResult = await evaluator(lastMessage)
       // console.log('---------3-toolCalls:', lastMessage.toolCalls)
-      console.log('---------5-verificationResponse-route:', verificationResponse)
+      console.log('---------5-evalResult-route:', evalResult)
 
       // If verification failed, return the corrected response
-      if (!verificationResponse.isCorrect) {
-        console.log('--------11-isCorrect: ', verificationResponse.isCorrect)
+      if (!evalResult.isCorrect) {
+        console.log('--------11-isCorrect: ', evalResult.isCorrect)
         return new Response(
           JSON.stringify({
-            messages: [...chat.messages.slice(0, -1), verificationResponse.message]
+            messages: [...chat.messages.slice(0, -1), evalResult.message]
           }),
           {
             status: 200,

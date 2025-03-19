@@ -1,7 +1,7 @@
 import OpenAI from 'openai'
 import { AGENT_SYSTEM_PROMPT } from './prompt'
 
-export const verifyOpenAI = async (assistantMessage) => {
+export const evaluator = async (assistantMessage) => {
   const client = new OpenAI({
     baseURL: process.env.OPENAI_API_ENDPOINT,
     apiKey: process.env.OPENAI_API_KEY
@@ -11,8 +11,8 @@ export const verifyOpenAI = async (assistantMessage) => {
   const toolCall = assistantMessage.toolCalls[0]
   const { name: functionName, arguments: functionArgs } = toolCall.function
 
-  // Prepare verification promp
-  const verificationPrompt = `
+  // Prepare critique promp
+  const critiquePrompt = `
     Function called: ${functionName}
     Arguments: ${JSON.stringify(functionArgs)}
     
@@ -31,7 +31,7 @@ export const verifyOpenAI = async (assistantMessage) => {
     model: 'gpt-4o',
     messages: [
       { role: 'system', content: AGENT_SYSTEM_PROMPT },
-      { role: 'user', content: verificationPrompt }
+      { role: 'user', content: critiquePrompt }
     ],
     response_format: { type: 'json_object' },
     temperature: 0.7,
@@ -41,16 +41,16 @@ export const verifyOpenAI = async (assistantMessage) => {
   console.log('------7-assistantMessage:', assistantMessage)
 
   try {
-    const verification = JSON.parse(response.choices[0].message.content)
-    console.log('8-verification: ', verification)
+    const critiqueResult = JSON.parse(response.choices[0].message.content)
+    console.log('8-critiqueResult: ', critiqueResult)
 
-    // If verification failed, create corrected message
-    if (!verification.isCorrect) {
+    // If critique failed, create corrected message
+    if (!critiqueResult.isCorrect) {
       return {
         isCorrect: false,
         message: {
           ...assistantMessage,
-          content: verification.reasoning,
+          content: critiqueResult.reasoning,
           toolCalls: null
         }
       }
@@ -61,13 +61,13 @@ export const verifyOpenAI = async (assistantMessage) => {
       message: null
     }
   } catch (error) {
-    console.error('Failed to parse verification response:', error)
+    console.error('Failed to parse critique response:', error)
     return {
       isCorrect: false,
       message: {
         ...assistantMessage,
         toolCalls: null,
-        content: 'Verification failed due to internal error'
+        content: 'critique failed due to internal error'
       }
     }
   }
