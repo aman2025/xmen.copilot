@@ -32,15 +32,24 @@ export async function GET(request, { params }) {
     // Only verify if last message is from assistant and has tool calls
     if (lastMessage.role === 'assistant' && lastMessage.toolCalls?.length > 0) {
       const evalResult = await evaluator(lastMessage)
-      // console.log('---------3-toolCalls:', lastMessage.toolCalls)
       console.log('---------5-evalResult-route:', evalResult)
 
-      // If verification failed, return the corrected response
+      // If verification failed, store and return the corrected response
       if (!evalResult.isCorrect) {
         console.log('--------11-isCorrect: ', evalResult.isCorrect)
+
+        // Update the last message in the database with the corrected content
+        const updatedMessage = await prisma.message.update({
+          where: { id: lastMessage.id },
+          data: {
+            content: evalResult.message.content,
+            toolCalls: evalResult.message.toolCalls
+          }
+        })
+
         return new Response(
           JSON.stringify({
-            messages: [...chat.messages.slice(0, -1), evalResult.message]
+            messages: [...chat.messages.slice(0, -1), updatedMessage]
           }),
           {
             status: 200,
@@ -48,11 +57,6 @@ export async function GET(request, { params }) {
           }
         )
       }
-      // If verification passed, continue with original messages
-      return new Response(JSON.stringify({ messages: chat.messages }), {
-        status: 200,
-        headers: { 'Content-Type': 'application/json' }
-      })
     }
 
     return new Response(JSON.stringify({ messages: chat.messages }), {
