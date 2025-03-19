@@ -1,4 +1,4 @@
-export const VERIFICATION_INSTANCE_TEST_CASES = [
+export const VERIFICATION_CASES = [
   {
     userQuery: 'Show me the status of dfa-crc service',
     context: {
@@ -10,17 +10,6 @@ export const VERIFICATION_INSTANCE_TEST_CASES = [
       name: 'get_services',
       arguments: {
         serviceName: 'dfa-crc'
-      }
-    },
-    validation: {
-      intentType: 'SERVICE_STATUS_CHECK',
-      requiredParameters: ['serviceName'],
-      parameterConstraints: {
-        serviceName: {
-          type: 'string',
-          pattern: '^[a-zA-Z0-9-_]+$',
-          examples: ['DFA-MCF', 'DFA-GATEWAY', 'DFA-CRC']
-        }
       }
     },
     isCorrect: true,
@@ -40,16 +29,6 @@ export const VERIFICATION_INSTANCE_TEST_CASES = [
         serviceName: 'DFA-GATEWAY'
       }
     },
-    validation: {
-      intentType: 'SERVICE_STATUS_CHECK',
-      requiredParameters: ['serviceName'],
-      parameterConstraints: {
-        serviceName: {
-          type: 'string',
-          pattern: '^[a-zA-Z0-9-_]+$'
-        }
-      }
-    },
     isCorrect: true,
     error: null,
     reasoning: 'Query clearly indicates service status check with valid service name'
@@ -65,16 +44,6 @@ export const VERIFICATION_INSTANCE_TEST_CASES = [
       name: 'get_services',
       arguments: {
         serviceName: 'tomcat'
-      }
-    },
-    validation: {
-      intentType: 'SERVICE_STATUS_CHECK',
-      requiredParameters: ['serviceName'],
-      parameterConstraints: {
-        serviceName: {
-          type: 'string',
-          pattern: '^[a-zA-Z0-9-_]+$'
-        }
       }
     },
     isCorrect: true,
@@ -100,16 +69,6 @@ export const VERIFICATION_INSTANCE_TEST_CASES = [
         serviceId: 10002
       }
     },
-    validation: {
-      intentType: 'INSTANCE_LIST_REQUEST',
-      requiredParameters: ['serviceId'],
-      parameterConstraints: {
-        serviceId: {
-          type: 'integer',
-          minimum: 1
-        }
-      }
-    },
     isCorrect: true,
     error: null,
     reasoning: 'Valid instance request with proper service context and serviceId'
@@ -131,16 +90,6 @@ export const VERIFICATION_INSTANCE_TEST_CASES = [
       name: 'get_instances',
       arguments: {
         serviceId: 10003
-      }
-    },
-    validation: {
-      intentType: 'INSTANCE_LIST_REQUEST',
-      requiredParameters: ['serviceId'],
-      parameterConstraints: {
-        serviceId: {
-          type: 'integer',
-          minimum: 1
-        }
       }
     },
     isCorrect: true,
@@ -172,16 +121,6 @@ export const VERIFICATION_INSTANCE_TEST_CASES = [
         instanceId: '123'
       }
     },
-    validation: {
-      intentType: 'INSTANCE_START_REQUEST',
-      requiredParameters: ['instanceId'],
-      parameterConstraints: {
-        instanceId: {
-          type: 'string',
-          pattern: '^[0-9]+$'
-        }
-      }
-    },
     isCorrect: true,
     error: null,
     reasoning: 'Complete context available with valid instance ID for start operation'
@@ -196,16 +135,6 @@ export const VERIFICATION_INSTANCE_TEST_CASES = [
     expectedFunction: {
       name: 'get_instances',
       arguments: {}
-    },
-    validation: {
-      intentType: 'INSTANCE_LIST_REQUEST',
-      requiredParameters: ['serviceId'],
-      parameterConstraints: {
-        serviceId: {
-          type: 'integer',
-          minimum: 1
-        }
-      }
     },
     isCorrect: false,
     error: 'Missing service context - must specify or get service information first',
@@ -222,16 +151,6 @@ export const VERIFICATION_INSTANCE_TEST_CASES = [
       name: 'start_instance',
       arguments: {
         instanceId: 'abc'
-      }
-    },
-    validation: {
-      intentType: 'INSTANCE_START_REQUEST',
-      requiredParameters: ['instanceId'],
-      parameterConstraints: {
-        instanceId: {
-          type: 'string',
-          pattern: '^[0-9]+$'
-        }
       }
     },
     isCorrect: false,
@@ -251,16 +170,6 @@ export const VERIFICATION_INSTANCE_TEST_CASES = [
         serviceName: '@#$%'
       }
     },
-    validation: {
-      intentType: 'SERVICE_STATUS_CHECK',
-      requiredParameters: ['serviceName'],
-      parameterConstraints: {
-        serviceName: {
-          type: 'string',
-          pattern: '^[a-zA-Z0-9-_]+$'
-        }
-      }
-    },
     isCorrect: false,
     error: 'Invalid service name format',
     reasoning: 'Service name contains invalid characters, must match pattern ^[a-zA-Z0-9-_]+$'
@@ -278,16 +187,6 @@ export const VERIFICATION_INSTANCE_TEST_CASES = [
         serviceName: 'DFA-MCF'
       }
     },
-    validation: {
-      intentType: 'SERVICE_STATUS_CHECK',
-      requiredParameters: ['serviceName'],
-      parameterConstraints: {
-        serviceName: {
-          type: 'string',
-          pattern: '^[a-zA-Z0-9-_]+$'
-        }
-      }
-    },
     isCorrect: true,
     error: null,
     reasoning: 'Valid service name with hyphen, clear status check intent'
@@ -303,16 +202,6 @@ export const VERIFICATION_INSTANCE_TEST_CASES = [
       name: 'get_services',
       arguments: {
         serviceName: 'DFA-CRC'
-      }
-    },
-    validation: {
-      intentType: 'SERVICE_STATUS_CHECK',
-      requiredParameters: ['serviceName'],
-      parameterConstraints: {
-        serviceName: {
-          type: 'string',
-          pattern: '^[a-zA-Z0-9-_]+$'
-        }
       }
     },
     isCorrect: true,
@@ -336,16 +225,6 @@ export const VERIFICATION_INSTANCE_TEST_CASES = [
       name: 'get_instances',
       arguments: {
         serviceId: 10004
-      }
-    },
-    validation: {
-      intentType: 'INSTANCE_LIST_REQUEST',
-      requiredParameters: ['serviceId'],
-      parameterConstraints: {
-        serviceId: {
-          type: 'integer',
-          minimum: 1
-        }
       }
     },
     isCorrect: true,
@@ -377,16 +256,6 @@ export const VERIFICATION_INSTANCE_TEST_CASES = [
         instanceId: '789'
       }
     },
-    validation: {
-      intentType: 'INSTANCE_START_REQUEST',
-      requiredParameters: ['instanceId'],
-      parameterConstraints: {
-        instanceId: {
-          type: 'string',
-          pattern: '^[0-9]+$'
-        }
-      }
-    },
     isCorrect: true,
     error: null,
     reasoning: 'Valid start request with complete context and stopped instance'
@@ -402,16 +271,6 @@ export const VERIFICATION_INSTANCE_TEST_CASES = [
       name: 'get_instances',
       arguments: {
         serviceId: null
-      }
-    },
-    validation: {
-      intentType: 'INSTANCE_LIST_REQUEST',
-      requiredParameters: ['serviceId'],
-      parameterConstraints: {
-        serviceId: {
-          type: 'integer',
-          minimum: 1
-        }
       }
     },
     isCorrect: false,
@@ -431,16 +290,6 @@ export const VERIFICATION_INSTANCE_TEST_CASES = [
         instanceId: '456'
       }
     },
-    validation: {
-      intentType: 'INSTANCE_START_REQUEST',
-      requiredParameters: ['instanceId'],
-      parameterConstraints: {
-        instanceId: {
-          type: 'string',
-          pattern: '^[0-9]+$'
-        }
-      }
-    },
     isCorrect: false,
     error: 'Missing service and instance context',
     reasoning: 'Must first get service info and verify instance exists'
@@ -458,16 +307,6 @@ export const VERIFICATION_INSTANCE_TEST_CASES = [
         serviceName: '12345'
       }
     },
-    validation: {
-      intentType: 'SERVICE_STATUS_CHECK',
-      requiredParameters: ['serviceName'],
-      parameterConstraints: {
-        serviceName: {
-          type: 'string',
-          pattern: '^[a-zA-Z0-9-_]+$'
-        }
-      }
-    },
     isCorrect: false,
     error: 'Service name should not be purely numeric',
     reasoning: 'While the format is valid, service names typically include alphabetic characters'
@@ -482,16 +321,6 @@ export const VERIFICATION_INSTANCE_TEST_CASES = [
     expectedFunction: {
       name: 'get_instances',
       arguments: {}
-    },
-    validation: {
-      intentType: 'INSTANCE_LIST_REQUEST',
-      requiredParameters: ['serviceId'],
-      parameterConstraints: {
-        serviceId: {
-          type: 'integer',
-          minimum: 1
-        }
-      }
     },
     isCorrect: false,
     error: 'Ambiguous request - missing service context',

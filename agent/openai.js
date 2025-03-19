@@ -21,8 +21,7 @@ export const verifyOpenAI = async (assistantMessage) => {
     {
       "isCorrect": boolean,
       "error": string (max 50 chars) | null,
-      "reasoning": string (max 100 chars),
-      "correctedFunction": { name: string, arguments: object } | null
+      "reasoning": string (max 100 chars)
     }
     
     Keep the response brief and focused on essential validation results.
