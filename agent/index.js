@@ -32,7 +32,7 @@ const getRelevantContent = (functionName) => {
   return null
 }
 
-export const evaluator = async (assistantMessage) => {
+export const evaluator = async (assistantMessage, messages = []) => {
   const client = new OpenAI({
     baseURL: process.env.OPENAI_API_ENDPOINT,
     apiKey: process.env.OPENAI_API_KEY
@@ -44,7 +44,7 @@ export const evaluator = async (assistantMessage) => {
 
   // Get relevant cases and rules
   const relevantContent = getRelevantContent(functionName)
-  console.log('------15-relevantContent:', relevantContent)
+  // console.log('------15-relevantContent:', relevantContent)
   if (!relevantContent) {
     return {
       isCorrect: false,
@@ -56,10 +56,13 @@ export const evaluator = async (assistantMessage) => {
     }
   }
 
-  // Prepare critique prompt with relevant cases and rules
+  // Prepare critique prompt with relevant cases, rules and conversation context
   const critiquePrompt = `
     Function called: ${functionName}
     Arguments: ${JSON.stringify(functionArgs)}
+    
+    Conversation context:
+    ${JSON.stringify(messages, null, 2)}
     
     Critique examples for user queries:
     ${JSON.stringify(relevantContent.cases, null, 2)}
@@ -67,7 +70,7 @@ export const evaluator = async (assistantMessage) => {
     Logical flow validation rules:
     ${relevantContent.rules}
     
-    Verify if this function call is correct based on the test cases.
+    Verify if this function call is correct based on the verification cases and conversation context.
     Return JSON response with:
     {
       "isCorrect": boolean,

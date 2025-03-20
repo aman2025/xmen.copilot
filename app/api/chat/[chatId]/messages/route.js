@@ -27,11 +27,36 @@ export async function GET(request, { params }) {
       })
     }
     const lastMessage = chat.messages[chat.messages.length - 1]
-    console.log('---------1-lastMessage.messages:', lastMessage.messages)
 
     // Only verify if last message is from assistant and has tool calls
     if (lastMessage.role === 'assistant' && lastMessage.toolCalls?.length > 0) {
-      const evalResult = await evaluator(lastMessage)
+      // Create concise messages array
+      const conciseMessages = chat.messages.map((msg) => {
+        const conciseMsg = {
+          role: msg.role,
+          content: msg.content,
+          toolCalls: msg.toolCalls,
+          toolCallId: msg.toolCallId
+        }
+
+        // Simplify tool response content
+        if (msg.role === 'tool') {
+          try {
+            const parsedContent = JSON.parse(msg.content)
+            conciseMsg.content = JSON.stringify({
+              success: parsedContent.success,
+              ...(parsedContent.error && { error: parsedContent.error })
+            })
+          } catch (e) {
+            conciseMsg.content = msg.content
+          }
+        }
+
+        return conciseMsg
+      })
+      console.log('---------1-conciseMessages:', conciseMessages)
+
+      const evalResult = await evaluator(lastMessage, conciseMessages)
       console.log('---------5-evalResult-route:', evalResult)
 
       // If verification failed, store and return the corrected response
