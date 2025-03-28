@@ -1,6 +1,5 @@
 import { PrismaClient } from '@prisma/client'
 import { INSTANCE_TOOLS, LOG_TOOLS, SYSTEM_PROMPT } from '@/prompts'
-import { evaluator } from '@/agent'
 import { createMistral, formatMistralResponse } from '@/utils/ai-sdk/mistral'
 const prisma = new PrismaClient()
 
@@ -25,63 +24,6 @@ export async function GET(request, { params }) {
         status: 404,
         headers: { 'Content-Type': 'application/json' }
       })
-    }
-    const lastMessage = chat.messages[chat.messages.length - 1]
-
-    // Only verify if last message is from assistant and has tool calls
-    if (lastMessage.role === 'assistant' && lastMessage.toolCalls?.length > 0) {
-      // Create concise messages array
-      const conciseMessages = chat.messages.map((msg) => {
-        const conciseMsg = {
-          role: msg.role,
-          content: msg.content,
-          toolCalls: msg.toolCalls,
-          toolCallId: msg.toolCallId
-        }
-
-        // Simplify tool response content
-        if (msg.role === 'tool') {
-          try {
-            const parsedContent = JSON.parse(msg.content)
-            conciseMsg.content = JSON.stringify({
-              success: parsedContent.success,
-              ...(parsedContent.error && { error: parsedContent.error })
-            })
-          } catch (e) {
-            conciseMsg.content = msg.content
-          }
-        }
-
-        return conciseMsg
-      })
-      console.log('---------1-conciseMessages:', conciseMessages)
-
-      const evalResult = await evaluator(lastMessage, conciseMessages)
-      console.log('---------5-evalResult-route:', evalResult)
-
-      // If verification failed, store and return the corrected response
-      if (!evalResult.isCorrect) {
-        console.log('--------11-isCorrect: ', evalResult.isCorrect)
-
-        // Update the last message in the database with the corrected content
-        const updatedMessage = await prisma.message.update({
-          where: { id: lastMessage.id },
-          data: {
-            content: evalResult.message.content,
-            toolCalls: evalResult.message.toolCalls
-          }
-        })
-
-        return new Response(
-          JSON.stringify({
-            messages: [...chat.messages.slice(0, -1), updatedMessage]
-          }),
-          {
-            status: 200,
-            headers: { 'Content-Type': 'application/json' }
-          }
-        )
-      }
     }
 
     return new Response(JSON.stringify({ messages: chat.messages }), {
