@@ -5,10 +5,10 @@ import { useState, useEffect } from 'react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import useChatStore from '../../store/useChatStore'
-import { processToolCall } from '@/tool-calls/processToolCall'
-import { processBoxToolCall } from '@/tool-calls/processBoxToolCall'
+import { processAssistantMessage } from '@/tool-calls/toolExecutionManager'
 import { ToolBox } from './ToolBox'
 import Loading from '../Loading'
+import ToolApprovalDialog from '../ToolApprovalDialog'
 
 // Enhanced Avatar component with image preloading
 const CopilotAvatar = () => {
@@ -30,6 +30,13 @@ const Messages = ({ chatId }) => {
   const queryClient = useQueryClient()
   const { setMessageInput, isFullscreen, isLoading } = useChatStore()
 
+  // Initialize tool execution system
+  useEffect(() => {
+    import('@/tool-calls/toolExecutionManager').then(({ initializeToolExecution }) => {
+      initializeToolExecution();
+    });
+  }, []);
+
   // Update useQuery to preserve loading state
   const {
     data: messages = [],
@@ -41,7 +48,6 @@ const Messages = ({ chatId }) => {
       if (!chatId) return []
       try {
         const res = await fetch(`/api/chat/${chatId}/messages`, {
-          // Add timeout and retry options
           signal: AbortSignal.timeout(5000) // 5 second timeout
         })
         if (!res.ok) throw new Error('Failed to fetch messages')
@@ -53,14 +59,12 @@ const Messages = ({ chatId }) => {
       }
     },
     enabled: !!chatId,
-    // Add retry configuration
     retry: 3,
     retryDelay: 1000,
-    // Keep showing loading state until tool calls are complete
     notifyOnChangeProps: ['data', 'isLoading']
   })
 
-  // Update filterAndProcessMessages to preserve loading message
+  // Update filterAndProcessMessages to use our tool execution system
   const filterAndProcessMessages = (messages) => {
     // Find the last assistant message with tool calls
     const lastAssistantWithTools = [...messages]
@@ -90,7 +94,8 @@ const Messages = ({ chatId }) => {
             const toolCall = message.toolCalls[0]
             // Only process if this tool call hasn't been handled yet
             if (!processedToolCallIds.includes(toolCall.id)) {
-              handleToolCall(toolCall.function.name, toolCall.function.arguments, message)
+              // Process the assistant message with our tool execution system
+              processAssistantMessage(message, sendMessage)
             }
             return true
           }
@@ -145,17 +150,6 @@ const Messages = ({ chatId }) => {
     }
   })
 
-  const handleToolCall = (toolName, toolArgs, message) => {
-    if (toolName !== 'start_instance') {
-      console.log(1, toolName)
-      processToolCall(toolName, toolArgs, message.toolCalls[0].id, sendMessage)
-    } else {
-      console.log(2, toolName)
-      console.log(2, toolArgs)
-      processBoxToolCall(toolName, toolArgs, message, setToolState)
-    }
-  }
-
   const handleToolComplete = () => {
     setToolState({ isOpen: false, tool: null, params: null, toolCallId: null })
   }
@@ -184,6 +178,7 @@ const Messages = ({ chatId }) => {
         onToolComplete={handleToolComplete}
         sendMessage={sendMessage}
       />
+      <ToolApprovalDialog />
     </div>
   )
 }

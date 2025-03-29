@@ -1,5 +1,5 @@
 import { PrismaClient } from '@prisma/client'
-import { INSTANCE_TOOLS, LOG_TOOLS, SYSTEM_PROMPT } from '@/prompts'
+import { INSTANCE_TOOLS, SYSTEM_PROMPT } from '@/prompts'
 import { createMistral, formatMistralResponse } from '@/utils/ai-sdk/mistral'
 const prisma = new PrismaClient()
 
@@ -78,7 +78,7 @@ export async function POST(request, { params }) {
     // If it's a user message or tool response, generate AI response
     if (role === 'user' || role === 'tool') {
       // Prepare context with all previous messages
-      const tools = [...INSTANCE_TOOLS, ...LOG_TOOLS]
+      const tools = [...INSTANCE_TOOLS]
       const messages = [
         { role: 'system', content: SYSTEM_PROMPT },
         ...chat.messages.map((msg) => ({

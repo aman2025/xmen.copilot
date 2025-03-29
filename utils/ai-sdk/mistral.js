@@ -15,7 +15,7 @@ export const createMistral = async (messages, tools) => {
     tools,
     tool_choice: 'auto',
     temperature: 0.7,
-    max_tokens: 1000,
+    max_tokens: 1000
   })
 
   return response
@@ -32,6 +32,6 @@ export const formatMistralResponse = async (response) => {
 
   return {
     content: isToolCall ? '' : message.content,
-    toolCalls: isToolCall ? message.tool_calls : [],
+    toolCalls: isToolCall ? message.tool_calls : []
   }
 }

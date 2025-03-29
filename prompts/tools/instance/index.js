@@ -2,54 +2,38 @@ export const INSTANCE_TOOLS = [
   {
     type: 'function',
     function: {
-      name: 'get_services',
-      description:
-        'Retrieves service information from the application instance management system. Each service represents a distinct application type that can have multiple running instances. Returns service details including id, serviceId, and serviceName.',
+      name: 'create_instance_name',
+      description: 'Create a random instance name or ID',
       parameters: {
         type: 'object',
         properties: {
-          serviceName: {
+          prefix: {
             type: 'string',
-            description: 'Filter to get details of a specific service by its name.'
+            description: 'Optional prefix for the instance name'
+          },
+          includeTimestamp: {
+            type: 'boolean',
+            description: 'Whether to include a timestamp in the name'
           }
         },
-        required: ['serviceName']
+        required: []
       }
     }
   },
   {
     type: 'function',
     function: {
-      name: 'get_instances',
-      description:
-        'Get all instances provides a list of all instances contain fields: id, instanceId, instanceName, serviceName, ip, port, instanceStatus, statusDesc',
+      name: 'remove_instance',
+      description: 'Remove an instance with the specified ID',
       parameters: {
         type: 'object',
         properties: {
-          serviceId: {
-            type: 'integer',
-            description:
-              'Filter instances by service ID. Each service has unique instances associated with it.'
-          }
-        },
-        required: ['serviceId']
-      }
-    }
-  },
-  {
-    type: 'function',
-    function: {
-      name: 'start_instance',
-      description: 'Start an instance when the instance is stopped or waiting',
-      parameters: {
-        type: 'object',
-        properties: {
-          instanceId: {
+          id: {
             type: 'string',
-            description: 'The id of the instance to start'
+            description: 'The ID of the instance to remove'
           }
         },
-        required: ['instanceId']
+        required: ['id']
       }
     }
   }
