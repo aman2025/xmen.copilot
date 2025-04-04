@@ -9,6 +9,7 @@ import { processAssistantMessage } from '@/tool-calls/toolExecutionManager'
 import { ToolBox } from './ToolBox'
 import Loading from '../Loading'
 import ToolApprovalDialog from '../ToolApprovalDialog'
+import { convertToolCallsToXml } from '@/utils/toolXmlParser'
 
 // Enhanced Avatar component with image preloading
 const CopilotAvatar = () => {
@@ -94,8 +95,13 @@ const Messages = ({ chatId }) => {
             const toolCall = message.toolCalls[0]
             // Only process if this tool call hasn't been handled yet
             if (!processedToolCallIds.includes(toolCall.id)) {
+              // Convert tool calls to XML format
+              const messageWithXml = {
+                ...message,
+                content: convertToolCallsToXml(message)
+              }
               // Process the assistant message with our tool execution system
-              processAssistantMessage(message, sendMessage)
+              processAssistantMessage(messageWithXml, sendMessage)
             }
             return true
           }
@@ -109,6 +115,15 @@ const Messages = ({ chatId }) => {
         if (isProcessingTool && message === lastAssistantWithTools) {
           return { ...message, content: 'loading' }
         }
+        
+        // Convert tool calls to XML format for display
+        if (message.role === 'assistant' && message.toolCalls?.length > 0) {
+          return {
+            ...message,
+            content: convertToolCallsToXml(message)
+          }
+        }
+        
         return message
       })
   }

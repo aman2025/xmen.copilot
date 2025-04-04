@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { CheckCircle, XCircle, AlertCircle } from 'lucide-react';
 import toolEventEmitter, { TOOL_EVENTS } from '../utils/events/toolEventEmitter';
+import { parseXmlToolCalls } from '../utils/toolXmlParser';
 
 const ToolApprovalDialog = () => {
   const [pendingTools, setPendingTools] = useState([]);
@@ -60,45 +61,52 @@ const ToolApprovalDialog = () => {
   
   return (
     <div className="fixed bottom-20 right-4 z-50 max-w-md">
-      {pendingTools.map((toolData) => (
-        <div 
-          key={toolData.toolCallId}
-          className="mb-4 rounded-lg border border-gray-200 bg-white p-4 shadow-md"
-        >
-          <div className="mb-2 flex items-center">
-            <AlertCircle className="mr-2 h-5 w-5 text-amber-500" />
-            <h3 className="text-lg font-medium">Tool Execution Request</h3>
-          </div>
-          
-          <div className="mb-3 space-y-2">
-            <p className="text-sm font-semibold text-gray-700">
-              Tool: <span className="font-mono">{toolData.toolName}</span>
-            </p>
-            <div className="rounded bg-gray-50 p-2">
-              <pre className="text-xs text-gray-800">
-                {JSON.stringify(toolData.toolArgs, null, 2)}
-              </pre>
+      {pendingTools.map((toolData) => {
+        // Find the XML representation for this tool
+        const xmlContent = toolData.message?.content || '';
+        const toolCalls = parseXmlToolCalls(xmlContent);
+        const toolXml = toolCalls.find(tc => tc.name === toolData.toolName)?.originalXml || '';
+        
+        return (
+          <div 
+            key={toolData.toolCallId}
+            className="mb-4 rounded-lg border border-gray-200 bg-white p-4 shadow-md"
+          >
+            <div className="mb-2 flex items-center">
+              <AlertCircle className="mr-2 h-5 w-5 text-amber-500" />
+              <h3 className="text-lg font-medium">Tool Execution Request</h3>
+            </div>
+            
+            <div className="mb-3 space-y-2">
+              <p className="text-sm font-semibold text-gray-700">
+                Tool: <span className="font-mono">{toolData.toolName}</span>
+              </p>
+              <div className="rounded bg-gray-50 p-2">
+                <pre className="text-xs text-gray-800 whitespace-pre-wrap">
+                  {toolXml || JSON.stringify(toolData.toolArgs, null, 2)}
+                </pre>
+              </div>
+            </div>
+            
+            <div className="flex justify-end space-x-2">
+              <button
+                onClick={() => handleReject(toolData)}
+                className="flex items-center rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
+              >
+                <XCircle className="mr-1 h-4 w-4 text-red-500" />
+                Reject
+              </button>
+              <button
+                onClick={() => handleApprove(toolData)}
+                className="flex items-center rounded-md bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700"
+              >
+                <CheckCircle className="mr-1 h-4 w-4" />
+                Approve
+              </button>
             </div>
           </div>
-          
-          <div className="flex justify-end space-x-2">
-            <button
-              onClick={() => handleReject(toolData)}
-              className="flex items-center rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
-            >
-              <XCircle className="mr-1 h-4 w-4 text-red-500" />
-              Reject
-            </button>
-            <button
-              onClick={() => handleApprove(toolData)}
-              className="flex items-center rounded-md bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700"
-            >
-              <CheckCircle className="mr-1 h-4 w-4" />
-              Approve
-            </button>
-          </div>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 };

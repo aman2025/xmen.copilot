@@ -1,6 +1,7 @@
 import toolEventEmitter, { TOOL_EVENTS } from '../utils/events/toolEventEmitter';
 import { parseToolCalls } from './toolParser';
 import { initializeToolRegistry } from './toolRegistry';
+import { convertToolCallsToXml } from '../utils/toolXmlParser';
 
 /**
  * Initializes the tool execution system
@@ -21,6 +22,14 @@ export const initializeToolExecution = () => {
  * @param {Function} sendMessage - Function to send messages back to the assistant
  */
 export const processAssistantMessage = (message, sendMessage) => {
+  // Ensure message has XML-formatted content if it has tool calls
+  if (message.toolCalls && message.toolCalls.length > 0 && !message.content.includes(`<${message.toolCalls[0].function.name}>`)) {
+    message = {
+      ...message,
+      content: convertToolCallsToXml(message)
+    };
+  }
+  
   // Parse tool calls from the message
   parseToolCalls(message, sendMessage);
 };

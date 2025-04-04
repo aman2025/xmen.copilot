@@ -1,4 +1,5 @@
 import toolEventEmitter, { TOOL_EVENTS } from '../utils/events/toolEventEmitter';
+import { convertToolCallsToXml, parseXmlToolCalls } from '../utils/toolXmlParser';
 
 /**
  * Parses tool calls from assistant messages and emits appropriate events
@@ -12,22 +13,28 @@ export const parseToolCalls = (message, sendMessage) => {
       return;
     }
     
-    // Process each tool call in the message
-    message.toolCalls.forEach(toolCall => {
-      const { id: toolCallId, function: toolFunction } = toolCall;
-      const { name: toolName, arguments: toolArgs } = toolFunction;
+    // Convert the message to XML format
+    const xmlContent = convertToolCallsToXml(message);
+    
+    // Parse XML tool calls
+    const toolCalls = parseXmlToolCalls(xmlContent);
+    
+    // Process each tool call
+    toolCalls.forEach(toolCall => {
+      const { name: toolName, params: toolArgs } = toolCall;
       
-      // Parse tool arguments if they're a string
-      const parsedArgs = typeof toolArgs === 'string' 
-        ? JSON.parse(toolArgs) 
-        : toolArgs;
+      // Generate a unique ID for this tool call if not present
+      const toolCallId = message.toolCalls[0]?.id || `tool_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
       
       // Emit tool requested event
       toolEventEmitter.emit(TOOL_EVENTS.TOOL_REQUESTED, {
         toolName,
-        toolArgs: parsedArgs,
+        toolArgs,
         toolCallId,
-        message,
+        message: {
+          ...message,
+          content: xmlContent // Replace content with XML-formatted content
+        },
         sendMessage
       });
     });
