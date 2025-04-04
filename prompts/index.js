@@ -24,4 +24,5 @@ export const SYSTEM_PROMPT = `You are a friendly AI assistant for an application
    </tool>
 </tools>
 
+Always explain what you're doing before using a tool, and wait for the user's approval before proceeding.
 `

@@ -12,8 +12,13 @@ export const convertToolCallsToXml = (message) => {
   
   // Add a line break if there's content and it doesn't end with one
   if (xmlContent && !xmlContent.endsWith('\n')) {
-    xmlContent += '\n';
+    xmlContent += '\n\nI need to use a tool to help with this:';
+  } else if (!xmlContent) {
+    xmlContent = 'I need to use a tool to help with this:';
   }
+  
+  // Add a line break before the XML
+  xmlContent += '\n\n';
 
   // Process each tool call and convert to XML format
   message.toolCalls.forEach(toolCall => {
@@ -46,8 +51,13 @@ export const convertToolCallsToXml = (message) => {
  * @returns {Array} - Array of parsed tool calls with name, params, and original XML
  */
 export const parseXmlToolCalls = (content) => {
+  if (!content || typeof content !== 'string') {
+    return [];
+  }
+  
   const toolCalls = [];
-  const toolRegex = /<([a-zA-Z_]+)>([\s\S]*?)<\/\1>/g;
+  // Improved regex to better match XML tags across multiple lines
+  const toolRegex = /<([a-zA-Z_]+)>\s*([\s\S]*?)\s*<\/\1>/g;
   
   let match;
   while ((match = toolRegex.exec(content)) !== null) {
@@ -55,23 +65,41 @@ export const parseXmlToolCalls = (content) => {
     const toolContent = match[2];
     const originalXml = match[0];
     
-    // Extract parameters
-    const params = {};
-    const paramRegex = /<([a-zA-Z_]+)>([\s\S]*?)<\/\1>/g;
-    
-    let paramMatch;
-    while ((paramMatch = paramRegex.exec(toolContent)) !== null) {
-      const paramName = paramMatch[1];
-      const paramValue = paramMatch[2].trim();
-      params[paramName] = paramValue;
+    // Skip if this isn't a valid tool name (e.g., it's a parameter tag)
+    if (toolName.includes('_')) {
+      // Extract parameters
+      const params = {};
+      const paramRegex = /<([a-zA-Z_]+)>\s*([\s\S]*?)\s*<\/\1>/g;
+      
+      let paramMatch;
+      while ((paramMatch = paramRegex.exec(toolContent)) !== null) {
+        const paramName = paramMatch[1];
+        const paramValue = paramMatch[2].trim();
+        params[paramName] = paramValue;
+      }
+      
+      toolCalls.push({
+        name: toolName,
+        params,
+        originalXml
+      });
     }
-    
-    toolCalls.push({
-      name: toolName,
-      params,
-      originalXml
-    });
   }
   
   return toolCalls;
+};
+
+/**
+ * Checks if a message content contains XML tool calls
+ * @param {string} content - The message content to check
+ * @returns {boolean} - True if the content contains XML tool calls
+ */
+export const containsXmlToolCalls = (content) => {
+  if (!content || typeof content !== 'string') {
+    return false;
+  }
+  
+  // Check for tool call pattern: <tool_name>...</tool_name>
+  const toolRegex = /<([a-zA-Z_]+)>\s*[\s\S]*?\s*<\/\1>/;
+  return toolRegex.test(content);
 }; 

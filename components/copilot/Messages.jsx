@@ -9,7 +9,7 @@ import { processAssistantMessage } from '@/tool-calls/toolExecutionManager'
 import { ToolBox } from './ToolBox'
 import Loading from '../Loading'
 import ToolApprovalDialog from '../ToolApprovalDialog'
-import { convertToolCallsToXml } from '@/utils/toolXmlParser'
+import { convertToolCallsToXml, containsXmlToolCalls } from '@/utils/toolXmlParser'
 
 // Enhanced Avatar component with image preloading
 const CopilotAvatar = () => {
@@ -34,9 +34,9 @@ const Messages = ({ chatId }) => {
   // Initialize tool execution system
   useEffect(() => {
     import('@/tool-calls/toolExecutionManager').then(({ initializeToolExecution }) => {
-      initializeToolExecution();
-    });
-  }, []);
+      initializeToolExecution()
+    })
+  }, [])
 
   // Update useQuery to preserve loading state
   const {
@@ -67,65 +67,29 @@ const Messages = ({ chatId }) => {
 
   // Update filterAndProcessMessages to use our tool execution system
   const filterAndProcessMessages = (messages) => {
-    // Find the last assistant message with tool calls
-    const lastAssistantWithTools = [...messages]
-      .reverse()
-      .find((msg) => msg.role === 'assistant' && msg.toolCalls?.length > 0)
-
-    // Track if we're still processing a tool call
-    const isProcessingTool =
-      lastAssistantWithTools &&
-      !messages.some(
-        (m) =>
-          m.role === 'assistant' && m.createdAt > lastAssistantWithTools.createdAt && !m.toolCalls
-      )
-
-    // Get all processed tool call IDs
-    const processedToolCallIds = messages.filter((m) => m.role === 'tool').map((m) => m.toolCallId)
-
+    // Process messages to display
     return messages
       .filter((message) => {
         // Filter out tool response messages
-        if (message.role === 'tool') return false
-
-        // Handle assistant messages with tool calls
-        if (message.role === 'assistant' && message.toolCalls?.length > 0) {
-          // Only process if this is the last assistant message with tools
-          if (message === lastAssistantWithTools) {
-            const toolCall = message.toolCalls[0]
-            // Only process if this tool call hasn't been handled yet
-            if (!processedToolCallIds.includes(toolCall.id)) {
-              // Convert tool calls to XML format
-              const messageWithXml = {
-                ...message,
-                content: convertToolCallsToXml(message)
-              }
-              // Process the assistant message with our tool execution system
-              processAssistantMessage(messageWithXml, sendMessage)
-            }
-            return true
-          }
-          return false
-        }
-
-        return true
+        if (message.role === 'tool') return false;
+        return true;
       })
       .map((message) => {
-        // Show loading for the last assistant message that initiated tool call
-        if (isProcessingTool && message === lastAssistantWithTools) {
-          return { ...message, content: 'loading' }
-        }
-        
         // Convert tool calls to XML format for display
         if (message.role === 'assistant' && message.toolCalls?.length > 0) {
-          return {
+          const messageWithXml = {
             ...message,
             content: convertToolCallsToXml(message)
-          }
+          };
+          
+          // Process the assistant message with our tool execution system
+          processAssistantMessage(messageWithXml, sendMessage);
+          
+          return messageWithXml;
         }
         
-        return message
-      })
+        return message;
+      });
   }
 
   // Mutation for sending messages
@@ -217,6 +181,24 @@ const MessageItem = ({ message, setMessageInput }) => {
         )
       }
       return <a href={href}>{children}</a>
+    },
+    // Add syntax highlighting for XML tool calls
+    code: ({ children, className }) => {
+      // Check if this is XML content (tool call)
+      const isXml =
+        typeof children === 'string' && (children.includes('</') || children.includes('/>'))
+
+      if (isXml) {
+        return (
+          <div className="my-2 rounded-md bg-gray-50 p-3 dark:bg-gray-800">
+            <pre className="whitespace-pre-wrap font-mono text-sm text-gray-800 dark:text-gray-200">
+              {children}
+            </pre>
+          </div>
+        )
+      }
+
+      return <code className={className}>{children}</code>
     }
   }
 
@@ -230,6 +212,20 @@ const MessageItem = ({ message, setMessageInput }) => {
       return <Loading className="mt-1 pt-2" />
     }
 
+    // Format XML in the content for better display
+    let formattedContent = message.content
+    if (message.role === 'assistant' && message.toolCalls?.length > 0) {
+      // Split content into text and XML parts
+      const xmlStartIndex = formattedContent.indexOf('<')
+      if (xmlStartIndex > 0) {
+        const textPart = formattedContent.substring(0, xmlStartIndex).trim()
+        const xmlPart = formattedContent.substring(xmlStartIndex).trim()
+        formattedContent = `${textPart}\n\n\`\`\`xml\n${xmlPart}\n\`\`\``
+      } else if (xmlStartIndex === 0) {
+        formattedContent = `\`\`\`xml\n${formattedContent}\n\`\`\``
+      }
+    }
+
     // Show markdown for non-loading assistant messages
     if (message.role === 'assistant') {
       return (
@@ -238,7 +234,7 @@ const MessageItem = ({ message, setMessageInput }) => {
           className={`prose overflow-x-auto dark:prose-invert ${useChatStore().isFullscreen ? 'max-w-[820px]' : 'max-w-[328px]'}`}
           components={components}
         >
-          {message.content}
+          {formattedContent}
         </ReactMarkdown>
       )
     }

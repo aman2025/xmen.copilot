@@ -32,12 +32,13 @@ export const initializeToolRegistry = () => {
           result
         })
 
-        // Format and send the result back to the assistant
+        // Format response message
         const responseMessage = {
           success: true,
           data: result
         }
 
+        // Send response to assistant
         sendMessage({
           content: JSON.stringify(responseMessage),
           role: 'tool',
