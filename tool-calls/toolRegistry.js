@@ -11,11 +11,22 @@ const toolRegistry = {
 
 // Initialize tool event listeners
 export const initializeToolRegistry = () => {
+  // Track executed tool calls to prevent duplicates
+  const executedToolCalls = new Set();
+  
   // Listen for tool approval events
   toolEventEmitter.on(
     TOOL_EVENTS.TOOL_APPROVED,
     async ({ toolName, toolArgs, toolCallId, sendMessage }) => {
       try {
+        // Prevent duplicate executions of the same tool call
+        if (executedToolCalls.has(toolCallId)) {
+          console.log(`Tool call ${toolCallId} already executed, skipping.`);
+          return;
+        }
+        
+        executedToolCalls.add(toolCallId);
+        
         // Check if tool exists in registry
         if (!toolRegistry[toolName]) {
           throw new Error(`Tool ${toolName} not found in registry`)

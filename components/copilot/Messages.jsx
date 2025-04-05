@@ -1,7 +1,7 @@
 'use client'
 
 import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import useChatStore from '../../store/useChatStore'
@@ -27,6 +27,9 @@ const Messages = ({ chatId }) => {
     params: null,
     toolCallId: null
   })
+
+  // Add ref to track processed message IDs
+  const processedMessageIds = useRef(new Set());
 
   const queryClient = useQueryClient()
   const { setMessageInput, isFullscreen, isLoading } = useChatStore()
@@ -82,8 +85,12 @@ const Messages = ({ chatId }) => {
             content: convertToolCallsToXml(message)
           }
 
-          // Process the assistant message with our tool execution system
-          processAssistantMessage(messageWithXml, sendMessage)
+          // Only process messages that haven't been processed yet
+          if (message.id && !processedMessageIds.current.has(message.id)) {
+            processedMessageIds.current.add(message.id);
+            // Process the assistant message with our tool execution system
+            processAssistantMessage(messageWithXml, sendMessage)
+          }
 
           return messageWithXml
         }
