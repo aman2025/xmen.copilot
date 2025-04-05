@@ -17,9 +17,8 @@ model Chat {
 
 model Message {
   id           String   @id @default(uuid())
-  content      String
+  content      String   // Now contains XML for tool calls
   role         String   // 'user', 'assistant', or 'tool'
-  toolCalls    Json?    // Store tool_calls array
   toolCallId   String?  // Store tool_call_id for tool responses
   createdAt    DateTime @default(now())
   chatId       String

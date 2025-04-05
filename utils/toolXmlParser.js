@@ -12,16 +12,11 @@ export const convertToolCallsToXml = (message) => {
   
   // Add a line break if there's content and it doesn't end with one
   if (xmlContent && !xmlContent.endsWith('\n')) {
-    xmlContent += '\n\nI need to use a tool to help with this:';
-  } else if (!xmlContent) {
-    xmlContent = 'I need to use a tool to help with this:';
+    xmlContent += '\n\n';
   }
-  
-  // Add a line break before the XML
-  xmlContent += '\n\n';
 
   // Process each tool call and convert to XML format
-  message.toolCalls.forEach(toolCall => {
+  message.toolCalls.forEach((toolCall) => {
     const { function: toolFunction } = toolCall;
     const { name: toolName, arguments: toolArgs } = toolFunction;
     
@@ -35,7 +30,7 @@ export const convertToolCallsToXml = (message) => {
     
     // Add each parameter as an XML tag
     Object.entries(parsedArgs).forEach(([paramName, paramValue]) => {
-      xmlContent += `<${paramName}>${paramValue}</${paramName}>\n`;
+      xmlContent += `  <${paramName}>${paramValue}</${paramName}>\n`;
     });
     
     // Close the tool tag
@@ -56,7 +51,18 @@ export const parseXmlToolCalls = (content) => {
   }
   
   const toolCalls = [];
-  // Improved regex to better match XML tags across multiple lines
+  
+  // Check for Mistral format with <|tool_use|> tags
+  if (content.includes('<|tool_use|>')) {
+    return parseMistralToolFormat(content);
+  }
+  
+  // Check for Mistral format with [message={}] pattern
+  if (content.includes('[message=')) {
+    return parseMistralMessageFormat(content);
+  }
+  
+  // Standard XML format parsing
   const toolRegex = /<([a-zA-Z_]+)>\s*([\s\S]*?)\s*<\/\1>/g;
   
   let match;
@@ -90,6 +96,92 @@ export const parseXmlToolCalls = (content) => {
 };
 
 /**
+ * Parse Mistral-specific tool format with <|tool_use|> tags
+ * @param {string} content - The message content with Mistral tool format
+ * @returns {Array} - Array of parsed tool calls
+ */
+const parseMistralToolFormat = (content) => {
+  const toolCalls = [];
+  
+  // Extract the tool section
+  const toolUseMatch = content.match(/<\|tool_use\|>([\s\S]*?)<\/tool_use\|>/);
+  if (!toolUseMatch) return [];
+  
+  const toolSection = toolUseMatch[1];
+  
+  // Extract tool name
+  const nameMatch = /<name>([\s\S]*?)<\/name>/.exec(toolSection);
+  if (!nameMatch) return [];
+  
+  const toolName = nameMatch[1].trim();
+  
+  // Extract arguments
+  const params = {};
+  const argumentsSection = toolSection.match(/<arguments>([\s\S]*?)<\/arguments>/);
+  
+  if (argumentsSection) {
+    // Match each argument
+    const argumentRegex = /<argument>([\s\S]*?)<\/argument>/g;
+    let argMatch;
+    
+    while ((argMatch = argumentRegex.exec(argumentsSection[1])) !== null) {
+      const argContent = argMatch[1];
+      
+      // Extract name and value
+      const nameMatch = /<name>([\s\S]*?)<\/name>/.exec(argContent);
+      const valueMatch = /<value>([\s\S]*?)<\/value>/.exec(argContent);
+      
+      if (nameMatch && valueMatch) {
+        params[nameMatch[1].trim()] = valueMatch[1].trim();
+      }
+    }
+  }
+  
+  if (toolName) {
+    toolCalls.push({
+      name: toolName,
+      params,
+      originalXml: toolUseMatch[0]
+    });
+  }
+  
+  return toolCalls;
+};
+
+/**
+ * Parse Mistral message format [message={"name": "tool_name", "arguments": {...}}]
+ * @param {string} content - The message content with Mistral message format
+ * @returns {Array} - Array of parsed tool calls
+ */
+const parseMistralMessageFormat = (content) => {
+  const toolCalls = [];
+  
+  try {
+    // Extract the JSON part from [message=...]
+    const messageMatch = content.match(/\[message=(.*?)\]/)
+    if (!messageMatch || !messageMatch[1]) return [];
+    
+    // Parse the JSON
+    const messageJson = JSON.parse(messageMatch[1]);
+    
+    if (messageJson.name && messageJson.arguments) {
+      const toolName = messageJson.name;
+      const params = messageJson.arguments;
+      
+      toolCalls.push({
+        name: toolName,
+        params,
+        originalXml: messageMatch[0]
+      });
+    }
+  } catch (error) {
+    console.error('Error parsing Mistral message format:', error);
+  }
+  
+  return toolCalls;
+};
+
+/**
  * Checks if a message content contains XML tool calls
  * @param {string} content - The message content to check
  * @returns {boolean} - True if the content contains XML tool calls
@@ -99,7 +191,17 @@ export const containsXmlToolCalls = (content) => {
     return false;
   }
   
-  // Check for tool call pattern: <tool_name>...</tool_name>
+  // Check for Mistral message format
+  if (content.includes('[message=')) {
+    return true;
+  }
+  
+  // Check for Mistral format
+  if (content.includes('<|tool_use|>') && content.includes('<name>')) {
+    return true;
+  }
+  
+  // Check for standard XML tool call pattern
   const toolRegex = /<([a-zA-Z_]+)>\s*[\s\S]*?\s*<\/\1>/;
-  return toolRegex.test(content);
+  return toolRegex.test(content) && content.includes('_');
 }; 

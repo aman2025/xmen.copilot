@@ -20,18 +20,35 @@ export const initializeToolExecution = () => {
  * Processes an assistant message to extract and handle tool calls
  * @param {Object} message - The assistant message
  * @param {Function} sendMessage - Function to send messages back to the assistant
+ * @returns {Object} - The processed message with XML content
  */
 export const processAssistantMessage = (message, sendMessage) => {
-  // Always convert tool_calls to XML format in the message content
+  // Convert tool_calls to XML format in the message content if they exist
   if (message.toolCalls && message.toolCalls.length > 0) {
-    message = {
+    console.log('Processing message with toolCalls')
+    
+    // Create a new message object with XML content
+    const processedMessage = {
       ...message,
-      content: convertToolCallsToXml(message)
+      content: convertToolCallsToXml(message),
+      // Set toolCalls to null as we don't need to store them separately
+      toolCalls: null
     }
+    
+    // Parse XML tool calls from the message content to trigger tool execution
+    parseToolCalls(processedMessage, sendMessage)
+    
+    // Return the processed message for storage
+    return processedMessage
   }
   
-  // Parse XML tool calls from the message content
-  parseToolCalls(message, sendMessage)
+  // If there are XML tool calls in the content, process them
+  if (message.content && message.content.includes('<') && message.content.includes('_')) {
+    console.log('Processing message with XML content')
+    parseToolCalls(message, sendMessage)
+  }
+  
+  return message
 }
 
 /**

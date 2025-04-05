@@ -1,71 +1,38 @@
 import { PrismaClient } from '@prisma/client'
+import { formatMistralResponse, createMistral } from '@/utils/ai-sdk/mistral'
+import { NextResponse } from 'next/server'
 import { INSTANCE_TOOLS, SYSTEM_PROMPT } from '@/prompts'
-import { createMistral, formatMistralResponse } from '@/utils/ai-sdk/mistral'
+
 const prisma = new PrismaClient()
 
+// Get messages from a chat
 export async function GET(request, { params }) {
-  const { chatId } = params
-
   try {
-    // Verify the chat exists
-    const chat = await prisma.chat.findUnique({
-      where: { id: chatId },
-      include: {
-        messages: {
-          orderBy: {
-            createdAt: 'asc'
-          }
-        }
+    const { chatId } = params
+
+    const messages = await prisma.message.findMany({
+      where: {
+        chatId: chatId
+      },
+      orderBy: {
+        createdAt: 'asc'
       }
     })
 
-    if (!chat) {
-      return new Response(JSON.stringify({ error: 'Chat not found' }), {
-        status: 404,
-        headers: { 'Content-Type': 'application/json' }
-      })
-    }
-
-    return new Response(JSON.stringify({ messages: chat.messages }), {
-      status: 200,
-      headers: { 'Content-Type': 'application/json' }
-    })
+    return NextResponse.json({ messages })
   } catch (error) {
     console.error('Failed to fetch messages:', error)
-    return new Response(JSON.stringify({ error: 'Failed to fetch messages' }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json' }
-    })
+    return NextResponse.json({ error: 'Failed to fetch messages' }, { status: 500 })
   }
 }
 
+// Create a new message in a chat
 export async function POST(request, { params }) {
-  const { chatId } = params
-
   try {
-    const body = await request.json()
-    const { content, role, toolCallId } = body
+    const { chatId } = params
+    const { content, role, toolCallId } = await request.json()
 
-    // Verify the chat exists and get previous messages for context
-    const chat = await prisma.chat.findUnique({
-      where: { id: chatId },
-      include: {
-        messages: {
-          orderBy: {
-            createdAt: 'asc'
-          }
-        }
-      }
-    })
-
-    if (!chat) {
-      return new Response(JSON.stringify({ error: 'Chat not found' }), {
-        status: 404,
-        headers: { 'Content-Type': 'application/json' }
-      })
-    }
-
-    // Create the message with optional tool call fields
+    // Create the new message in the database
     const newMessage = await prisma.message.create({
       data: {
         content,
@@ -75,67 +42,81 @@ export async function POST(request, { params }) {
       }
     })
 
-    // If it's a user message or tool response, generate AI response
-    if (role === 'user' || role === 'tool') {
-      // Prepare context with all previous messages
-      const tools = [...INSTANCE_TOOLS]
-      
-      // For tool responses, find the corresponding assistant message with tool_calls
-      let assistantToolCallId = toolCallId;
-      
-      // If it's a tool response with an XML-generated ID, find the actual tool call ID from the assistant message
-      if (role === 'tool' && toolCallId && toolCallId.startsWith('xml_tool_')) {
-        // Find the most recent assistant message with tool calls
-        const assistantWithToolCalls = [...chat.messages]
-          .reverse()
-          .find(msg => msg.role === 'assistant' && msg.toolCalls && msg.toolCalls.length > 0);
-          
-        if (assistantWithToolCalls && assistantWithToolCalls.toolCalls && assistantWithToolCalls.toolCalls.length > 0) {
-          // Use the first tool call ID from the assistant message
-          assistantToolCallId = assistantWithToolCalls.toolCalls[0].id;
+    // If this is a user message, generate an AI response
+    if (role === 'user') {
+      // Get all messages for context
+      const chatMessages = await prisma.message.findMany({
+        where: {
+          chatId
+        },
+        orderBy: {
+          createdAt: 'asc'
         }
-      }
-      
-      const messages = [
-        { role: 'system', content: SYSTEM_PROMPT },
-        ...chat.messages.map((msg) => ({
-          role: msg.role,
-          content: msg.content,
-          ...(msg.toolCallId && { tool_call_id: msg.toolCallId }),
-          ...(msg.toolCalls && { tool_calls: msg.toolCalls })
-        })),
-        // For tool responses, include the tool response with the correct tool_call_id
-        role === 'tool' ? { role, content, tool_call_id: assistantToolCallId } : { role, content }
-      ]
+      })
 
-      const mistralResponse = await createMistral(messages, tools)
-      const { content: aiContent, toolCalls } = await formatMistralResponse(mistralResponse)
-
-      // Create the assistant message with tool_calls
-      const assistantMessage = await prisma.message.create({
+      // Create a temporary loading message
+      const loadingMessage = await prisma.message.create({
         data: {
-          content: aiContent,
+          content: 'loading',
           role: 'assistant',
-          toolCalls: toolCalls.length ? toolCalls : undefined,
           chatId
         }
       })
 
-      return new Response(JSON.stringify({ messages: [assistantMessage] }), {
-        status: 200,
-        headers: { 'Content-Type': 'application/json' }
-      })
+      // Format messages for the AI
+      const messageHistory = [
+        { role: 'system', content: SYSTEM_PROMPT },
+        ...chatMessages.map((msg) => {
+          return {
+            role: msg.role,
+            content: msg.content,
+            toolCallId: msg.toolCallId || undefined
+          }
+        })
+      ]
+
+      // Get tools definition from system prompt
+      const toolsMatch = SYSTEM_PROMPT.match(/<tools>([\s\S]*?)<\/tools>/)
+      const toolsXml = toolsMatch ? toolsMatch[0] : ''
+
+      // Generate an AI response
+      try {
+        const tools = [...INSTANCE_TOOLS]
+        const response = await createMistral(messageHistory, tools)
+        const formattedResponse = await formatMistralResponse(response)
+
+        // Update the loading message with the actual response
+        await prisma.message.update({
+          where: {
+            id: loadingMessage.id
+          },
+          data: {
+            content: formattedResponse.content
+            // No need to store toolCalls separately as they're now in the content
+          }
+        })
+
+        return NextResponse.json({ message: newMessage })
+      } catch (error) {
+        console.error('Error generating AI response:', error)
+
+        // Update loading message to indicate error
+        await prisma.message.update({
+          where: {
+            id: loadingMessage.id
+          },
+          data: {
+            content: 'Sorry, I encountered an error while generating a response. Please try again.'
+          }
+        })
+
+        return NextResponse.json({ message: newMessage })
+      }
     }
 
-    return new Response(JSON.stringify({ messages: [newMessage] }), {
-      status: 200,
-      headers: { 'Content-Type': 'application/json' }
-    })
+    return NextResponse.json({ message: newMessage })
   } catch (error) {
-    console.error('Failed to process message:', error)
-    return new Response(JSON.stringify({ error: 'Failed to process message' }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json' }
-    })
+    console.error('Failed to create message:', error)
+    return NextResponse.json({ error: 'Failed to create message' }, { status: 500 })
   }
 }

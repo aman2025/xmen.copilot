@@ -9,9 +9,12 @@ import { processAssistantMessage } from '@/tool-calls/toolExecutionManager'
 import { ToolBox } from './ToolBox'
 import Loading from '../Loading'
 import ToolApprovalDialog from '../ToolApprovalDialog'
-import { convertToolCallsToXml, containsXmlToolCalls } from '@/utils/toolXmlParser'
+import { containsXmlToolCalls } from '@/utils/toolXmlParser'
 
-// Enhanced Avatar component with image preloading
+/**
+ * CopilotAvatar component renders the Copilot icon
+ * @returns {JSX.Element} The avatar component
+ */
 const CopilotAvatar = () => {
   return (
     <div className="h-7 w-7 flex-shrink-0">
@@ -29,7 +32,7 @@ const Messages = ({ chatId }) => {
   })
 
   // Add ref to track processed message IDs
-  const processedMessageIds = useRef(new Set());
+  const processedMessageIds = useRef(new Set())
 
   const queryClient = useQueryClient()
   const { setMessageInput, isFullscreen, isLoading } = useChatStore()
@@ -68,7 +71,7 @@ const Messages = ({ chatId }) => {
     notifyOnChangeProps: ['data', 'isLoading']
   })
 
-  // Update filterAndProcessMessages to use our tool execution system
+  // Simplified to handle tool calls and XML content
   const filterAndProcessMessages = (messages) => {
     // Process messages to display
     return messages
@@ -78,21 +81,18 @@ const Messages = ({ chatId }) => {
         return true
       })
       .map((message) => {
-        // Convert tool calls to XML format for display
-        if (message.role === 'assistant' && message.toolCalls?.length > 0) {
-          const messageWithXml = {
-            ...message,
-            content: convertToolCallsToXml(message)
-          }
-
+        // Process assistant messages that have tool calls or XML content
+        if (message.role === 'assistant' && 
+           (message.toolCalls?.length > 0 || containsXmlToolCalls(message.content))) {
+          
           // Only process messages that haven't been processed yet
           if (message.id && !processedMessageIds.current.has(message.id)) {
-            processedMessageIds.current.add(message.id);
+            console.log('Processing message with tool/XML content:', message.id)
+            processedMessageIds.current.add(message.id)
             // Process the assistant message with our tool execution system
-            processAssistantMessage(messageWithXml, sendMessage)
+            const processedMessage = processAssistantMessage(message, sendMessage)
+            return processedMessage
           }
-
-          return messageWithXml
         }
 
         return message
@@ -171,6 +171,8 @@ const Messages = ({ chatId }) => {
 
 // Enhanced MessageItem component to handle all avatar and loading states
 const MessageItem = ({ message, setMessageInput }) => {
+  const fullscreenState = useChatStore((state) => state.isFullscreen)
+  
   const components = {
     a: ({ href, children }) => {
       if (href === 'send_to_message_box') {
@@ -211,26 +213,26 @@ const MessageItem = ({ message, setMessageInput }) => {
 
   const renderContent = () => {
     // Show loading component for assistant messages with 'loading' content
-    // or empty content with tool calls (indicating processing)
-    if (
-      message.role === 'assistant' &&
-      (message.content === 'loading' || (message.toolCalls?.length > 0 && !message.content))
-    ) {
+    if (message.role === 'assistant' && message.content === 'loading') {
       return <Loading className="mt-1 pt-2" />
     }
 
-    // Format XML in the content for better display
+    // Format content for better display
     let formattedContent = message.content
-    if (message.role === 'assistant' && message.toolCalls?.length > 0) {
-      // Split content into text and XML parts
-      const xmlStartIndex = formattedContent.indexOf('<')
-      if (xmlStartIndex > 0) {
-        const textPart = formattedContent.substring(0, xmlStartIndex).trim()
-        const xmlPart = formattedContent.substring(xmlStartIndex).trim()
-        formattedContent = `${textPart}\n\n\`\`\`xml\n${xmlPart}\n\`\`\``
-      } else if (xmlStartIndex === 0) {
-        formattedContent = `\`\`\`xml\n${formattedContent}\n\`\`\``
-      }
+    
+    // Handle XML format (tool calls)
+    if (message.role === 'assistant' && containsXmlToolCalls(message.content)) {
+      // Show XML content in a special card
+      return (
+        <div className="mt-2 rounded-md bg-blue-50 p-3 dark:bg-blue-900/30">
+          <p className="mb-2 text-sm font-medium text-blue-700 dark:text-blue-300">
+            Tool execution requested
+          </p>
+          <pre className="whitespace-pre-wrap text-xs text-gray-700 dark:text-gray-300">
+            {formattedContent}
+          </pre>
+        </div>
+      )
     }
 
     // Show markdown for non-loading assistant messages
@@ -238,7 +240,7 @@ const MessageItem = ({ message, setMessageInput }) => {
       return (
         <ReactMarkdown
           remarkPlugins={[remarkGfm]}
-          className={`prose overflow-x-auto dark:prose-invert ${useChatStore().isFullscreen ? 'max-w-[820px]' : 'max-w-[328px]'}`}
+          className={`prose overflow-x-auto dark:prose-invert ${fullscreenState ? 'max-w-[820px]' : 'max-w-[328px]'}`}
           components={components}
         >
           {formattedContent}
@@ -251,8 +253,7 @@ const MessageItem = ({ message, setMessageInput }) => {
   }
 
   // Add this condition check before rendering
-  const shouldHideComponents =
-    message.role === 'assistant' && message.toolCalls?.length > 0 && !message.content
+  const shouldHideComponents = message.role === 'assistant' && message.content === 'loading'
 
   // Skip rendering entirely if conditions are met
   if (shouldHideComponents) {
