@@ -79,6 +79,23 @@ export async function POST(request, { params }) {
     if (role === 'user' || role === 'tool') {
       // Prepare context with all previous messages
       const tools = [...INSTANCE_TOOLS]
+      
+      // For tool responses, find the corresponding assistant message with tool_calls
+      let assistantToolCallId = toolCallId;
+      
+      // If it's a tool response with an XML-generated ID, find the actual tool call ID from the assistant message
+      if (role === 'tool' && toolCallId && toolCallId.startsWith('xml_tool_')) {
+        // Find the most recent assistant message with tool calls
+        const assistantWithToolCalls = [...chat.messages]
+          .reverse()
+          .find(msg => msg.role === 'assistant' && msg.toolCalls && msg.toolCalls.length > 0);
+          
+        if (assistantWithToolCalls && assistantWithToolCalls.toolCalls && assistantWithToolCalls.toolCalls.length > 0) {
+          // Use the first tool call ID from the assistant message
+          assistantToolCallId = assistantWithToolCalls.toolCalls[0].id;
+        }
+      }
+      
       const messages = [
         { role: 'system', content: SYSTEM_PROMPT },
         ...chat.messages.map((msg) => ({
@@ -87,8 +104,8 @@ export async function POST(request, { params }) {
           ...(msg.toolCallId && { tool_call_id: msg.toolCallId }),
           ...(msg.toolCalls && { tool_calls: msg.toolCalls })
         })),
-        // For tool responses, include the tool response with its tool_call_id
-        role === 'tool' ? { role, content, tool_call_id: toolCallId } : { role, content }
+        // For tool responses, include the tool response with the correct tool_call_id
+        role === 'tool' ? { role, content, tool_call_id: assistantToolCallId } : { role, content }
       ]
 
       const mistralResponse = await createMistral(messages, tools)
