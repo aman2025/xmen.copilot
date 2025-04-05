@@ -71,8 +71,8 @@ const Messages = ({ chatId }) => {
     return messages
       .filter((message) => {
         // Filter out tool response messages
-        if (message.role === 'tool') return false;
-        return true;
+        if (message.role === 'tool') return false
+        return true
       })
       .map((message) => {
         // Convert tool calls to XML format for display
@@ -80,16 +80,16 @@ const Messages = ({ chatId }) => {
           const messageWithXml = {
             ...message,
             content: convertToolCallsToXml(message)
-          };
-          
+          }
+
           // Process the assistant message with our tool execution system
-          processAssistantMessage(messageWithXml, sendMessage);
-          
-          return messageWithXml;
+          processAssistantMessage(messageWithXml, sendMessage)
+
+          return messageWithXml
         }
-        
-        return message;
-      });
+
+        return message
+      })
   }
 
   // Mutation for sending messages
