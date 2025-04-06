@@ -13,7 +13,7 @@ const toolRegistry = {
 export const initializeToolRegistry = () => {
   // Track executed tool calls to prevent duplicates
   const executedToolCalls = new Set()
-  
+
   // Listen for tool approval events
   toolEventEmitter.on(
     TOOL_EVENTS.TOOL_APPROVED,
@@ -24,9 +24,9 @@ export const initializeToolRegistry = () => {
           console.log(`Tool call ${toolCallId} already executed, skipping.`)
           return
         }
-        
+
         executedToolCalls.add(toolCallId)
-        
+
         // Check if tool exists in registry
         if (!toolRegistry[toolName]) {
           throw new Error(`Tool ${toolName} not found in registry`)
@@ -43,16 +43,16 @@ export const initializeToolRegistry = () => {
           result
         })
 
-        // Format response message
-        const responseMessage = {
-          success: true,
-          data: result
-        }
+        // Format the result data for better readability
+        const resultData = result.instanceName ? result : result.data
 
-        // Send response to assistant
+        // Send response to assistant with clearer structure
         sendMessage({
-          content: JSON.stringify(responseMessage),
-          role: 'tool',
+          content:
+            `The tool execution was successful. Here are the details:\n\n` +
+            `Result: ${JSON.stringify(resultData, null, 2)}\n\n` +
+            `Please provide a natural language summary of these results.`,
+          role: 'user',
           toolCallId: toolCallId
         })
 
