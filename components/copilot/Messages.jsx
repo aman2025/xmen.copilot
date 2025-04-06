@@ -39,10 +39,18 @@ const Messages = ({ chatId }) => {
 
   // Initialize tool execution system
   useEffect(() => {
+    // Import and call the initialization function.
+    // The function itself now prevents multiple initializations.
     import('@/tool-calls/toolExecutionManager').then(({ initializeToolExecution }) => {
-      initializeToolExecution()
-    })
-  }, [])
+      initializeToolExecution();
+    });
+
+    // No complex cleanup needed here as the listeners should persist
+    // If specific cleanup is needed for the component, add it here.
+    return () => {
+      // Optional: Add cleanup logic if necessary when the Messages component unmounts
+    };
+  }, []); // Still runs on mount
 
   // Update useQuery to preserve loading state
   const {

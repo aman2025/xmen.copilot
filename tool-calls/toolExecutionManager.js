@@ -3,10 +3,21 @@ import { parseToolCalls } from './toolParser'
 import { initializeToolRegistry } from './toolRegistry'
 import { convertToolCallsToXml } from '../utils/toolXmlParser'
 
+// Flag to ensure initialization happens only once
+let isToolExecutionInitialized = false;
+
 /**
  * Initializes the tool execution system
  */
 export const initializeToolExecution = () => {
+  // Prevent multiple initializations
+  if (isToolExecutionInitialized) {
+    console.log('Tool execution system already initialized.');
+    return;
+  }
+  isToolExecutionInitialized = true;
+  console.log('Initializing tool execution system...');
+
   // Initialize the tool registry
   initializeToolRegistry()
 

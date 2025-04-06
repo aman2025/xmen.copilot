@@ -13,6 +13,8 @@ const toolRegistry = {
 export const initializeToolRegistry = () => {
   // Track executed tool calls to prevent duplicates
   const executedToolCalls = new Set()
+  // Also track sent result messages to prevent duplicates
+  const sentResultMessages = new Set()
 
   // Listen for tool approval events
   toolEventEmitter.on(
@@ -45,23 +47,33 @@ export const initializeToolRegistry = () => {
 
         // Format the result data for better readability
         const resultData = result.instanceName ? result : result.data
+        const resultMessageId = `result_${toolCallId}`
 
-        // Send response to assistant with clearer structure
-        sendMessage({
-          content:
-            `The tool execution was successful. Here are the details:\n\n` +
-            `Result: ${JSON.stringify(resultData, null, 2)}\n\n` +
-            `Please provide a natural language summary of these results.`,
-          role: 'user',
-          toolCallId: toolCallId
-        })
+        // Prevent duplicate result messages
+        if (!sentResultMessages.has(resultMessageId)) {
+          sentResultMessages.add(resultMessageId)
+          
+          // Send response to assistant with clearer structure
+          const responseMessage = {
+            content:
+              `The tool execution was successful. Here are the details:\n\n` +
+              `Result: ${JSON.stringify(resultData, null, 2)}\n\n` +
+              `Please provide a natural language summary of these results.`,
+            role: 'user',
+            toolCallId: null
+          }
+          
+          sendMessage(responseMessage)
+          console.log('Sending result message:', resultMessageId)
 
-        // Emit result sent event
-        toolEventEmitter.emit(TOOL_EVENTS.TOOL_RESULT_SENT, {
-          toolName,
-          toolCallId,
-          result: responseMessage
-        })
+          // Emit result sent event
+          toolEventEmitter.emit(TOOL_EVENTS.TOOL_RESULT_SENT, {
+            toolName,
+            toolCallId,
+            resultMessageId,
+            result: responseMessage
+          })
+        }
       } catch (error) {
         console.error(`Error executing tool ${toolName}:`, error)
 
