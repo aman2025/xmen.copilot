@@ -6,7 +6,6 @@ import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import useChatStore from '../../store/useChatStore'
 import { processAssistantMessage } from '@/tool-calls/toolExecutionManager'
-import { ToolBox } from './ToolBox'
 import Loading from '../Loading'
 import ToolApprovalDialog from '../ToolApprovalDialog'
 import { containsXmlToolCalls } from '@/utils/toolXmlParser'
@@ -42,15 +41,15 @@ const Messages = ({ chatId }) => {
     // Import and call the initialization function.
     // The function itself now prevents multiple initializations.
     import('@/tool-calls/toolExecutionManager').then(({ initializeToolExecution }) => {
-      initializeToolExecution();
-    });
+      initializeToolExecution()
+    })
 
     // No complex cleanup needed here as the listeners should persist
     // If specific cleanup is needed for the component, add it here.
     return () => {
       // Optional: Add cleanup logic if necessary when the Messages component unmounts
-    };
-  }, []); // Still runs on mount
+    }
+  }, []) // Still runs on mount
 
   // Update useQuery to preserve loading state
   const {
@@ -91,7 +90,6 @@ const Messages = ({ chatId }) => {
       .map((message) => {
         // Process assistant messages that have XML content
         if (message.role === 'assistant' && containsXmlToolCalls(message.content)) {
-          
           // Only process messages that haven't been processed yet
           if (message.id && !processedMessageIds.current.has(message.id)) {
             console.log('Processing message with XML content:', message.id)
@@ -143,10 +141,6 @@ const Messages = ({ chatId }) => {
     }
   })
 
-  const handleToolComplete = () => {
-    setToolState({ isOpen: false, tool: null, params: null, toolCallId: null })
-  }
-
   if (queryLoading) {
     return <div className="flex justify-center p-6">Loading messages...</div>
   }
@@ -166,11 +160,6 @@ const Messages = ({ chatId }) => {
           <MessageItem message={message} setMessageInput={setMessageInput} />
         </div>
       ))}
-      <ToolBox
-        toolState={toolState}
-        onToolComplete={handleToolComplete}
-        sendMessage={sendMessage}
-      />
       <ToolApprovalDialog />
     </div>
   )
@@ -179,7 +168,7 @@ const Messages = ({ chatId }) => {
 // Enhanced MessageItem component to handle all avatar and loading states
 const MessageItem = ({ message, setMessageInput }) => {
   const fullscreenState = useChatStore((state) => state.isFullscreen)
-  
+
   const components = {
     a: ({ href, children }) => {
       if (href === 'send_to_message_box') {
@@ -226,7 +215,7 @@ const MessageItem = ({ message, setMessageInput }) => {
 
     // Format content for better display
     let formattedContent = message.content
-    
+
     // Handle XML format (tool calls)
     if (message.role === 'assistant' && containsXmlToolCalls(message.content)) {
       // Show XML content in a special card
