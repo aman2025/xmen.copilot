@@ -79,7 +79,7 @@ const Messages = ({ chatId }) => {
     notifyOnChangeProps: ['data', 'isLoading']
   })
 
-  // Simplified to handle tool calls and XML content
+  // Simplified to handle only XML content checks
   const filterAndProcessMessages = (messages) => {
     // Process messages to display
     return messages
@@ -89,17 +89,16 @@ const Messages = ({ chatId }) => {
         return true
       })
       .map((message) => {
-        // Process assistant messages that have tool calls or XML content
-        if (message.role === 'assistant' && 
-           (message.toolCalls?.length > 0 || containsXmlToolCalls(message.content))) {
+        // Process assistant messages that have XML content
+        if (message.role === 'assistant' && containsXmlToolCalls(message.content)) {
           
           // Only process messages that haven't been processed yet
           if (message.id && !processedMessageIds.current.has(message.id)) {
-            console.log('Processing message with tool/XML content:', message.id)
+            console.log('Processing message with XML content:', message.id)
             processedMessageIds.current.add(message.id)
             // Process the assistant message with our tool execution system
-            const processedMessage = processAssistantMessage(message, sendMessage)
-            return processedMessage
+            processAssistantMessage(message, sendMessage)
+            return message
           }
         }
 

@@ -1,7 +1,7 @@
 import toolEventEmitter, { TOOL_EVENTS } from '../utils/events/toolEventEmitter'
 import { parseToolCalls } from './toolParser'
 import { initializeToolRegistry } from './toolRegistry'
-import { convertToolCallsToXml } from '../utils/toolXmlParser'
+import { containsXmlToolCalls } from '../utils/toolXmlParser'
 
 // Flag to ensure initialization happens only once
 let isToolExecutionInitialized = false;
@@ -31,34 +31,16 @@ export const initializeToolExecution = () => {
  * Processes an assistant message to extract and handle tool calls
  * @param {Object} message - The assistant message
  * @param {Function} sendMessage - Function to send messages back to the assistant
- * @returns {Object} - The processed message with XML content
+ * @returns {Object} - The processed message (or original if no XML tool calls)
  */
 export const processAssistantMessage = (message, sendMessage) => {
-  // Convert tool_calls to XML format in the message content if they exist
-  if (message.toolCalls && message.toolCalls.length > 0) {
-    console.log('Processing message with toolCalls')
-    
-    // Create a new message object with XML content
-    const processedMessage = {
-      ...message,
-      content: convertToolCallsToXml(message),
-      // Set toolCalls to null as we don't need to store them separately
-      toolCalls: null
-    }
-    
-    // Parse XML tool calls from the message content to trigger tool execution
-    parseToolCalls(processedMessage, sendMessage)
-    
-    // Return the processed message for storage
-    return processedMessage
-  }
-  
-  // If there are XML tool calls in the content, process them
-  if (message.content && message.content.includes('<') && message.content.includes('_')) {
-    console.log('Processing message with XML content')
+  // Check if the message content contains XML tool calls and parse them
+  if (containsXmlToolCalls(message.content)) {
+    console.log('Processing message with XML content:', message.id)
     parseToolCalls(message, sendMessage)
   }
   
+  // Return the original message (parsing triggers events, doesn't modify the message object here)
   return message
 }
 
