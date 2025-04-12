@@ -1,12 +1,13 @@
 import toolEventEmitter, { TOOL_EVENTS } from '../utils/events/toolEventEmitter'
 import create_instance_name from './tools/create_instance_name'
 import remove_instance from './tools/remove_instance'
+import attempt_completion from './tools/attempt_completion'
 
 // Registry of available tools
 const toolRegistry = {
   create_instance_name,
-  remove_instance
-  // Add more tools here as needed
+  remove_instance,
+  attempt_completion
 }
 
 // Initialize tool event listeners
@@ -52,7 +53,7 @@ export const initializeToolRegistry = () => {
         // Prevent duplicate result messages
         if (!sentResultMessages.has(resultMessageId)) {
           sentResultMessages.add(resultMessageId)
-          
+
           // Send response to assistant with clearer structure
           const responseMessage = {
             content:
@@ -62,7 +63,7 @@ export const initializeToolRegistry = () => {
             role: 'user',
             toolCallId: null
           }
-          
+
           sendMessage(responseMessage)
           console.log('Sending result message:', resultMessageId)
 

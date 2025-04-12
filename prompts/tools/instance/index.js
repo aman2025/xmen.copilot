@@ -23,6 +23,23 @@ export const INSTANCE_TOOLS = [
   {
     type: 'function',
     function: {
+      name: 'attempt_completion',
+      description: 'Present the final result of a task to the user',
+      parameters: {
+        type: 'object',
+        properties: {
+          result: {
+            type: 'string',
+            description: 'The final result description of the task'
+          }
+        },
+        required: ['result']
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
       name: 'remove_instance',
       description: 'Remove an instance with the specified ID',
       parameters: {
