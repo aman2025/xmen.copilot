@@ -29,24 +29,39 @@ export const createMistral = async (messages, tools) => {
  */
 export const formatMistralResponse = async (response) => {
   const message = response.choices[0].message
-  console.log('Raw Mistral message:', message)
+  console.log('Raw Mistral message:', JSON.stringify(message))
 
-  // If there are tool calls, convert them to XML format in the content
+  // If there are tool calls, convert them to XML format
   if (message.tool_calls && message.tool_calls.length > 0) {
-    console.log('Detected tool calls, converting to XML')
-    
-    // Create a temporary message object for conversion
+    const toolCall = message.tool_calls[0]
+    const args = JSON.parse(toolCall.function.arguments)
+
+    // Special handling for ask_followup_question
+    if (toolCall.function.name === 'ask_followup_question') {
+      const xmlContent = `
+<ask_followup_question>
+  <question>${args.question}</question>
+  <options>[${args.options.map((opt) => `"${opt}"`).join(', ')}]</options>
+</ask_followup_question>`
+
+      return {
+        content: xmlContent.trim(),
+        toolCalls: null
+      }
+    }
+
+    // Create a temporary message object for other tool calls
     const tempMessage = {
       content: message.content || '',
       toolCalls: message.tool_calls
     }
-    
+
     // Convert tool calls to XML format
     const xmlContent = convertToolCallsToXml(tempMessage)
-    
+
     return {
       content: xmlContent,
-      toolCalls: null // Set toolCalls to null as we don't need to store them separately
+      toolCalls: null
     }
   }
 

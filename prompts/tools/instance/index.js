@@ -53,5 +53,29 @@ export const INSTANCE_TOOLS = [
         required: ['id']
       }
     }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'ask_followup_question',
+      description: 'Ask the user a follow-up question with optional choices',
+      parameters: {
+        type: 'object',
+        properties: {
+          question: {
+            type: 'string',
+            description: 'The question to ask the user'
+          },
+          options: {
+            type: 'array',
+            items: {
+              type: 'string'
+            },
+            description: 'Optional array of 2-5 options for the user to choose from'
+          }
+        },
+        required: ['question']
+      }
+    }
   }
 ]
