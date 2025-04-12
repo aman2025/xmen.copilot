@@ -22,6 +22,11 @@ const CopilotAvatar = () => {
   )
 }
 
+// Add this helper function at the top level
+const isAttemptCompletionTag = (content) => {
+  return content.includes('<attempt_completion>') && content.includes('</attempt_completion>')
+}
+
 const Messages = ({ chatId }) => {
   const [toolState, setToolState] = useState({
     isOpen: false,
@@ -80,16 +85,18 @@ const Messages = ({ chatId }) => {
 
   // Simplified to handle only XML content checks
   const filterAndProcessMessages = (messages) => {
-    // Process messages to display
     return messages
       .filter((message) => {
-        // Filter out tool response messages
         if (message.role === 'tool') return false
         return true
       })
       .map((message) => {
-        // Process assistant messages that have XML content
         if (message.role === 'assistant' && containsXmlToolCalls(message.content)) {
+          // Skip processing if it's an attempt_completion tag
+          if (isAttemptCompletionTag(message.content)) {
+            return message
+          }
+
           // Only process messages that haven't been processed yet
           if (message.id && !processedMessageIds.current.has(message.id)) {
             console.log('Processing message with XML content:', message.id)
@@ -208,17 +215,30 @@ const MessageItem = ({ message, setMessageInput }) => {
   }
 
   const renderContent = () => {
-    // Show loading component for assistant messages with 'loading' content
     if (message.role === 'assistant' && message.content === 'loading') {
       return <Loading className="mt-1 pt-2" />
     }
 
-    // Format content for better display
     let formattedContent = message.content
 
-    // Handle XML format (tool calls)
+    // Handle attempt_completion differently
+    if (message.role === 'assistant' && isAttemptCompletionTag(message.content)) {
+      // Extract the result content from between the tags
+      const resultMatch = message.content.match(/<result>([\s\S]*?)<\/result>/)
+      const resultContent = resultMatch ? resultMatch[1].trim() : message.content
+
+      return (
+        <div className="mt-2 rounded-md bg-green-50 p-3 dark:bg-green-900/30">
+          <p className="mb-2 text-sm font-medium text-green-700 dark:text-green-300">
+            Task Completed
+          </p>
+          <p className="text-sm text-gray-700 dark:text-gray-300">{resultContent}</p>
+        </div>
+      )
+    }
+
+    // Handle other XML tool calls
     if (message.role === 'assistant' && containsXmlToolCalls(message.content)) {
-      // Show XML content in a special card
       return (
         <div className="mt-2 rounded-md bg-blue-50 p-3 dark:bg-blue-900/30">
           <p className="mb-2 text-sm font-medium text-blue-700 dark:text-blue-300">
@@ -236,7 +256,9 @@ const MessageItem = ({ message, setMessageInput }) => {
       return (
         <ReactMarkdown
           remarkPlugins={[remarkGfm]}
-          className={`prose overflow-x-auto dark:prose-invert ${fullscreenState ? 'max-w-[820px]' : 'max-w-[328px]'}`}
+          className={`prose overflow-x-auto dark:prose-invert ${
+            fullscreenState ? 'max-w-[820px]' : 'max-w-[328px]'
+          }`}
           components={components}
         >
           {formattedContent}
@@ -244,7 +266,6 @@ const MessageItem = ({ message, setMessageInput }) => {
       )
     }
 
-    // Show plain content for user messages
     return message.content
   }
 
