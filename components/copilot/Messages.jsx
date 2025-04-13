@@ -179,35 +179,41 @@ const Messages = ({ chatId }) => {
 // Enhanced MessageItem component to handle all avatar and loading states
 const MessageItem = ({ message, setMessageInput }) => {
   const fullscreenState = useChatStore((state) => state.isFullscreen)
-  const sendMessage = useMutation({
-    mutationFn: async ({ content, role, toolCallId }) => {
+  const queryClient = useQueryClient()
+  const chatId = useChatStore((state) => state.currentChatId) // Changed from chatId to currentChatId
+
+  // Mutation for sending messages
+  const { mutate: sendMessage } = useMutation({
+    mutationFn: async ({ content, role }) => {
       const res = await fetch(`/api/chat/${chatId}/messages`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ content, role, toolCallId })
+        body: JSON.stringify({ content, role })
       })
+      if (!res.ok) {
+        throw new Error(`HTTP error! status: ${res.status}`)
+      }
       return res.json()
     },
     onMutate: async (newMessage) => {
       await queryClient.cancelQueries({ queryKey: ['messages', chatId] })
       const previousMessages = queryClient.getQueryData(['messages', chatId]) || []
 
-      // Only add to optimistic update if it's not a tool response
-      if (newMessage.role !== 'tool') {
-        const updatedMessages = [
-          ...previousMessages,
-          {
-            ...newMessage,
-            id: 'temp-' + Date.now(),
-            createdAt: new Date().toISOString()
-          }
-        ]
-        queryClient.setQueryData(['messages', chatId], updatedMessages)
-      }
+      // Add optimistic update
+      const updatedMessages = [
+        ...previousMessages,
+        {
+          ...newMessage,
+          id: 'temp-' + Date.now(),
+          createdAt: new Date().toISOString()
+        }
+      ]
+      queryClient.setQueryData(['messages', chatId], updatedMessages)
 
       return { previousMessages }
     },
     onError: (err, newMessage, context) => {
+      console.error('Error sending message:', err)
       queryClient.setQueryData(['messages', chatId], context.previousMessages)
     },
     onSettled: () => {
@@ -215,8 +221,16 @@ const MessageItem = ({ message, setMessageInput }) => {
     }
   })
 
-  const handleOptionClick = (option) => {
-    sendMessage.mutate({ content: option, role: 'user' })
+  const handleOptionClick = async (option) => {
+    console.log('Option clicked:', option)
+    console.log('Current chatId:', chatId)
+
+    if (!chatId) {
+      console.error('No chatId available')
+      return
+    }
+
+    sendMessage({ content: option, role: 'user' })
   }
 
   const components = {
