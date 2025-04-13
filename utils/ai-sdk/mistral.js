@@ -1,5 +1,5 @@
 import MistralClient from '@mistralai/mistralai'
-import { convertToolCallsToXml } from '../toolXmlParser'
+import { convertToolCallToUiXml } from '../formatters/uiFormatters'
 
 /**
  * Creates a chat completion using Mistral AI API
@@ -31,33 +31,12 @@ export const formatMistralResponse = async (response) => {
   const message = response.choices[0].message
   console.log('Raw Mistral message:', JSON.stringify(message))
 
-  // If there are tool calls, convert them to XML format
+  // If there are tool calls, convert them to XML format in the content
   if (message.tool_calls && message.tool_calls.length > 0) {
-    const toolCall = message.tool_calls[0]
-    const args = JSON.parse(toolCall.function.arguments)
+    console.log('Detected tool calls, converting to XML')
 
-    // Special handling for ask_followup_question
-    if (toolCall.function.name === 'ask_followup_question') {
-      const xmlContent = `
-<ask_followup_question>
-  <question>${args.question}</question>
-  <options>[${args.options.map((opt) => `"${opt}"`).join(', ')}]</options>
-</ask_followup_question>`
-
-      return {
-        content: xmlContent.trim(),
-        toolCalls: null
-      }
-    }
-
-    // Create a temporary message object for other tool calls
-    const tempMessage = {
-      content: message.content || '',
-      toolCalls: message.tool_calls
-    }
-
-    // Convert tool calls to XML format
-    const xmlContent = convertToolCallsToXml(tempMessage)
+    // Convert the first tool call to UI XML format
+    const xmlContent = convertToolCallToUiXml(message.tool_calls[0])
 
     return {
       content: xmlContent,
@@ -65,7 +44,6 @@ export const formatMistralResponse = async (response) => {
     }
   }
 
-  // If there's no tool calls, just return the content
   return {
     content: message.content || '',
     toolCalls: null

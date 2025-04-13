@@ -3,7 +3,8 @@ export const INSTANCE_TOOLS = [
     type: 'function',
     function: {
       name: 'create_instance_name',
-      description: 'Create a random instance name or ID',
+      description:
+        'Create a random instance name or ID, if the user query donot contain prefix, call ask_followup_question with options dfa- or eop-',
       parameters: {
         type: 'object',
         properties: {
