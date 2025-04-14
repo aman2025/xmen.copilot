@@ -30,6 +30,21 @@
     │   └── Messages.jsx
     ├── ui/
     └── Sidebar.jsx
+    tool-calls/
+    ├── events/
+    │   └── toolEventEmitter.js
+    ├── formatters/
+    │   └── uiFormatters.js
+    ├── toolParser.js
+    ├── toolRegistry.js
+    ├── toolXmlParser.js
+    ├── toolExecutionManager.js
+    ├── tools/
+    │   ├── get_instances.js
+    │   ├── start_instance.js
+    │   └── get_services.js
+    prompts/
+    ├── index.js
     utils/
     ├── ai-sdk/
     │   └── mistral.js
@@ -66,6 +81,15 @@
         - Server state with TanStack Query
         - PostgreSQL database with Prisma ORM
         - Environment variables for API keys and sensitive data
+        
+    - Tool Execution system
+        - Tool registry for managing available tools
+        - Tool event emitter for handling tool-related events
+        - Tool execution manager for parsing and executing tool calls
+        - XML tool parser for extracting tool calls from assistant messages
+        - UI formatters for converting tool calls to UI-friendly XML format
+        - Tool XML parser for parsing XML tool calls from assistant messages
+        - Tool approval dialog for user confirmation of tool execution
 
     ## Getting Started
 
