@@ -31,7 +31,7 @@ export async function POST(request, { params }) {
   try {
     const { chatId } = params
     const { content, role, toolCallId } = await request.json()
-
+    console.log("content:",content)
     // Create the new message in the database
     const newMessage = await prisma.message.create({
       data: {

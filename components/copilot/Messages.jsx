@@ -278,6 +278,11 @@ const MessageItem = ({ message, setMessageInput }) => {
 
     let formattedContent = message.content
 
+    // Hide environment details in UI for better readability
+    if (message.role === 'user') {
+      formattedContent = message.content.split('<environment_details>')[0].trim()
+    }
+
     // Handle attempt_completion differently
     if (message.role === 'assistant' && isAttemptCompletionTag(message.content)) {
       // Extract the result content from between the tags
@@ -353,7 +358,7 @@ const MessageItem = ({ message, setMessageInput }) => {
       )
     }
 
-    return message.content
+    return formattedContent
   }
 
   // Add this condition check before rendering

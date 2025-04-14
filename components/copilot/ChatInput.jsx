@@ -4,6 +4,7 @@ import { SendHorizontal, Square } from 'lucide-react'
 import useChatStore from '../../store/useChatStore'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useEffect, useState } from 'react'
+import { formatEnvironmentDetails } from '@/utils/formatters/environment-formatter'
 
 const ChatInput = () => {
   const queryClient = useQueryClient()
@@ -44,10 +45,15 @@ const ChatInput = () => {
   // Mutation for creating a new message
   const createMessageMutation = useMutation({
     mutationFn: async ({ content, role, chatId }) => {
+      // Append environment details to user messages
+      const messageContent = role === 'user' 
+        ? `${content}\n\n${formatEnvironmentDetails()}`
+        : content
+
       const response = await fetch(`/api/chat/${chatId}/messages`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ content, role })
+        body: JSON.stringify({ content: messageContent, role })
       })
       return response.json()
     },
@@ -56,14 +62,18 @@ const ChatInput = () => {
       await queryClient.cancelQueries({ queryKey: ['messages', chatId] })
       const previousMessages = queryClient.getQueryData(['messages', chatId]) || []
 
-      // Add both user message and temporary assistant loading message
+      // Add environment details to displayed message
+      const displayContent = role === 'user' 
+        ? `${content}\n\n${formatEnvironmentDetails()}`
+        : content
+
       queryClient.setQueryData(
         ['messages', chatId],
         [
           ...previousMessages,
           {
             id: 'temp-user-' + Date.now(),
-            content,
+            content: displayContent,
             role,
             createdAt: new Date().toISOString()
           },
