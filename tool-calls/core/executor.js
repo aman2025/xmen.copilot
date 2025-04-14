@@ -4,7 +4,7 @@ import { initializeToolRegistry } from './registry'
 import { containsXmlToolCalls } from './parser/xml-parser'
 
 // Flag to ensure initialization happens only once
-let isToolExecutionInitialized = false;
+let isToolExecutionInitialized = false
 
 /**
  * Initializes the tool execution system
@@ -12,11 +12,11 @@ let isToolExecutionInitialized = false;
 export const initializeToolExecution = () => {
   // Prevent multiple initializations
   if (isToolExecutionInitialized) {
-    console.log('Tool execution system already initialized.');
-    return;
+    console.log('Tool execution system already initialized.')
+    return
   }
-  isToolExecutionInitialized = true;
-  console.log('Initializing tool execution system...');
+  isToolExecutionInitialized = true
+  console.log('Initializing tool execution system...')
 
   // Initialize the tool registry
   initializeToolRegistry()
@@ -39,7 +39,7 @@ export const processAssistantMessage = (message, sendMessage) => {
     console.log('Processing message with XML content:', message.id)
     parseToolCalls(message, sendMessage)
   }
-  
+
   // Return the original message (parsing triggers events, doesn't modify the message object here)
   return message
 }
