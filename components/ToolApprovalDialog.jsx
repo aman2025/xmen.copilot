@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react'
 import { CheckCircle, XCircle, AlertCircle } from 'lucide-react'
-import toolEventEmitter, { TOOL_EVENTS } from '../utils/events/toolEventEmitter'
+import toolEventEmitter, { TOOL_EVENTS } from '../tool-calls/events/toolEventEmitter'
 
 const ToolApprovalDialog = () => {
   const [pendingTools, setPendingTools] = useState([])

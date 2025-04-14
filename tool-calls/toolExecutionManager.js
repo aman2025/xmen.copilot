@@ -1,7 +1,7 @@
-import toolEventEmitter, { TOOL_EVENTS } from '../utils/events/toolEventEmitter'
+import toolEventEmitter, { TOOL_EVENTS } from './events/toolEventEmitter'
 import { parseToolCalls } from './toolParser'
 import { initializeToolRegistry } from './toolRegistry'
-import { containsXmlToolCalls } from '../utils/toolXmlParser'
+import { containsXmlToolCalls } from './toolXmlParser'
 
 // Flag to ensure initialization happens only once
 let isToolExecutionInitialized = false;

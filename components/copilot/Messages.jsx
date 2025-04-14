@@ -8,7 +8,7 @@ import useChatStore from '../../store/useChatStore'
 import { processAssistantMessage } from '@/tool-calls/toolExecutionManager'
 import Loading from '../Loading'
 import ToolApprovalDialog from '../ToolApprovalDialog'
-import { containsXmlToolCalls } from '@/utils/toolXmlParser'
+import { containsXmlToolCalls } from '@/tool-calls/toolXmlParser'
 
 /**
  * CopilotAvatar component renders the Copilot icon

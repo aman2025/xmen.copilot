@@ -1,4 +1,4 @@
-import toolEventEmitter, { TOOL_EVENTS } from '../utils/events/toolEventEmitter'
+import toolEventEmitter, { TOOL_EVENTS } from './events/toolEventEmitter'
 import create_instance_name from './tools/create_instance_name'
 import remove_instance from './tools/remove_instance'
 import attempt_completion from './tools/attempt_completion'

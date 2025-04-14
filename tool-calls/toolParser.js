@@ -1,5 +1,5 @@
-import toolEventEmitter, { TOOL_EVENTS } from '../utils/events/toolEventEmitter'
-import { parseXmlToolCalls } from '../utils/toolXmlParser'
+import toolEventEmitter, { TOOL_EVENTS } from './events/toolEventEmitter'
+import { parseXmlToolCalls } from './toolXmlParser'
 
 /**
  * Parses tool calls from assistant messages and emits appropriate events
@@ -12,17 +12,17 @@ export const parseToolCalls = (message, sendMessage) => {
     if (message.content && typeof message.content === 'string') {
       // Parse XML tool calls - now supports both standard and Mistral format
       const xmlToolCalls = parseXmlToolCalls(message.content)
-      
+
       if (xmlToolCalls.length > 0) {
         console.log('Parsed tool calls:', xmlToolCalls)
-        
+
         // Process each XML tool call
         xmlToolCalls.forEach((xmlToolCall) => {
           const { name: toolName, params: toolArgs } = xmlToolCall
-          
+
           // Generate a unique ID for this tool call
           const toolCallId = `xml_tool_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
-          
+
           // Emit tool requested event
           toolEventEmitter.emit(TOOL_EVENTS.TOOL_REQUESTED, {
             toolName,
