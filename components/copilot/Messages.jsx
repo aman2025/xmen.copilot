@@ -5,10 +5,10 @@ import { useState, useEffect, useRef } from 'react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import useChatStore from '../../store/useChatStore'
-import { processAssistantMessage } from '@/tool-calls/toolExecutionManager'
+import { processAssistantMessage } from '@/tool-calls/core/executor'
 import Loading from '../Loading'
 import ToolApprovalDialog from '../ToolApprovalDialog'
-import { containsXmlToolCalls } from '@/tool-calls/toolXmlParser'
+import { containsXmlToolCalls } from '@/tool-calls/core/parser/xml-parser'
 
 /**
  * CopilotAvatar component renders the Copilot icon
@@ -50,7 +50,7 @@ const Messages = ({ chatId }) => {
   useEffect(() => {
     // Import and call the initialization function.
     // The function itself now prevents multiple initializations.
-    import('@/tool-calls/toolExecutionManager').then(({ initializeToolExecution }) => {
+    import('@/tool-calls/core/executor').then(({ initializeToolExecution }) => {
       initializeToolExecution()
     })
 

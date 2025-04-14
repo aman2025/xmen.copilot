@@ -1,13 +1,13 @@
-import toolEventEmitter, { TOOL_EVENTS } from './events/toolEventEmitter'
-import create_instance_name from './tools/create_instance_name'
-import remove_instance from './tools/remove_instance'
-import attempt_completion from './tools/attempt_completion'
+import eventBus, { TOOL_EVENTS } from '../events/event-bus'
+import create_instance_name from '../tools/instance/create_instance_name'
+import removeInstance from '../tools/instance/remove-instance'
+import attempt_completion from '../tools/attempt_completion'
 
 // Registry of available tools
-const toolRegistry = {
-  create_instance_name,
-  remove_instance,
-  attempt_completion
+const registry = {
+  create_instance_name: create_instance_name,
+  remove_instance: removeInstance,
+  attempt_completion: attempt_completion
 }
 
 // Initialize tool event listeners
@@ -18,7 +18,7 @@ export const initializeToolRegistry = () => {
   const sentResultMessages = new Set()
 
   // Listen for tool approval events
-  toolEventEmitter.on(
+  eventBus.on(
     TOOL_EVENTS.TOOL_APPROVED,
     async ({ toolName, toolArgs, toolCallId, sendMessage }) => {
       try {
@@ -31,15 +31,15 @@ export const initializeToolRegistry = () => {
         executedToolCalls.add(toolCallId)
 
         // Check if tool exists in registry
-        if (!toolRegistry[toolName]) {
+        if (!registry[toolName]) {
           throw new Error(`Tool ${toolName} not found in registry`)
         }
 
         // Execute the tool
-        const result = await toolRegistry[toolName](toolArgs)
+        const result = await registry[toolName](toolArgs)
 
         // Emit tool executed event
-        toolEventEmitter.emit(TOOL_EVENTS.TOOL_EXECUTED, {
+        eventBus.emit(TOOL_EVENTS.TOOL_EXECUTED, {
           toolName,
           toolArgs,
           toolCallId,
@@ -68,7 +68,7 @@ export const initializeToolRegistry = () => {
           console.log('Sending result message:', resultMessageId)
 
           // Emit result sent event
-          toolEventEmitter.emit(TOOL_EVENTS.TOOL_RESULT_SENT, {
+          eventBus.emit(TOOL_EVENTS.TOOL_RESULT_SENT, {
             toolName,
             toolCallId,
             resultMessageId,
@@ -79,7 +79,7 @@ export const initializeToolRegistry = () => {
         console.error(`Error executing tool ${toolName}:`, error)
 
         // Emit tool failed event
-        toolEventEmitter.emit(TOOL_EVENTS.TOOL_FAILED, {
+        eventBus.emit(TOOL_EVENTS.TOOL_FAILED, {
           toolName,
           toolCallId,
           error: error.message
@@ -99,4 +99,4 @@ export const initializeToolRegistry = () => {
   )
 }
 
-export default toolRegistry
+export default registry

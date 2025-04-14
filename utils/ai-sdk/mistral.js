@@ -1,5 +1,5 @@
 import MistralClient from '@mistralai/mistralai'
-import { convertToolCallToUiXml } from '../../tool-calls/formatters/uiFormatters'
+import { convertToolCallToUiXml } from '../../tool-calls/formatters/xml-formatter'
 
 /**
  * Creates a chat completion using Mistral AI API

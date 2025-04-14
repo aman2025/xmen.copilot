@@ -29,4 +29,4 @@ const create_instance_name = async (params = {}) => {
   };
 };
 
-export default create_instance_name; 
+export default create_instance_name;

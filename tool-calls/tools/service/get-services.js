@@ -4,7 +4,7 @@
  * @param {string} params.serviceName - Required service name to fetch
  * @returns {Promise<any>} The services data or error message
  */
-const get_services = async ({ serviceName }) => {
+const getServices = async ({ serviceName }) => {
   // Check for empty or null serviceName
   if (!serviceName) {
     return 'serviceName is required'
@@ -24,4 +24,4 @@ const get_services = async ({ serviceName }) => {
   }
 }
 
-export default get_services
+export default getServices

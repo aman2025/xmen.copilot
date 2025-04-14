@@ -1,4 +1,4 @@
-const start_instance = async ({ instanceId }) => {
+const startInstance = async ({ instanceId }) => {
   try {
     const response = await fetch('/api/proxy/startInstance', {
       method: 'POST',
@@ -16,4 +16,4 @@ const start_instance = async ({ instanceId }) => {
   }
 }
 
-export default start_instance
+export default startInstance

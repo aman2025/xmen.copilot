@@ -1,7 +1,7 @@
-import toolEventEmitter, { TOOL_EVENTS } from './events/toolEventEmitter'
-import { parseToolCalls } from './toolParser'
-import { initializeToolRegistry } from './toolRegistry'
-import { containsXmlToolCalls } from './toolXmlParser'
+import eventBus, { TOOL_EVENTS } from '../events/event-bus'
+import { parseToolCalls } from './parser/tool-parser'
+import { initializeToolRegistry } from './registry'
+import { containsXmlToolCalls } from './parser/xml-parser'
 
 // Flag to ensure initialization happens only once
 let isToolExecutionInitialized = false;
@@ -49,7 +49,7 @@ export const processAssistantMessage = (message, sendMessage) => {
  */
 const setupDebugLogging = () => {
   Object.values(TOOL_EVENTS).forEach((eventType) => {
-    toolEventEmitter.on(eventType, (data) => {
+    eventBus.on(eventType, (data) => {
       console.log(`[Tool Event] ${eventType}:`, data)
     })
   })

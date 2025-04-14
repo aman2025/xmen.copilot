@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react'
 import { CheckCircle, XCircle, AlertCircle } from 'lucide-react'
-import toolEventEmitter, { TOOL_EVENTS } from '../tool-calls/events/toolEventEmitter'
+import eventBus, { TOOL_EVENTS } from '../tool-calls/events/event-bus'
 
 const ToolApprovalDialog = () => {
   const [pendingTools, setPendingTools] = useState([])
@@ -38,24 +38,24 @@ const ToolApprovalDialog = () => {
     }
 
     // Register event listeners
-    toolEventEmitter.on(TOOL_EVENTS.TOOL_REQUESTED, handleToolRequested)
-    toolEventEmitter.on(TOOL_EVENTS.TOOL_EXECUTED, handleToolExecuted)
-    toolEventEmitter.on(TOOL_EVENTS.TOOL_REJECTED, handleToolRejected)
+    eventBus.on(TOOL_EVENTS.TOOL_REQUESTED, handleToolRequested)
+    eventBus.on(TOOL_EVENTS.TOOL_EXECUTED, handleToolExecuted)
+    eventBus.on(TOOL_EVENTS.TOOL_REJECTED, handleToolRejected)
 
     // Cleanup event listeners
     return () => {
-      toolEventEmitter.off(TOOL_EVENTS.TOOL_REQUESTED, handleToolRequested)
-      toolEventEmitter.off(TOOL_EVENTS.TOOL_EXECUTED, handleToolExecuted)
-      toolEventEmitter.off(TOOL_EVENTS.TOOL_REJECTED, handleToolRejected)
+      eventBus.off(TOOL_EVENTS.TOOL_REQUESTED, handleToolRequested)
+      eventBus.off(TOOL_EVENTS.TOOL_EXECUTED, handleToolExecuted)
+      eventBus.off(TOOL_EVENTS.TOOL_REJECTED, handleToolRejected)
     }
   }, [])
 
   const handleApprove = (toolData) => {
-    toolEventEmitter.emit(TOOL_EVENTS.TOOL_APPROVED, toolData)
+    eventBus.emit(TOOL_EVENTS.TOOL_APPROVED, toolData)
   }
 
   const handleReject = (toolData) => {
-    toolEventEmitter.emit(TOOL_EVENTS.TOOL_REJECTED, toolData)
+    eventBus.emit(TOOL_EVENTS.TOOL_REJECTED, toolData)
 
     // Send rejection message to assistant
     toolData.sendMessage({

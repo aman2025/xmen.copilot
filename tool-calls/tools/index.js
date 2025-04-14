@@ -1,6 +1,6 @@
-import get_instances from './get_instances'
-import start_instance from './start_instance'
-import get_services from './get_services'
+import getInstances from './instance/get-instances'
+import startInstance from './instance/start-instance'
+import getServices from './service/get-services'
 
 // export a array with all the tool calls
-export const toolCalls = [get_instances, start_instance, get_services]
+export const toolCalls = [getInstances, startInstance, getServices]

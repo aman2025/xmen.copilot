@@ -32,17 +32,17 @@
     └── Sidebar.jsx
     tool-calls/
     ├── events/
-    │   └── toolEventEmitter.js
+    │   └── event-bus.js
     ├── formatters/
-    │   └── uiFormatters.js
-    ├── toolParser.js
-    ├── toolRegistry.js
-    ├── toolXmlParser.js
-    ├── toolExecutionManager.js
+    │   └── xml-formatter.js
+    ├── tool-parser.js
+    ├── registry.js
+    ├── xml-parser.js
+    ├── executor.js
     ├── tools/
-    │   ├── get_instances.js
-    │   ├── start_instance.js
-    │   └── get_services.js
+    │   ├── getInstances.js
+    │   ├── start-instance.js
+    │   └── get-services.js
     prompts/
     ├── index.js
     utils/

@@ -4,7 +4,7 @@
  * @param {string} params.id - The ID of the instance to remove
  * @returns {Object} The result of the removal operation
  */
-const remove_instance = async (params) => {
+const removeInstance = async (params) => {
   const { id } = params;
   
   if (!id) {
@@ -29,4 +29,4 @@ const remove_instance = async (params) => {
   }
 };
 
-export default remove_instance; 
+export default removeInstance;

@@ -275,7 +275,7 @@ export const VERIFICATION_CASES = [
     },
     isCorrect: false,
     error: 'Must get service information first to obtain serviceId',
-    reasoning: 'Missing service context - need to call get_services first'
+    reasoning: 'Missing service context - need to call getServices first'
   },
   {
     userQuery: 'Start instance 456 of unknown service',

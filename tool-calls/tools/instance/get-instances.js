@@ -3,7 +3,7 @@
  * @param {string} [serviceId] - Optional service ID to filter instances
  * @returns {Promise<any>} The instances data
  */
-const get_instances = async ({ serviceId }) => {
+const getInstances = async ({ serviceId }) => {
   const url = serviceId
     ? `/api/proxy/instances?serviceId=${encodeURIComponent(serviceId)}`
     : '/api/proxy/instances'
@@ -13,4 +13,4 @@ const get_instances = async ({ serviceId }) => {
   return data
 }
 
-export default get_instances
+export default getInstances

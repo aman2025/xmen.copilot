@@ -1,5 +1,5 @@
-import toolEventEmitter, { TOOL_EVENTS } from './events/toolEventEmitter'
-import { parseXmlToolCalls } from './toolXmlParser'
+import eventBus, { TOOL_EVENTS } from '../../events/event-bus'
+import { parseXmlToolCalls } from './xml-parser'
 
 /**
  * Parses tool calls from assistant messages and emits appropriate events
@@ -24,7 +24,7 @@ export const parseToolCalls = (message, sendMessage) => {
           const toolCallId = `xml_tool_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
 
           // Emit tool requested event
-          toolEventEmitter.emit(TOOL_EVENTS.TOOL_REQUESTED, {
+          eventBus.emit(TOOL_EVENTS.TOOL_REQUESTED, {
             toolName,
             toolArgs,
             toolCallId,

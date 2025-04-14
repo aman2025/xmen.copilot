@@ -1,10 +1,10 @@
 import { EventEmitter } from 'events';
 
 // Create a singleton event emitter for tool-related events
-const toolEventEmitter = new EventEmitter();
+const eventBus = new EventEmitter();
 
 // Set higher limit for event listeners to avoid memory leak warnings
-toolEventEmitter.setMaxListeners(50);
+eventBus.setMaxListeners(50);
 
 // Define standard event types as constants
 export const TOOL_EVENTS = {
@@ -16,4 +16,4 @@ export const TOOL_EVENTS = {
   TOOL_RESULT_SENT: 'tool:result:sent'
 };
 
-export default toolEventEmitter;
+export default eventBus;
