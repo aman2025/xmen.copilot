@@ -6,27 +6,24 @@
  * @returns {Object} The generated instance name and ID
  */
 const create_instance_name = async (params = {}) => {
-  const { 
-    prefix = 'inst', 
-    includeTimestamp = true 
-  } = params;
-  
+  const { prefix = 'inst', includeTimestamp = true } = params
+
   // Generate random alphanumeric string
-  const randomString = Math.random().toString(36).substring(2, 8);
-  
+  const randomString = Math.random().toString(36).substring(2, 8)
+
   // Add timestamp if requested
-  const timestamp = includeTimestamp ? `-${Date.now().toString().slice(-6)}` : '';
-  
+  const timestamp = includeTimestamp ? `-${Date.now().toString().slice(-6)}` : ''
+
   // Combine parts to create instance name
-  const instanceName = `${prefix}-${randomString}${timestamp}`;
-  
+  const instanceName = `${prefix}-${randomString}${timestamp}`
+
   // Generate a numeric ID
-  const instanceId = Math.floor(100000 + Math.random() * 900000).toString();
-  
+  const instanceId = Math.floor(100000 + Math.random() * 900000).toString()
+
   return {
     instanceName,
     instanceId
-  };
-};
+  }
+}
 
-export default create_instance_name;
+export default create_instance_name

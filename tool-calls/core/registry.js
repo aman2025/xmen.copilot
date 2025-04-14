@@ -1,13 +1,11 @@
 import eventBus, { TOOL_EVENTS } from '../events/event-bus'
-import create_instance_name from '../tools/instance/create_instance_name'
+import createInstanceName from '../tools/instance/create-instance-name'
 import removeInstance from '../tools/instance/remove-instance'
-import attempt_completion from '../tools/attempt_completion'
 
 // Registry of available tools
 const registry = {
-  create_instance_name: create_instance_name,
-  remove_instance: removeInstance,
-  attempt_completion: attempt_completion
+  create_instance_name: createInstanceName,
+  remove_instance: removeInstance
 }
 
 // Initialize tool event listeners
