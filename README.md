@@ -6,9 +6,13 @@
 
     - Next.js 14+ with App Router
     - JavaScript (JSX files only, no TypeScript)
-    - Tailwind CSS
-    - shadcn/ui
-    - API routes for Mistral AI, OpenAI integration
+    - Tailwind CSS with Typography plugin
+    - shadcn/ui components
+    - Mistral AI & OpenAI integration
+    - Prisma with PostgreSQL
+    - Zustand for state management
+    - TanStack Query for data fetching
+    - ReactFlow for visualizations
     - ESLint + Prettier configuration
 
     ## Project Structure
@@ -18,39 +22,50 @@
     ├── api/
     │   └── assistant/
     │       └── route.js
+    ├── layout.jsx
+    ├── page.jsx
     components/
-    │   └── ui/
+    ├── copilot/
+    │   ├── Copilot.jsx
+    │   └── Messages.jsx
+    ├── ui/
+    └── Sidebar.jsx
+    utils/
+    ├── ai-sdk/
+    │   └── mistral.js
+    store/
+    prisma/
     public/
     ```
 
     ## Features
 
-    - Proper error handling for API responses
-    - Loading states for AI operations
-    - Responsive design for all components
-    - Clean, modular code structure
-    - Environment variables for API keys and sensitive data
+    - AI Integration
+        - Dual LLM support (Mistral AI and OpenAI)
+        - Function calling capabilities
+        - Tool execution system
+        - Real-time chat interface
 
-    ## Layout Structure
+    - Core Features
+        - Proper error handling for API responses
+        - Loading states for AI operations
+        - Markdown rendering with React-Markdown
+        - Tool approval dialog system
+        - Chat history management
 
-    - Main Layout:
-        - Center the main content area in the viewport
-        - Apply consistent margins around the main content
-        - Ensure the layout adapts smoothly across different screen sizes
-        - Body background with an image
-    - Sidebar:
-        - Navigation menu bar on one side
-        - Menu items with icons and text labels
-        - Consistent spacing and alignment
-    - Content Area:
-        - Three rounded rectangular containers
-        - Responsive grid/flow
-        - Consistent border radius
-        - Proper spacing between containers
-        - Responsive sizing based on viewport width
-    - Copilot Area:
-        - Floating circular button at the bottom-right corner
-        - Expands to a 400px rounded rectangular container with input and button
+    - UI/UX
+        - Responsive design for all components
+        - Dark mode support
+        - Custom animations and transitions
+        - Interactive deployment diagrams
+        - Floating copilot interface
+
+    - Architecture
+        - Clean, modular code structure
+        - Global state management with Zustand
+        - Server state with TanStack Query
+        - PostgreSQL database with Prisma ORM
+        - Environment variables for API keys and sensitive data
 
     ## Getting Started
 
