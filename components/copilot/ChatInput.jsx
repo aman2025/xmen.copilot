@@ -4,8 +4,7 @@ import { SendHorizontal } from 'lucide-react'
 import useChatStore from '../../store/useChatStore'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useEffect, useState } from 'react'
-import { formatEnvironmentDetails } from '@/utils/formatters/environment-formatter'
-import { formatUserMessage } from '@/utils/context-manager'
+import { formatUserMessage, formatEnvironmentDetails } from '@/utils/context-manager'
 
 const ChatInput = () => {
   const queryClient = useQueryClient()
@@ -55,9 +54,10 @@ const ChatInput = () => {
   const createMessageMutation = useMutation({
     mutationFn: async ({ content, role, chatId }) => {
       // Format message with task tag and environment details
-      const messageContent = role === 'user' 
-        ? formatUserMessage(content, isFirstMessage, formatEnvironmentDetails())
-        : content
+      const messageContent =
+        role === 'user'
+          ? formatUserMessage(content, isFirstMessage, formatEnvironmentDetails())
+          : content
 
       const response = await fetch(`/api/chat/${chatId}/messages`, {
         method: 'POST',
@@ -72,9 +72,8 @@ const ChatInput = () => {
       const previousMessages = queryClient.getQueryData(['messages', chatId]) || []
 
       // Format display content (without task tags)
-      const displayContent = role === 'user'
-        ? formatUserMessage(content, false, formatEnvironmentDetails())
-        : content
+      const displayContent =
+        role === 'user' ? formatUserMessage(content, false, formatEnvironmentDetails()) : content
 
       queryClient.setQueryData(
         ['messages', chatId],
@@ -103,7 +102,7 @@ const ChatInput = () => {
       return { previousMessages }
     },
     onError: (err, variables, context) => {
-      queryClient.setQueryData(['messages', variables.chatId], context.previousMessages)
+      queryClient.setQueryData(['messages', variables.chatId], context?.previousMessages)
     },
     onSettled: (data, error, variables) => {
       queryClient.invalidateQueries({ queryKey: ['messages', variables.chatId] })
