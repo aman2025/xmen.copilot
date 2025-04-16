@@ -1,26 +1,17 @@
 'use client'
 
-import { SendHorizontal } from 'lucide-react'
+import { SendHorizontal, Square } from 'lucide-react'
 import useChatStore from '../../store/useChatStore'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useEffect, useState } from 'react'
-import { formatUserMessage, formatEnvironmentDetails } from '@/utils/context-manager'
 
 const ChatInput = () => {
   const queryClient = useQueryClient()
   const { currentChatId, setCurrentChatId, messageInput, setMessageInput, setIsLoading } =
     useChatStore()
+
+  // Add state to track if we're waiting for the final assistant response
   const [isWaitingForAssistant, setIsWaitingForAssistant] = useState(false)
-
-  // Add state to track if this is the first message
-  const [isFirstMessage, setIsFirstMessage] = useState(true)
-
-  useEffect(() => {
-    if (currentChatId) {
-      const messages = queryClient.getQueryData(['messages', currentChatId]) || []
-      setIsFirstMessage(messages.length === 0)
-    }
-  }, [currentChatId, queryClient])
 
   // Subscribe to messages to detect when real assistant message arrives
   useEffect(() => {
@@ -53,16 +44,10 @@ const ChatInput = () => {
   // Mutation for creating a new message
   const createMessageMutation = useMutation({
     mutationFn: async ({ content, role, chatId }) => {
-      // Format message with task tag and environment details
-      const messageContent =
-        role === 'user'
-          ? formatUserMessage(content, isFirstMessage, formatEnvironmentDetails())
-          : content
-
       const response = await fetch(`/api/chat/${chatId}/messages`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ content: messageContent, role })
+        body: JSON.stringify({ content, role })
       })
       return response.json()
     },
@@ -71,17 +56,14 @@ const ChatInput = () => {
       await queryClient.cancelQueries({ queryKey: ['messages', chatId] })
       const previousMessages = queryClient.getQueryData(['messages', chatId]) || []
 
-      // Format display content (without task tags)
-      const displayContent =
-        role === 'user' ? formatUserMessage(content, false, formatEnvironmentDetails()) : content
-
+      // Add both user message and temporary assistant loading message
       queryClient.setQueryData(
         ['messages', chatId],
         [
           ...previousMessages,
           {
             id: 'temp-user-' + Date.now(),
-            content: displayContent,
+            content,
             role,
             createdAt: new Date().toISOString()
           },
@@ -102,14 +84,11 @@ const ChatInput = () => {
       return { previousMessages }
     },
     onError: (err, variables, context) => {
-      queryClient.setQueryData(['messages', variables.chatId], context?.previousMessages)
+      queryClient.setQueryData(['messages', variables.chatId], context.previousMessages)
     },
     onSettled: (data, error, variables) => {
       queryClient.invalidateQueries({ queryKey: ['messages', variables.chatId] })
       setIsLoading(false)
-      if (!error) {
-        setIsFirstMessage(false)
-      }
     }
   })
 

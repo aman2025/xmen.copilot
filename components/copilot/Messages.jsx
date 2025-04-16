@@ -9,7 +9,6 @@ import { processAssistantMessage } from '@/tool-calls/core/executor'
 import Loading from '../Loading'
 import ToolApprovalDialog from '../ToolApprovalDialog'
 import { containsXmlToolCalls } from '@/tool-calls/core/parser/xml-parser'
-import { stripContextTags } from '@/utils/context-manager'
 
 /**
  * CopilotAvatar component renders the Copilot icon
@@ -279,11 +278,6 @@ const MessageItem = ({ message, setMessageInput }) => {
 
     let formattedContent = message.content
 
-    // Strip task tags for user messages
-    if (message.role === 'user') {
-      formattedContent = stripContextTags(message.content.split('<environment_details>')[0].trim())
-    }
-
     // Handle attempt_completion differently
     if (message.role === 'assistant' && isAttemptCompletionTag(message.content)) {
       // Extract the result content from between the tags
@@ -359,7 +353,7 @@ const MessageItem = ({ message, setMessageInput }) => {
       )
     }
 
-    return formattedContent
+    return message.content
   }
 
   // Add this condition check before rendering
