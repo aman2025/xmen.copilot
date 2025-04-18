@@ -1,5 +1,5 @@
 import { PrismaClient } from '@prisma/client'
-import { INSTANCE_TOOLS, LOG_TOOLS, SYSTEM_PROMPT } from '@/prompts'
+import { SYSTEM_PROMPT } from '@/prompts'
 import { createMistral, formatMistralResponse } from '@/utils/ai-sdk/mistral'
 const prisma = new PrismaClient()
 
@@ -7,7 +7,6 @@ export async function GET(request, { params }) {
   const { chatId } = params
 
   try {
-    // Verify the chat exists
     const chat = await prisma.chat.findUnique({
       where: { id: chatId },
       include: {
@@ -44,9 +43,9 @@ export async function POST(request, { params }) {
 
   try {
     const body = await request.json()
-    const { content, role, toolCallId } = body
+    const { content, role } = body
 
-    // Verify the chat exists and get previous messages for context
+    // Verify the chat exists and get previous messages
     const chat = await prisma.chat.findUnique({
       where: { id: chatId },
       include: {
@@ -65,41 +64,36 @@ export async function POST(request, { params }) {
       })
     }
 
-    // Create the message with optional tool call fields
-    const newMessage = await prisma.message.create({
+    // Create the user message
+    const userMessage = await prisma.message.create({
       data: {
         content,
         role,
-        toolCallId,
         chatId
       }
     })
 
-    // If it's a user message or tool response, generate AI response
-    if (role === 'user' || role === 'tool') {
-      // Prepare context with all previous messages
-      const tools = [...INSTANCE_TOOLS, ...LOG_TOOLS]
+    // If it's a user message, generate AI response
+    if (role === 'user') {
+      // Prepare messages for AI
       const messages = [
         { role: 'system', content: SYSTEM_PROMPT },
         ...chat.messages.map((msg) => ({
           role: msg.role,
-          content: msg.content,
-          ...(msg.toolCallId && { tool_call_id: msg.toolCallId }),
-          ...(msg.toolCalls && { tool_calls: msg.toolCalls })
+          content: msg.content
         })),
-        // For tool responses, include the tool response with its tool_call_id
-        role === 'tool' ? { role, content, tool_call_id: toolCallId } : { role, content }
+        { role, content }
       ]
 
-      const mistralResponse = await createMistral(messages, tools)
-      const { content: aiContent, toolCalls } = await formatMistralResponse(mistralResponse)
+      // Get AI response
+      const mistralResponse = await createMistral(messages)
+      const { content: aiContent } = await formatMistralResponse(mistralResponse)
 
-      // Create the assistant message with tool_calls
+      // Create the assistant message
       const assistantMessage = await prisma.message.create({
         data: {
           content: aiContent,
           role: 'assistant',
-          toolCalls: toolCalls.length ? toolCalls : undefined,
           chatId
         }
       })
@@ -110,7 +104,7 @@ export async function POST(request, { params }) {
       })
     }
 
-    return new Response(JSON.stringify({ messages: [newMessage] }), {
+    return new Response(JSON.stringify({ messages: [userMessage] }), {
       status: 200,
       headers: { 'Content-Type': 'application/json' }
     })
