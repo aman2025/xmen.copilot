@@ -1,6 +1,9 @@
 import { PrismaClient } from '@prisma/client'
 import { SYSTEM_PROMPT } from '@/prompts'
 import { createMistral, formatMistralResponse } from '@/utils/ai-sdk/mistral'
+import Task from '@/core/task'
+import { ContextManager } from '@/core/context/context-management/ContextManager'
+
 const prisma = new PrismaClient()
 
 export async function GET(request, { params }) {
@@ -43,7 +46,7 @@ export async function POST(request, { params }) {
 
   try {
     const body = await request.json()
-    const { content, role } = body
+    const { content, role, messageType } = body
 
     // Verify the chat exists and get previous messages
     const chat = await prisma.chat.findUnique({
@@ -73,8 +76,12 @@ export async function POST(request, { params }) {
       }
     })
 
-    // If it's a user message, generate AI response
+    // If it's a user message, generate AI response using our Task architecture
     if (role === 'user') {
+      // Initialize Task and ContextManager
+      const task = new Task()
+      const contextManager = new ContextManager()
+
       // Prepare messages for AI
       const messages = [
         { role: 'system', content: SYSTEM_PROMPT },
@@ -85,23 +92,46 @@ export async function POST(request, { params }) {
         { role, content }
       ]
 
+      // Apply context optimizations
+      const optimizedMessages = contextManager.getUpdatedContextMessages(messages)
+
       // Get AI response
-      const mistralResponse = await createMistral(messages)
+      const mistralResponse = await createMistral(optimizedMessages)
       const { content: aiContent } = await formatMistralResponse(mistralResponse)
+
+      // Parse the response to determine message type
+      let messageType = 'say'
+      let metadata = {}
+
+      // Check for specific patterns in the response
+      if (aiContent.includes('?') && aiContent.toLowerCase().includes('would you like')) {
+        messageType = 'ask'
+      } else if (aiContent.includes('```') && aiContent.includes('```')) {
+        messageType = 'tool'
+        metadata = { tool: 'code', language: 'javascript' } // Default, could be more sophisticated
+      }
 
       // Create the assistant message
       const assistantMessage = await prisma.message.create({
         data: {
           content: aiContent,
           role: 'assistant',
+          toolCalls: metadata && Object.keys(metadata).length > 0 ? metadata : null,
           chatId
         }
       })
 
-      return new Response(JSON.stringify({ messages: [assistantMessage] }), {
-        status: 200,
-        headers: { 'Content-Type': 'application/json' }
-      })
+      return new Response(
+        JSON.stringify({
+          messages: [assistantMessage],
+          messageType,
+          metadata
+        }),
+        {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' }
+        }
+      )
     }
 
     return new Response(JSON.stringify({ messages: [userMessage] }), {
