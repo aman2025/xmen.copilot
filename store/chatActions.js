@@ -28,28 +28,23 @@ export const sendMessage = async (content) => {
     store.setIsLoading(true)
     initController()
 
-    // Prepare conversation history by combining user and assistant messages
-    const allMessages = [
-      ...store.userMessages.map((m) => ({ role: 'user', content: m.content })),
-      ...store.copilotMessages.map((m) => ({ role: 'assistant', content: m.content }))
-    ]
-
     // Process message through the controller and get both user and AI responses
-    const { userMessage, copilotMessage } = await controller.handleUserMessage(content, allMessages)
+    const { userMessage, apiRequestStartedMessage, copilotMessage } =
+      await controller.handleUserMessage(content)
 
     // Update the store with new messages
-    store.addUserMessage(userMessage)
-    store.addCopilotMessage(copilotMessage)
+    store.addCopilotMessage(userMessage) // Add user message to copilotMessages for UI
+    store.addCopilotMessage(apiRequestStartedMessage) // Add API request started message
+    store.addCopilotMessage(copilotMessage) // Add AI response
     store.setMessageInput('') // Clear input field
   } catch (error) {
-    console.error('Error sending message:', error)
+    // Silently handle error without console.error to avoid linting issues
     // Add error message to the chat
     store.addCopilotMessage({
-      id: `error-${Date.now()}`,
-      role: 'assistant',
-      type: 'error',
-      content: `An error occurred: ${error.message}`,
-      createdAt: new Date().toISOString()
+      ts: Date.now(),
+      type: 'say',
+      say: 'error',
+      text: `An error occurred: ${error.message}`
     })
   } finally {
     store.setIsLoading(false)
@@ -67,31 +62,28 @@ export const handleResponse = async (response, text) => {
   try {
     store.setIsLoading(true)
 
-    // Prepare conversation history
-    const allMessages = [
-      ...store.userMessages.map((m) => ({ role: 'user', content: m.content })),
-      ...store.copilotMessages.map((m) => ({ role: 'assistant', content: m.content }))
-    ]
+    // Get all copilot messages for context
+    const allMessages = store.copilotMessages
 
     // Process the user's response through the controller
     const result = await controller.handleUserResponse(response, text, allMessages)
 
     // Update store if there's a valid result
     if (result) {
-      const { userMessage, copilotMessage } = result
-      store.addUserMessage(userMessage)
-      store.addCopilotMessage(copilotMessage)
+      const { userMessage, apiRequestStartedMessage, copilotMessage } = result
+      store.addCopilotMessage(userMessage) // Add user response to copilotMessages for UI
+      store.addCopilotMessage(apiRequestStartedMessage) // Add API request started message
+      store.addCopilotMessage(copilotMessage) // Add AI response
       store.setMessageInput('')
     }
   } catch (error) {
-    console.error('Error handling response:', error)
+    // Silently handle error without console.error to avoid linting issues
     // Add error message to the chat
     store.addCopilotMessage({
-      id: `error-${Date.now()}`,
-      role: 'assistant',
-      type: 'error',
-      content: `An error occurred: ${error.message}`,
-      createdAt: new Date().toISOString()
+      ts: Date.now(),
+      type: 'say',
+      say: 'error',
+      text: `An error occurred: ${error.message}`
     })
   } finally {
     store.setIsLoading(false)

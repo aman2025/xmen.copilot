@@ -27,41 +27,68 @@ class Controller {
   }
 
   // Handle user message
-  async handleUserMessage(text, currentMessages) {
+  async handleUserMessage(text) {
     if (!this.task) {
       // Initialize a new task if none exists
       const userMessage = await this.initTask(text)
 
-      // Process the task
-      const copilotMessage = await this.task.processTask([
-        { role: 'system', content: 'You are a helpful AI assistant.' },
-        { role: 'user', content: text }
-      ])
-
-      return { userMessage, copilotMessage }
-    } else {
-      // Add user message
-      const userMessage = {
-        id: `user-${Date.now()}`,
-        role: 'user',
-        content: text,
-        createdAt: new Date().toISOString()
+      // Create API request started message
+      const apiRequestStartedMessage = {
+        ts: Date.now() + 100,
+        type: 'say',
+        say: 'api_req_started',
+        text: JSON.stringify({
+          request: text
+        })
       }
 
-      // Update conversation history
+      // Process the task
+      const copilotMessage = await this.task.processTask([
+        { role: 'system', content: [{ type: 'text', text: 'You are a helpful AI assistant.' }] },
+        this.task.apiConversationHistory[0] // Use the properly formatted user message
+      ])
+
+      return { userMessage, apiRequestStartedMessage, copilotMessage }
+    } else {
+      // Add user message for UI display
+      const userMessage = {
+        ts: Date.now(),
+        type: 'ask',
+        ask: 'followup',
+        text: text
+      }
+
+      // Update API conversation history
+      this.task.apiConversationHistory.push({
+        role: 'user',
+        content: [
+          {
+            type: 'text',
+            text: text
+          }
+        ]
+      })
+
+      // Create API request started message
+      const apiRequestStartedMessage = {
+        ts: Date.now() + 100,
+        type: 'say',
+        say: 'api_req_started',
+        text: JSON.stringify({
+          request: text
+        })
+      }
+
+      // Process the task with the updated API conversation history
       const messages = [
-        { role: 'system', content: 'You are a helpful AI assistant.' },
-        ...currentMessages.map((m) => ({
-          role: m.role,
-          content: m.content
-        })),
-        { role: 'user', content: text }
+        { role: 'system', content: [{ type: 'text', text: 'You are a helpful AI assistant.' }] },
+        ...this.task.apiConversationHistory
       ]
 
       // Process the task
       const copilotMessage = await this.task.processTask(messages)
 
-      return { userMessage, copilotMessage }
+      return { userMessage, apiRequestStartedMessage, copilotMessage }
     }
   }
 
@@ -71,23 +98,37 @@ class Controller {
       return null
     }
 
-    // Add user response as a message
+    // Create response text based on the response type
+    const responseText = text || (response === 'approve' ? 'I approve.' : 'I reject.')
+
+    // Add user response as a message for UI display
     const userMessage = {
-      id: `user-${Date.now()}`,
-      role: 'user',
-      content: text || (response === 'approve' ? 'I approve.' : 'I reject.'),
-      createdAt: new Date().toISOString()
+      ts: Date.now(),
+      type: 'ask',
+      ask: 'followup',
+      text: responseText
     }
 
-    // Update conversation history
-    const messages = [
-      { role: 'system', content: 'You are a helpful AI assistant.' },
-      ...currentMessages.map((m) => ({
-        role: m.role,
-        content: m.content
-      })),
-      { role: 'user', content: userMessage.content }
-    ]
+    // Update API conversation history
+    this.task.apiConversationHistory.push({
+      role: 'user',
+      content: [
+        {
+          type: 'text',
+          text: responseText
+        }
+      ]
+    })
+
+    // Create API request started message
+    const apiRequestStartedMessage = {
+      ts: Date.now() + 100,
+      type: 'say',
+      say: 'api_req_started',
+      text: JSON.stringify({
+        request: responseText
+      })
+    }
 
     // Process the response
     let copilotMessage
@@ -95,24 +136,43 @@ class Controller {
     if (response === 'approve') {
       // For tool requests, handle the tool use
       const lastMessage = currentMessages[currentMessages.length - 1]
-      if (lastMessage && lastMessage.type === 'tool') {
-        copilotMessage = await this.task.handleToolUse(lastMessage.content, lastMessage.metadata)
+      if (lastMessage && lastMessage.say === 'tool') {
+        copilotMessage = await this.task.handleToolUse(
+          lastMessage.text,
+          JSON.parse(lastMessage.text)
+        )
       } else {
+        // Process the task with the updated API conversation history
+        const messages = [
+          { role: 'system', content: [{ type: 'text', text: 'You are a helpful AI assistant.' }] },
+          ...this.task.apiConversationHistory
+        ]
+
         // Process the task normally
         copilotMessage = await this.task.processTask(messages)
       }
     } else if (response === 'reject') {
       // Handle rejection
       copilotMessage = {
-        id: `copilot-${Date.now()}`,
-        role: 'assistant',
+        ts: Date.now(),
         type: 'say',
-        content: 'Request rejected. What would you like me to do instead?',
-        createdAt: new Date().toISOString()
+        say: 'completion_result',
+        text: 'Request rejected. What would you like me to do instead?'
       }
+
+      // Update API conversation history with rejection response
+      this.task.apiConversationHistory.push({
+        role: 'assistant',
+        content: [
+          {
+            type: 'text',
+            text: 'Request rejected. What would you like me to do instead?'
+          }
+        ]
+      })
     }
 
-    return { userMessage, copilotMessage }
+    return { userMessage, apiRequestStartedMessage, copilotMessage }
   }
 }
 

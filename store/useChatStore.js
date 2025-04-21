@@ -9,8 +9,7 @@ const useChatStore = create((set) => ({
   scrollToBottom: null,
 
   // Message state
-  userMessages: [],
-  copilotMessages: [],
+  copilotMessages: [], // Combined user and AI messages for UI display
   messageInput: '',
 
   // Basic setters
@@ -21,17 +20,12 @@ const useChatStore = create((set) => ({
   setMessageInput: (text) => set({ messageInput: text }),
 
   // Message actions
-  addUserMessage: (message) =>
-    set((state) => ({
-      userMessages: [...state.userMessages, message]
-    })),
-
   addCopilotMessage: (message) =>
     set((state) => ({
       copilotMessages: [...state.copilotMessages, message]
     })),
 
-  clearMessages: () => set({ userMessages: [], copilotMessages: [] })
+  clearMessages: () => set({ copilotMessages: [] })
 }))
 
 export default useChatStore
