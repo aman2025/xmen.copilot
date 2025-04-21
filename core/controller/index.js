@@ -48,6 +48,7 @@ class Controller {
 
       // Get API conversation history from store
       const apiConversationHistory = useChatStore.getState().apiConversationHistory
+      console.log('API Conversation History after user message:', apiConversationHistory)
 
       // Process the task
       const { copilotMessage, apiMessage } = await this.task.processTask([
@@ -57,6 +58,11 @@ class Controller {
 
       // Add API message to the store
       useChatStore.getState().addApiMessage(apiMessage)
+      const store = useChatStore.getState()
+      console.log('Store state after processing:', {
+        apiHistory: store.apiConversationHistory,
+        copilotMsgs: store.copilotMessages
+      })
 
       return { userMessage, apiRequestStartedMessage, copilotMessage }
     } else {

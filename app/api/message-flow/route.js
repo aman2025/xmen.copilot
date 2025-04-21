@@ -6,12 +6,15 @@ export async function POST(request) {
   try {
     const body = await request.json()
     const { messages } = body
+    
+    console.log('Incoming messages to API:', messages)
 
     // Initialize ContextManager
     const contextManager = new ContextManager()
 
     // Prepare messages for AI with system prompt
     const formattedMessages = [{ role: 'system', content: SYSTEM_PROMPT }, ...(messages || [])]
+    console.log('Formatted messages for AI:', formattedMessages)
 
     // Apply context optimizations
     const optimizedMessages = contextManager.getUpdatedContextMessages(formattedMessages)
@@ -28,6 +31,9 @@ export async function POST(request) {
       metadata: metadata || {},
       createdAt: new Date().toISOString()
     }
+
+    // Log response before sending
+    console.log('API Response:', response)
 
     return new Response(JSON.stringify(response), {
       status: 200,

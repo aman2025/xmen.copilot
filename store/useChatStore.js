@@ -22,16 +22,27 @@ const useChatStore = create((set) => ({
 
   // Message actions
   addApiMessage: (message) =>
-    set((state) => ({
-      apiConversationHistory: [...state.apiConversationHistory, message]
-    })),
+    set((state) => {
+      const newState = {
+        apiConversationHistory: [...state.apiConversationHistory, message]
+      }
+      console.log('API Conversation History updated:', newState.apiConversationHistory)
+      return newState
+    }),
 
   addCopilotMessage: (message) =>
-    set((state) => ({
-      copilotMessages: [...state.copilotMessages, message]
-    })),
+    set((state) => {
+      const newState = {
+        copilotMessages: [...state.copilotMessages, message]
+      }
+      console.log('Copilot Messages updated:', newState.copilotMessages)
+      return newState
+    }),
 
-  clearMessages: () => set({ apiConversationHistory: [], copilotMessages: [] })
+  clearMessages: () => {
+    console.log('Clearing all messages')
+    return set({ apiConversationHistory: [], copilotMessages: [] })
+  }
 }))
 
 export default useChatStore
