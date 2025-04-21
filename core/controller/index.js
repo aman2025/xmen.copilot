@@ -1,4 +1,5 @@
 import Task from '../task'
+import useChatStore from '../../store/useChatStore'
 
 class Controller {
   constructor() {
@@ -11,7 +12,10 @@ class Controller {
     this.task = new Task()
 
     // Start the task with user input
-    const userMessage = await this.task.startTask(userInput)
+    const { userMessage, apiMessage } = await this.task.startTask(userInput)
+
+    // Add API message to the store
+    useChatStore.getState().addApiMessage(apiMessage)
 
     return userMessage
   }
@@ -42,11 +46,17 @@ class Controller {
         })
       }
 
+      // Get API conversation history from store
+      const apiConversationHistory = useChatStore.getState().apiConversationHistory
+
       // Process the task
-      const copilotMessage = await this.task.processTask([
+      const { copilotMessage, apiMessage } = await this.task.processTask([
         { role: 'system', content: [{ type: 'text', text: 'You are a helpful AI assistant.' }] },
-        this.task.apiConversationHistory[0] // Use the properly formatted user message
+        apiConversationHistory[0] // Use the properly formatted user message
       ])
+
+      // Add API message to the store
+      useChatStore.getState().addApiMessage(apiMessage)
 
       return { userMessage, apiRequestStartedMessage, copilotMessage }
     } else {
@@ -58,8 +68,8 @@ class Controller {
         text: text
       }
 
-      // Update API conversation history
-      this.task.apiConversationHistory.push({
+      // Create API message for conversation history
+      const apiMessage = {
         role: 'user',
         content: [
           {
@@ -67,7 +77,10 @@ class Controller {
             text: text
           }
         ]
-      })
+      }
+
+      // Add API message to the store
+      useChatStore.getState().addApiMessage(apiMessage)
 
       // Create API request started message
       const apiRequestStartedMessage = {
@@ -79,14 +92,21 @@ class Controller {
         })
       }
 
+      // Get API conversation history from store
+      const apiConversationHistory = useChatStore.getState().apiConversationHistory
+
       // Process the task with the updated API conversation history
       const messages = [
         { role: 'system', content: [{ type: 'text', text: 'You are a helpful AI assistant.' }] },
-        ...this.task.apiConversationHistory
+        ...apiConversationHistory
       ]
 
       // Process the task
-      const copilotMessage = await this.task.processTask(messages)
+      const { copilotMessage, apiMessage: responseApiMessage } =
+        await this.task.processTask(messages)
+
+      // Add API message to the store
+      useChatStore.getState().addApiMessage(responseApiMessage)
 
       return { userMessage, apiRequestStartedMessage, copilotMessage }
     }
@@ -109,8 +129,8 @@ class Controller {
       text: responseText
     }
 
-    // Update API conversation history
-    this.task.apiConversationHistory.push({
+    // Create API message for conversation history
+    const apiMessage = {
       role: 'user',
       content: [
         {
@@ -118,7 +138,10 @@ class Controller {
           text: responseText
         }
       ]
-    })
+    }
+
+    // Add API message to the store
+    useChatStore.getState().addApiMessage(apiMessage)
 
     // Create API request started message
     const apiRequestStartedMessage = {
@@ -131,26 +154,33 @@ class Controller {
     }
 
     // Process the response
-    let copilotMessage
+    let copilotMessage, responseApiMessage
 
     if (response === 'approve') {
       // For tool requests, handle the tool use
       const lastMessage = currentMessages[currentMessages.length - 1]
       if (lastMessage && lastMessage.say === 'tool') {
-        copilotMessage = await this.task.handleToolUse(
-          lastMessage.text,
-          JSON.parse(lastMessage.text)
-        )
+        const result = await this.task.handleToolUse(lastMessage.text, JSON.parse(lastMessage.text))
+        copilotMessage = result.copilotMessage
+        responseApiMessage = result.apiMessage
       } else {
+        // Get API conversation history from store
+        const apiConversationHistory = useChatStore.getState().apiConversationHistory
+
         // Process the task with the updated API conversation history
         const messages = [
           { role: 'system', content: [{ type: 'text', text: 'You are a helpful AI assistant.' }] },
-          ...this.task.apiConversationHistory
+          ...apiConversationHistory
         ]
 
         // Process the task normally
-        copilotMessage = await this.task.processTask(messages)
+        const result = await this.task.processTask(messages)
+        copilotMessage = result.copilotMessage
+        responseApiMessage = result.apiMessage
       }
+
+      // Add API message to the store
+      useChatStore.getState().addApiMessage(responseApiMessage)
     } else if (response === 'reject') {
       // Handle rejection
       copilotMessage = {
@@ -160,8 +190,8 @@ class Controller {
         text: 'Request rejected. What would you like me to do instead?'
       }
 
-      // Update API conversation history with rejection response
-      this.task.apiConversationHistory.push({
+      // Create API message for rejection response
+      responseApiMessage = {
         role: 'assistant',
         content: [
           {
@@ -169,7 +199,10 @@ class Controller {
             text: 'Request rejected. What would you like me to do instead?'
           }
         ]
-      })
+      }
+
+      // Add API message to the store
+      useChatStore.getState().addApiMessage(responseApiMessage)
     }
 
     return { userMessage, apiRequestStartedMessage, copilotMessage }

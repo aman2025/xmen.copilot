@@ -29,10 +29,11 @@ export const sendMessage = async (content) => {
     initController()
 
     // Process message through the controller and get both user and AI responses
+    // Note: API messages are added to the store directly in the controller
     const { userMessage, apiRequestStartedMessage, copilotMessage } =
       await controller.handleUserMessage(content)
 
-    // Update the store with new messages
+    // Update the store with new UI messages
     store.addCopilotMessage(userMessage) // Add user message to copilotMessages for UI
     store.addCopilotMessage(apiRequestStartedMessage) // Add API request started message
     store.addCopilotMessage(copilotMessage) // Add AI response
@@ -66,6 +67,7 @@ export const handleResponse = async (response, text) => {
     const allMessages = store.copilotMessages
 
     // Process the user's response through the controller
+    // Note: API messages are added to the store directly in the controller
     const result = await controller.handleUserResponse(response, text, allMessages)
 
     // Update store if there's a valid result

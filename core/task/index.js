@@ -1,11 +1,16 @@
 import ContextManager from '../context/context-management/ContextManager'
+import useChatStore from '../../store/useChatStore'
 
 class Task {
   constructor(options = {}) {
     this.taskId = Date.now().toString()
-    this.apiConversationHistory = []
     this.options = options
     this.contextManager = new ContextManager()
+  }
+
+  // Get the current API conversation history from the store
+  getApiConversationHistory() {
+    return useChatStore.getState().apiConversationHistory
   }
 
   // Initialize a new task with user input
@@ -18,8 +23,8 @@ class Task {
       text: userInput
     }
 
-    // Update API conversation history with user message
-    this.apiConversationHistory.push({
+    // Create API message for conversation history
+    const apiMessage = {
       role: 'user',
       content: [
         {
@@ -27,10 +32,10 @@ class Task {
           text: userInput
         }
       ]
-    })
+    }
 
-    // Return the user message to be added to the store
-    return userMessage
+    // Return both messages to be added to the store
+    return { userMessage, apiMessage }
   }
 
   // Process the current task
@@ -80,8 +85,8 @@ class Task {
         text: response.content
       }
 
-      // Update API conversation history with assistant message
-      this.apiConversationHistory.push({
+      // Create API message for conversation history
+      const apiMessage = {
         role: 'assistant',
         content: [
           {
@@ -89,9 +94,9 @@ class Task {
             text: response.content
           }
         ]
-      })
+      }
 
-      return copilotMessage
+      return { copilotMessage, apiMessage }
     }
 
     // For other response formats, use the parser
@@ -105,8 +110,8 @@ class Task {
       text: type === 'tool' ? JSON.stringify(metadata) : content
     }
 
-    // Update API conversation history with assistant message
-    this.apiConversationHistory.push({
+    // Create API message for conversation history
+    const apiMessage = {
       role: 'assistant',
       content: [
         {
@@ -114,10 +119,10 @@ class Task {
           text: content
         }
       ]
-    })
+    }
 
-    // Return the copilot message to be added to the store
-    return copilotMessage
+    // Return both messages to be added to the store
+    return { copilotMessage, apiMessage }
   }
 
   // Parse API response
@@ -170,8 +175,8 @@ class Task {
     // Implement tool-specific logic
     // Silently process tool use without console.log
 
-    // Return a response based on the tool use for UI display
-    const toolResponse = {
+    // Create copilot message for UI display
+    const copilotMessage = {
       ts: Date.now(),
       type: 'say',
       say: 'tool',
@@ -181,8 +186,8 @@ class Task {
       })
     }
 
-    // Update API conversation history with tool response
-    this.apiConversationHistory.push({
+    // Create API message for conversation history
+    const apiMessage = {
       role: 'assistant',
       content: [
         {
@@ -190,9 +195,10 @@ class Task {
           text: `Tool ${metadata.name || 'unknown'} was used successfully.`
         }
       ]
-    })
+    }
 
-    return toolResponse
+    // Return both messages to be added to the store
+    return { copilotMessage, apiMessage }
   }
 }
 

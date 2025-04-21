@@ -9,7 +9,8 @@ const useChatStore = create((set) => ({
   scrollToBottom: null,
 
   // Message state
-  copilotMessages: [], // Combined user and AI messages for UI display
+  apiConversationHistory: [], // For AI API communication (user input and AI responses)
+  copilotMessages: [], // For UI rendering only
   messageInput: '',
 
   // Basic setters
@@ -20,12 +21,17 @@ const useChatStore = create((set) => ({
   setMessageInput: (text) => set({ messageInput: text }),
 
   // Message actions
+  addApiMessage: (message) =>
+    set((state) => ({
+      apiConversationHistory: [...state.apiConversationHistory, message]
+    })),
+
   addCopilotMessage: (message) =>
     set((state) => ({
       copilotMessages: [...state.copilotMessages, message]
     })),
 
-  clearMessages: () => set({ copilotMessages: [] })
+  clearMessages: () => set({ apiConversationHistory: [], copilotMessages: [] })
 }))
 
 export default useChatStore
