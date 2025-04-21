@@ -5,6 +5,8 @@
 framework: nextjs-14
 language: javascript
 styling: tailwindcss
+ui_library: shadcn/ui
+icon_library: lucide-react
 database: prisma-postgresql
 ai_integration: [mistral, openai]
 state_management: zustand

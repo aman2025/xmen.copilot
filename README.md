@@ -11,26 +11,6 @@
     - API routes for Mistral AI, OpenAI integration
     - ESLint + Prettier configuration
 
-    ## Project Structure
-
-    ```
-    app/
-    ├── api/
-    │   └── assistant/
-    │       └── route.js
-    components/
-    │   └── ui/
-    public/
-    ```
-
-    ## Features
-
-    - Proper error handling for API responses
-    - Loading states for AI operations
-    - Responsive design for all components
-    - Clean, modular code structure
-    - Environment variables for API keys and sensitive data
-
     ## Layout Structure
 
     - Main Layout:
