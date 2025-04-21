@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import useChatStore from '../../store/useChatStore'
+import { initController, handleResponse } from '../../store/chatActions'
 import { useEffect } from 'react'
 
 const CopilotAvatar = () => {
@@ -19,9 +20,7 @@ const Messages = ({ chatId }) => {
     setMessageInput,
     userMessages,
     copilotMessages,
-    isLoading,
-    initController,
-    handleResponse
+    isLoading
   } = useChatStore()
 
   // Initialize controller on component mount

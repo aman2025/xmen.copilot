@@ -6,12 +6,19 @@ import Messages from './Messages'
 import ChatInput from './ChatInput'
 import ChatView from './ChatView'
 import useChatStore from '../../store/useChatStore'
+import { initController } from '../../store/chatActions'
 import { SendHorizontal } from 'lucide-react'
 
 const ChatBox = ({ presetQuestions, onPresetQuestionClick }) => {
   const { currentChatId } = useChatStore()
   const scrollAreaRef = useRef(null)
-  // Simple scroll handler for future use if needed
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      initController()
+    }
+  }, [])
+
   const handleScroll = () => {
     // We can add scroll handling logic here if needed in the future
   }

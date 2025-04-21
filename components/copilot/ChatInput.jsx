@@ -2,10 +2,11 @@
 
 import { SendHorizontal } from 'lucide-react'
 import useChatStore from '../../store/useChatStore'
+import { sendMessage, initController } from '../../store/chatActions'
 import { useEffect } from 'react'
 
 const ChatInput = () => {
-  const { messageInput, setMessageInput, isLoading, sendMessage, initController } = useChatStore()
+  const { messageInput, setMessageInput, isLoading } = useChatStore()
 
   // Initialize controller on component mount
   useEffect(() => {
@@ -17,8 +18,6 @@ const ChatInput = () => {
   const handleSubmit = async (e) => {
     e.preventDefault()
     if (!messageInput.trim()) return
-
-    // Use the sendMessage function from the store
     sendMessage(messageInput)
   }
 
