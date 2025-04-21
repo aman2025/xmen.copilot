@@ -2,22 +2,14 @@
 
 import React from 'react'
 import useChatStore from '../../store/useChatStore'
-import { sendMessage } from '../../store/chatActions'
-import ChatInput from './ChatInput'
 
 const ChatView = () => {
-  const { userMessages, copilotMessages, isLoading, messageInput, setMessageInput } = useChatStore()
+  const { userMessages, copilotMessages, isLoading } = useChatStore()
 
   const allMessages = [
     ...userMessages.map((msg) => ({ ...msg, isUser: true })),
     ...copilotMessages.map((msg) => ({ ...msg, isUser: false }))
   ].sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt))
-
-  const handleSendMessage = () => {
-    if (messageInput.trim()) {
-      sendMessage(messageInput)
-    }
-  }
 
   // Render different message types
   const renderMessage = (message) => {
@@ -119,14 +111,6 @@ const ChatView = () => {
           </div>
         )}
       </div>
-
-      <ChatInput
-        value={messageInput}
-        onChange={(e) => setMessageInput(e.target.value)}
-        onSend={handleSendMessage}
-        disabled={isLoading}
-        placeholder="Type a message..."
-      />
 
       <style jsx>{`
         .chat-view {

@@ -16,12 +16,7 @@ const CopilotAvatar = () => {
 }
 
 const Messages = ({ chatId }) => {
-  const {
-    setMessageInput,
-    userMessages,
-    copilotMessages,
-    isLoading
-  } = useChatStore()
+  const { setMessageInput, userMessages, copilotMessages, isLoading } = useChatStore()
 
   // Initialize controller on component mount
   useEffect(() => {

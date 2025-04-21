@@ -6,11 +6,11 @@ import Messages from './Messages'
 import ChatInput from './ChatInput'
 import ChatView from './ChatView'
 import useChatStore from '../../store/useChatStore'
-import { initController } from '../../store/chatActions'
+import { initController, sendMessage } from '../../store/chatActions'
 import { SendHorizontal } from 'lucide-react'
 
 const ChatBox = ({ presetQuestions, onPresetQuestionClick }) => {
-  const { currentChatId } = useChatStore()
+  const { currentChatId, messageInput, setMessageInput, isLoading } = useChatStore()
   const scrollAreaRef = useRef(null)
 
   useEffect(() => {
@@ -71,6 +71,12 @@ const ChatBox = ({ presetQuestions, onPresetQuestionClick }) => {
     }
   }, [])
 
+  const handleSendMessage = () => {
+    if (messageInput.trim()) {
+      sendMessage(messageInput)
+    }
+  }
+
   return (
     <div className="flex h-full flex-col">
       <ScrollArea
@@ -113,7 +119,13 @@ const ChatBox = ({ presetQuestions, onPresetQuestionClick }) => {
       </ScrollArea>
       <div className="flex justify-center border-t px-4 py-2">
         <div className={`w-full ${useChatStore().isFullscreen ? 'max-w-[888px]' : ''}`}>
-          <ChatInput />
+          <ChatInput
+            value={messageInput}
+            onChange={(e) => setMessageInput(e.target.value)}
+            onSend={handleSendMessage}
+            disabled={isLoading}
+            placeholder="Type a message..."
+          />
         </div>
       </div>
     </div>
