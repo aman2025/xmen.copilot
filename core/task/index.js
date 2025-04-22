@@ -1,21 +1,40 @@
 import ContextManager from '../context/context-management/ContextManager'
 import useChatStore from '../../store/useChatStore'
 
+/**
+ * Task class handles individual conversation tasks and their processing
+ * Manages the flow of messages between the UI, store, and AI service
+ */
 class Task {
+  /**
+   * Initialize a new task with optional configuration
+   * @param {Object} options - Configuration options for the task
+   */
   constructor(options = {}) {
+    // Unique identifier for the task using timestamp
     this.taskId = Date.now().toString()
     this.options = options
+    // Initialize context manager for message optimization
     this.contextManager = new ContextManager()
   }
 
-  // Get the current API conversation history from the store
+  /**
+   * Retrieves the current conversation history from the global store
+   * Used for maintaining context across multiple messages
+   * @returns {Array} Array of conversation messages
+   */
   getApiConversationHistory() {
     return useChatStore.getState().apiConversationHistory
   }
 
-  // Initialize a new task with user input
+  /**
+   * Initializes a new conversation task with user input
+   * Creates both UI and API message formats
+   * @param {string} userInput - The initial user message
+   * @returns {Object} Contains formatted messages for UI and API
+   */
   async startTask(userInput) {
-    // Create initial task message for UI display
+    // Format message for UI display
     const userMessage = {
       ts: Date.now(),
       type: 'ask',
@@ -23,7 +42,8 @@ class Task {
       text: userInput
     }
 
-    // Create API message for conversation history
+    // Format message for API conversation history
+    // Following the format expected by Mistral AI
     const apiMessage = {
       role: 'user',
       content: [
@@ -34,38 +54,47 @@ class Task {
       ]
     }
 
-    // Return both messages to be added to the store
     return { userMessage, apiMessage }
   }
 
-  // Process the current task
+  /**
+   * Main task processing pipeline
+   * Handles message formatting, API communication, and response processing
+   * @param {Array} messages - Array of conversation messages
+   * @returns {Object} Processed response with UI and API formats
+   */
   async processTask(messages) {
     try {
-      // Format messages for API
+      // Format messages according to API requirements
       const formattedMessages = this.formatMessagesForAPI(messages)
 
-      // Make API request
+      // Send request to message-flow API endpoint
       const response = await this.makeAPIRequest(formattedMessages)
 
-      // Process response
+      // Process and format the API response
       return await this.processAPIResponse(response)
     } catch (error) {
       return this.handleAPIError(error)
     }
   }
 
-  // Format messages for API request
+  /**
+   * Formats messages for API consumption using context optimization
+   * @param {Array} messages - Raw conversation messages
+   * @returns {Array} Optimized and formatted messages
+   */
   formatMessagesForAPI(messages) {
-    // Apply context optimizations if needed
+    // Apply context optimization strategies through ContextManager
     const optimizedMessages = this.contextManager.getUpdatedContextMessages(messages)
-
-    // Return the optimized messages
     return optimizedMessages
   }
 
-  // Make API request
+  /**
+   * Makes the actual API request to the message-flow endpoint
+   * @param {Array} messages - Formatted messages for API
+   * @returns {Promise} API response
+   */
   async makeAPIRequest(messages) {
-    // Use our dedicated message-flow API endpoint
     return await fetch('/api/message-flow', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -73,11 +102,15 @@ class Task {
     }).then((res) => res.json())
   }
 
-  // Process API response
+  /**
+   * Processes API response and formats it for both UI and store
+   * Handles different response types (completion, tool, question)
+   * @param {Object} response - Raw API response
+   * @returns {Object} Formatted messages for UI and store
+   */
   async processAPIResponse(response) {
-    // Handle the specific response format from the example
+    // Handle direct response format
     if (response.id && response.id.startsWith('response-')) {
-      // Create copilot message for UI display using the direct response format
       const copilotMessage = {
         ts: Date.now(),
         type: 'say',
@@ -85,7 +118,6 @@ class Task {
         text: response.content
       }
 
-      // Create API message for conversation history
       const apiMessage = {
         role: 'assistant',
         content: [
@@ -99,18 +131,18 @@ class Task {
       return { copilotMessage, apiMessage }
     }
 
-    // For other response formats, use the parser
+    // Parse complex response formats
     const { type, content, metadata } = this.parseResponse(response)
 
-    // Create copilot message for UI display
+    // Format message for UI display
     const copilotMessage = {
       ts: Date.now(),
       type: 'say',
-      say: type, // 'api_req_started', 'tool', 'completion_result', etc.
+      say: type,
       text: type === 'tool' ? JSON.stringify(metadata) : content
     }
 
-    // Create API message for conversation history
+    // Format message for API history
     const apiMessage = {
       role: 'assistant',
       content: [
@@ -121,26 +153,26 @@ class Task {
       ]
     }
 
-    // Return both messages to be added to the store
     return { copilotMessage, apiMessage }
   }
 
-  // Parse API response
+  /**
+   * Parses different types of API responses
+   * Handles completion, tool calls, questions, and other response types
+   * @param {Object} response - API response object
+   * @returns {Object} Parsed response with type, content, and metadata
+   */
   parseResponse(response) {
-    // Default to completion result for regular text responses
     let type = 'completion_result'
     let content = response.content || ''
     let metadata = {}
 
-    // Handle different response formats
+    // Handle different response formats based on response structure
     if (response.id && response.id.startsWith('response-')) {
-      // This is the format from your example
       type = 'completion_result'
       content = response.content
       metadata = response.metadata || {}
-    }
-    // Check for specific response types in the standard format
-    else if (response.type === 'question') {
+    } else if (response.type === 'question') {
       type = 'ask'
     } else if (response.type === 'tool') {
       type = 'tool'
@@ -151,16 +183,18 @@ class Task {
     } else if (response.type === 'api_req_started') {
       type = 'api_req_started'
     } else if (response.type === 'say') {
-      // Handle explicit 'say' type
       type = 'completion_result'
     }
 
     return { type, content, metadata }
   }
 
-  // Handle API errors
+  /**
+   * Handles API errors and formats them for UI display
+   * @param {Error} error - Error object from API call
+   * @returns {Object} Formatted error message for UI
+   */
   handleAPIError(error) {
-    // Create error message for UI display
     return {
       ts: Date.now(),
       type: 'say',
@@ -169,13 +203,13 @@ class Task {
     }
   }
 
-  // Handle tool use
+  /**
+   * Handles tool usage requests and their responses
+   * @param {string} toolData - Tool request data
+   * @param {Object} metadata - Tool metadata
+   * @returns {Object} Formatted tool response messages
+   */
   async handleToolUse(_toolData, metadata) {
-    // Process tool use request
-    // Implement tool-specific logic
-    // Silently process tool use without console.log
-
-    // Create copilot message for UI display
     const copilotMessage = {
       ts: Date.now(),
       type: 'say',
@@ -186,7 +220,6 @@ class Task {
       })
     }
 
-    // Create API message for conversation history
     const apiMessage = {
       role: 'assistant',
       content: [
@@ -197,7 +230,6 @@ class Task {
       ]
     }
 
-    // Return both messages to be added to the store
     return { copilotMessage, apiMessage }
   }
 }

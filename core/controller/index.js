@@ -1,62 +1,76 @@
 import Task from '../task'
 import useChatStore from '../../store/useChatStore'
 
+/**
+ * Controller class manages the high-level conversation flow
+ * Coordinates between UI, Task processing, and state management
+ */
 class Controller {
   constructor() {
+    // Current active task instance
     this.task = null
   }
 
-  // Initialize a new task
+  /**
+   * Initializes a new conversation task
+   * Creates initial messages and updates store
+   * @param {string} userInput - Initial user message
+   * @returns {Object} Formatted user message for UI
+   */
   async initTask(userInput) {
-    // Create a new task
+    // Create new task instance
     this.task = new Task()
 
-    // Start the task with user input
+    // Initialize task with user input
     const { userMessage, apiMessage } = await this.task.startTask(userInput)
 
-    // Add API message to the store
+    // Update global store with API message
     useChatStore.getState().addApiMessage(apiMessage)
 
     return userMessage
   }
 
-  // Clear the current task
+  /**
+   * Cleans up current task resources
+   * @returns {boolean} Success status
+   */
   clearTask() {
     if (this.task) {
-      // Clean up task resources
       this.task = null
     }
-
     return true
   }
 
-  // Handle user message
+  /**
+   * Main handler for user messages
+   * Manages task lifecycle and message processing
+   * @param {string} text - User message text
+   * @returns {Object} Formatted messages for UI update
+   */
   async handleUserMessage(text) {
     if (!this.task) {
-      // Initialize a new task if none exists
+      // First message in conversation - initialize new task
       const userMessage = await this.initTask(text)
 
-      // Create API request started message
+      // Create processing indicator message
       const apiRequestStartedMessage = {
         ts: Date.now() + 100,
         type: 'say',
         say: 'api_req_started',
-        text: JSON.stringify({
-          request: text
-        })
+        text: JSON.stringify({ request: text })
       }
 
-      // Get API conversation history from store
+      // Get current conversation history
       const apiConversationHistory = useChatStore.getState().apiConversationHistory
       console.log('API Conversation History after user message:', apiConversationHistory)
 
-      // Process the task
+      // Process initial message with system prompt
       const { copilotMessage, apiMessage } = await this.task.processTask([
         { role: 'system', content: [{ type: 'text', text: 'You are a helpful AI assistant.' }] },
-        apiConversationHistory[0] // Use the properly formatted user message
+        apiConversationHistory[0]
       ])
 
-      // Add API message to the store
+      // Update store with AI response
       useChatStore.getState().addApiMessage(apiMessage)
       const store = useChatStore.getState()
       console.log('Store state after processing:', {
@@ -66,7 +80,8 @@ class Controller {
 
       return { userMessage, apiRequestStartedMessage, copilotMessage }
     } else {
-      // Add user message for UI display
+      // Continuation of existing conversation
+      // Format user message for UI
       const userMessage = {
         ts: Date.now(),
         type: 'ask',
@@ -74,60 +89,59 @@ class Controller {
         text: text
       }
 
-      // Create API message for conversation history
+      // Format message for API history
       const apiMessage = {
         role: 'user',
-        content: [
-          {
-            type: 'text',
-            text: text
-          }
-        ]
+        content: [{ type: 'text', text: text }]
       }
 
-      // Add API message to the store
+      // Update store
       useChatStore.getState().addApiMessage(apiMessage)
 
-      // Create API request started message
+      // Create processing indicator
       const apiRequestStartedMessage = {
         ts: Date.now() + 100,
         type: 'say',
         say: 'api_req_started',
-        text: JSON.stringify({
-          request: text
-        })
+        text: JSON.stringify({ request: text })
       }
 
-      // Get API conversation history from store
+      // Get updated conversation history
       const apiConversationHistory = useChatStore.getState().apiConversationHistory
 
-      // Process the task with the updated API conversation history
+      // Process message with full context
       const messages = [
         { role: 'system', content: [{ type: 'text', text: 'You are a helpful AI assistant.' }] },
         ...apiConversationHistory
       ]
 
-      // Process the task
+      // Get AI response
       const { copilotMessage, apiMessage: responseApiMessage } =
         await this.task.processTask(messages)
 
-      // Add API message to the store
+      // Update store with AI response
       useChatStore.getState().addApiMessage(responseApiMessage)
 
       return { userMessage, apiRequestStartedMessage, copilotMessage }
     }
   }
 
-  // Handle user response to a question
+  /**
+   * Handles user responses to AI questions or tool requests
+   * @param {string} response - User response type ('approve' or 'reject')
+   * @param {string} text - Optional response text
+   * @param {Array} currentMessages - Current conversation messages
+   * @returns {Object} Formatted messages for UI update
+   */
   async handleUserResponse(response, text, currentMessages) {
     if (!this.task) {
       return null
     }
 
-    // Create response text based on the response type
+    // Format response text
     const responseText = text || (response === 'approve' ? 'I approve.' : 'I reject.')
 
-    // Add user response as a message for UI display
+    // Create user response message for UI
     const userMessage = {
       ts: Date.now(),
       type: 'ask',
@@ -135,60 +149,50 @@ class Controller {
       text: responseText
     }
 
-    // Create API message for conversation history
+    // Format response for API history
     const apiMessage = {
       role: 'user',
-      content: [
-        {
-          type: 'text',
-          text: responseText
-        }
-      ]
+      content: [{ type: 'text', text: responseText }]
     }
 
-    // Add API message to the store
+    // Update store
     useChatStore.getState().addApiMessage(apiMessage)
 
-    // Create API request started message
+    // Create processing indicator
     const apiRequestStartedMessage = {
       ts: Date.now() + 100,
       type: 'say',
       say: 'api_req_started',
-      text: JSON.stringify({
-        request: responseText
-      })
+      text: JSON.stringify({ request: responseText })
     }
 
-    // Process the response
+    // Process response based on type
     let copilotMessage, responseApiMessage
 
     if (response === 'approve') {
-      // For tool requests, handle the tool use
+      // Handle tool execution if last message was a tool request
       const lastMessage = currentMessages[currentMessages.length - 1]
       if (lastMessage && lastMessage.say === 'tool') {
         const result = await this.task.handleToolUse(lastMessage.text, JSON.parse(lastMessage.text))
         copilotMessage = result.copilotMessage
         responseApiMessage = result.apiMessage
       } else {
-        // Get API conversation history from store
+        // Process normal approval response
         const apiConversationHistory = useChatStore.getState().apiConversationHistory
-
-        // Process the task with the updated API conversation history
         const messages = [
           { role: 'system', content: [{ type: 'text', text: 'You are a helpful AI assistant.' }] },
           ...apiConversationHistory
         ]
 
-        // Process the task normally
         const result = await this.task.processTask(messages)
         copilotMessage = result.copilotMessage
         responseApiMessage = result.apiMessage
       }
 
-      // Add API message to the store
+      // Update store with AI response
       useChatStore.getState().addApiMessage(responseApiMessage)
     } else if (response === 'reject') {
-      // Handle rejection
+      // Handle rejection with standard response
       copilotMessage = {
         ts: Date.now(),
         type: 'say',
@@ -196,7 +200,6 @@ class Controller {
         text: 'Request rejected. What would you like me to do instead?'
       }
 
-      // Create API message for rejection response
       responseApiMessage = {
         role: 'assistant',
         content: [
@@ -207,7 +210,7 @@ class Controller {
         ]
       }
 
-      // Add API message to the store
+      // Update store with rejection response
       useChatStore.getState().addApiMessage(responseApiMessage)
     }
 

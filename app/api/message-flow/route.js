@@ -6,7 +6,7 @@ export async function POST(request) {
   try {
     const body = await request.json()
     const { messages } = body
-    
+
     console.log('Incoming messages to API:', messages)
 
     // Initialize ContextManager
