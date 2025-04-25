@@ -64,6 +64,7 @@ class Task {
    * @returns {Object} Processed response with UI and API formats
    */
   async processTask(messages) {
+    console.log('-------Processing task with messages:', messages)
     try {
       // Format messages according to API requirements
       const formattedMessages = this.formatMessagesForAPI(messages)

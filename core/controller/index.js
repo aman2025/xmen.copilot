@@ -66,7 +66,6 @@ class Controller {
 
       // Process initial message with system prompt
       const { copilotMessage, apiMessage } = await this.task.processTask([
-        { role: 'system', content: [{ type: 'text', text: 'You are a helpful AI assistant.' }] },
         apiConversationHistory[0]
       ])
 
@@ -110,10 +109,7 @@ class Controller {
       const apiConversationHistory = useChatStore.getState().apiConversationHistory
 
       // Process message with full context
-      const messages = [
-        { role: 'system', content: [{ type: 'text', text: 'You are a helpful AI assistant.' }] },
-        ...apiConversationHistory
-      ]
+      const messages = [...apiConversationHistory]
 
       // Get AI response
       const { copilotMessage, apiMessage: responseApiMessage } =
@@ -179,10 +175,7 @@ class Controller {
       } else {
         // Process normal approval response
         const apiConversationHistory = useChatStore.getState().apiConversationHistory
-        const messages = [
-          { role: 'system', content: [{ type: 'text', text: 'You are a helpful AI assistant.' }] },
-          ...apiConversationHistory
-        ]
+        const messages = [...apiConversationHistory]
 
         const result = await this.task.processTask(messages)
         copilotMessage = result.copilotMessage

@@ -1,4 +1,5 @@
 import { SYSTEM_PROMPT } from '@/prompts'
+import { INSTANCE_TOOLS } from '@/prompts/tools/instance'
 import { createMistral, formatMistralResponse } from '@/utils/ai-sdk/mistral'
 import ContextManager from '@/core/context/context-management/ContextManager'
 
@@ -19,16 +20,16 @@ export async function POST(request) {
     // Apply context optimizations
     const optimizedMessages = contextManager.getUpdatedContextMessages(formattedMessages)
 
-    // Get AI response
-    const mistralResponse = await createMistral(optimizedMessages)
-    const { content, type, metadata } = await formatMistralResponse(mistralResponse)
+    // Get AI response with tools
+    const mistralResponse = await createMistral(optimizedMessages, INSTANCE_TOOLS)
+    // const { rawMessage } = await formatMistralResponse(mistralResponse)
 
-    // Create response object
+    console.log('Raw AI Response:', JSON.stringify(mistralResponse.choices[0].message))
+
+    // Create response object with raw AI response
     const response = {
       id: `response-${Date.now()}`,
-      content,
-      type: type || 'say',
-      metadata: metadata || {},
+      raw_response: mistralResponse,
       createdAt: new Date().toISOString()
     }
 
