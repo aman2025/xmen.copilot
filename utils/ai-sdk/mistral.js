@@ -23,7 +23,5 @@ export const createMistral = async (messages, tools) => {
 
 export const formatMistralResponse = async (response) => {
   const message = response.choices[0].message
-  return {
-    rawMessage: message
-  }
+  return message
 }

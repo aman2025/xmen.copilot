@@ -1,5 +1,6 @@
 import ContextManager from '../context/context-management/ContextManager'
 import useChatStore from '../../store/useChatStore'
+import { parseAssistantMessage } from '../assistant-message/parse-assistant-message'
 
 /**
  * Task class handles individual conversation tasks and their processing
@@ -110,46 +111,25 @@ class Task {
    * @returns {Object} Formatted messages for UI and store
    */
   async processAPIResponse(response) {
-    // Handle direct response format
-    if (response.id && response.id.startsWith('response-')) {
-      const copilotMessage = {
-        ts: Date.now(),
-        type: 'say',
-        say: 'completion_result',
-        text: response.content
-      }
-
-      const apiMessage = {
-        role: 'assistant',
-        content: [
-          {
-            type: 'text',
-            text: response.content
-          }
-        ]
-      }
-
-      return { copilotMessage, apiMessage }
-    }
-
-    // Parse complex response formats
-    const { type, content, metadata } = this.parseResponse(response)
-
-    // Format message for UI display
+    const parsedMessage = parseAssistantMessage(response)
     const copilotMessage = {
       ts: Date.now(),
       type: 'say',
-      say: type,
-      text: type === 'tool' ? JSON.stringify(metadata) : content
+      say: parsedMessage.type === 'text' ? 'completion_result' : 'tool',
+      text: parsedMessage.type === 'text' 
+        ? parsedMessage.content 
+        : JSON.stringify({
+            tool: parsedMessage.name,
+            content: parsedMessage.params
+          })
     }
 
-    // Format message for API history
     const apiMessage = {
       role: 'assistant',
       content: [
         {
           type: 'text',
-          text: content
+          text: parsedMessage.content
         }
       ]
     }

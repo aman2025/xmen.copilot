@@ -22,15 +22,13 @@ export async function POST(request) {
 
     // Get AI response with tools
     const mistralResponse = await createMistral(optimizedMessages, INSTANCE_TOOLS)
-    // const { rawMessage } = await formatMistralResponse(mistralResponse)
+    const mistralMessage = await formatMistralResponse(mistralResponse)
 
-    console.log('Raw AI Response:', JSON.stringify(mistralResponse.choices[0].message))
+    console.log('Raw AI Response:', JSON.stringify(mistralMessage))
 
     // Create response object with raw AI response
     const response = {
-      id: `response-${Date.now()}`,
-      raw_response: mistralResponse,
-      createdAt: new Date().toISOString()
+      ...mistralMessage
     }
 
     // Log response before sending
