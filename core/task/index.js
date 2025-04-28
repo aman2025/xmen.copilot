@@ -116,23 +116,16 @@ class Task {
       ts: Date.now(),
       type: 'say',
       say: parsedMessage.type === 'text' ? 'completion_result' : 'tool',
-      text: parsedMessage.type === 'text' 
-        ? parsedMessage.content 
-        : JSON.stringify({
-            tool: parsedMessage.name,
-            content: parsedMessage.params
-          })
+      text:
+        parsedMessage.type === 'text'
+          ? parsedMessage.content
+          : JSON.stringify({
+              tool: parsedMessage.name,
+              content: parsedMessage.params
+            })
     }
 
-    const apiMessage = {
-      role: 'assistant',
-      content: [
-        {
-          type: 'text',
-          text: parsedMessage.content
-        }
-      ]
-    }
+    const apiMessage = response
 
     return { copilotMessage, apiMessage }
   }

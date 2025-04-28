@@ -114,6 +114,7 @@ class Controller {
       // Get AI response
       const { copilotMessage, apiMessage: responseApiMessage } =
         await this.task.processTask(messages)
+      console.log('AI Response11111:', copilotMessage, responseApiMessage)
 
       // Update store with AI response
       useChatStore.getState().addApiMessage(responseApiMessage)
