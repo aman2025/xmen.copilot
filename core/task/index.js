@@ -111,17 +111,17 @@ class Task {
    * @returns {Object} Formatted messages for UI and store
    */
   async processAPIResponse(response) {
-    const parsedMessage = parseAssistantMessage(response)
+    const assistantMessageContent = parseAssistantMessage(response)
     const copilotMessage = {
       ts: Date.now(),
       type: 'say',
-      say: parsedMessage.type === 'text' ? 'completion_result' : 'tool',
+      say: assistantMessageContent.type === 'text' ? 'completion_result' : 'tool',
       text:
-        parsedMessage.type === 'text'
-          ? parsedMessage.content
+        assistantMessageContent.type === 'text'
+          ? assistantMessageContent.content
           : JSON.stringify({
-              tool: parsedMessage.name,
-              content: parsedMessage.params
+              tool: assistantMessageContent.name,
+              content: assistantMessageContent.params
             })
     }
 
