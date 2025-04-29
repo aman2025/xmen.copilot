@@ -10,13 +10,18 @@ class Task {
   /**
    * Initialize a new task with optional configuration
    * @param {Object} options - Configuration options for the task
+   * @param {string} [task] - Initial task/message to start with
    */
-  constructor(options = {}) {
+  constructor(task = null) {
     // Unique identifier for the task using timestamp
     this.taskId = Date.now().toString()
-    this.options = options
     // Initialize context manager for message optimization
     this.contextManager = new ContextManager()
+
+    // Start task if initial task is provided
+    if (task) {
+      this.startTask(task)
+    }
   }
 
   /**
@@ -29,18 +34,18 @@ class Task {
   }
 
   /**
-   * Initializes a new conversation task with user input
+   * Initializes a new conversation task
    * Creates both UI and API message formats
-   * @param {string} userInput - The initial user message
+   * @param {string} task - The task/message to process
    * @returns {Object} Contains formatted messages for UI and API
    */
-  async startTask(userInput) {
+  async startTask(task) {
     // Format message for UI display
     const userMessage = {
       ts: Date.now(),
       type: 'ask',
       ask: 'followup',
-      text: userInput
+      text: task
     }
 
     // Format message for API conversation history
@@ -50,7 +55,7 @@ class Task {
       content: [
         {
           type: 'text',
-          text: userInput
+          text: task
         }
       ]
     }

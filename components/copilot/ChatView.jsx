@@ -5,10 +5,10 @@ import useChatStore from '../../store/useChatStore'
 import { handleResponse as handleResponseAction } from '../../store/chatActions'
 
 const ChatView = () => {
-  const { copilotMessages, isLoading } = useChatStore()
+  const { clineMessages, isLoading } = useChatStore()
 
   // Sort messages by timestamp
-  const allMessages = [...copilotMessages].sort((a, b) => a.ts - b.ts)
+  const allMessages = [...clineMessages].sort((a, b) => a.ts - b.ts)
 
   // Handle user response to questions or tool requests
   const handleResponse = (response, text) => {

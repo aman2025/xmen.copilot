@@ -18,10 +18,10 @@ class Controller {
    * @returns {Object} Formatted user message for UI
    */
   async initTask(userInput) {
-    // Create new task instance
-    this.task = new Task()
+    // Create new task instance with initial user input
+    this.task = new Task(userInput)
 
-    // Initialize task with user input
+    // Get formatted messages from task initialization
     const { userMessage, apiMessage } = await this.task.startTask(userInput)
 
     // Update global store with API message
@@ -74,7 +74,7 @@ class Controller {
       const store = useChatStore.getState()
       console.log('Store state after processing:', {
         apiHistory: store.apiConversationHistory,
-        copilotMsgs: store.copilotMessages
+        copilotMsgs: store.clineMessages
       })
 
       return { userMessage, apiRequestStartedMessage, copilotMessage }

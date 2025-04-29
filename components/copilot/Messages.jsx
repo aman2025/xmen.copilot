@@ -16,7 +16,7 @@ const CopilotAvatar = () => {
 }
 
 const Messages = ({ chatId }) => {
-  const { setMessageInput, userMessages, copilotMessages, isLoading } = useChatStore()
+  const { setMessageInput, userMessages, clineMessages, isLoading } = useChatStore()
 
   // Initialize controller on component mount
   useEffect(() => {
@@ -54,7 +54,7 @@ const Messages = ({ chatId }) => {
   // Combine user and copilot messages for display
   const allMessages = [
     ...userMessages.map((msg) => ({ ...msg, role: 'user' })),
-    ...copilotMessages.map((msg) => ({ ...msg, role: 'assistant' }))
+    ...clineMessages.map((msg) => ({ ...msg, role: 'assistant' }))
   ].sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt))
 
   // Use API messages if chatId is provided, otherwise use messages from store

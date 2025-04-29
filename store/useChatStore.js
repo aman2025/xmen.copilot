@@ -10,7 +10,7 @@ const useChatStore = create((set) => ({
 
   // Message state
   apiConversationHistory: [], // For AI API communication (user input and AI responses)
-  copilotMessages: [], // For UI rendering only
+  clineMessages: [], // For UI rendering only
   messageInput: '',
 
   // Basic setters
@@ -33,15 +33,15 @@ const useChatStore = create((set) => ({
   addCopilotMessage: (message) =>
     set((state) => {
       const newState = {
-        copilotMessages: [...state.copilotMessages, message]
+        clineMessages: [...state.clineMessages, message]
       }
-      console.log('Copilot Messages updated:', newState.copilotMessages)
+      console.log('Copilot Messages updated:', newState.clineMessages)
       return newState
     }),
 
   clearMessages: () => {
     console.log('Clearing all messages')
-    return set({ apiConversationHistory: [], copilotMessages: [] })
+    return set({ apiConversationHistory: [], clineMessages: [] })
   }
 }))
 
