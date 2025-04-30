@@ -13,10 +13,11 @@ class Task {
    * @param {string} [task] - Initial task/message to start with
    */
   constructor(task = null) {
-    isInitialized = false
-    apiConversationHistory = []
-    clineMessages = []
-    assistantMessageContent = []
+    // Class properties initialization
+    this.isInitialized = false
+    this.apiConversationHistory = []
+    this.clineMessages = []
+    this.assistantMessageContent = []
     // Unique identifier for the task using timestamp
     this.taskId = Date.now().toString()
     // Initialize context manager for message optimization
@@ -82,6 +83,7 @@ class Task {
       role: 'user',
       content: userContent
     })
+    console.log(this.apiConversationHistory, this.clineMessages)
 
     const lastApiReqIndex = findLastIndex(this.clineMessages, (m) => m.say === 'api_req_started')
     this.clineMessages[lastApiReqIndex].text = JSON.stringify({
@@ -97,25 +99,27 @@ class Task {
     // present content to user
     this.presentAssistantMessage()
 
-    if (assistantMessage.length > 0) {
-      await this.addToApiConversationHistory({
-        role: 'assistant',
-        content: [{ type: 'text', text: assistantMessage }]
-      })
-    }
+    await this.addToApiConversationHistory(assistantMessage)
   }
 
   async presentAssistantMessage() {
-    // todo: 需要cloneDeep：
-    const block = this.assistantMessageContent // 这里只返回一个object，因为是非stream
-    switch (block.type) {
+    // Handle the message block from assistantMessageContent
+    const block = this.assistantMessageContent
+    const { type, content } = block
+
+    switch (type) {
       case 'text': {
         await this.say('text', content)
         break
       }
-      case 'tool_use':
+      case 'tool_use': {
         await this.say('tool', content)
         break
+      }
+      default: {
+        console.warn('Unknown message type:', type)
+        break
+      }
     }
   }
 
