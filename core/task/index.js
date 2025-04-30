@@ -73,7 +73,7 @@ class Task {
     await this.saveClineMessagesAndUpdateHistory(this.clineMessages[lastApiReqIndex])
 
     // 发起api请求
-    const assistantMessage = await this.attemptApiRequest(this.clineMessages)
+    const assistantMessage = await this.attemptApiRequest(this.apiConversationHistory)
     this.assistantMessageContent = parseAssistantMessage(assistantMessage)
 
     // present content to user
