@@ -20,14 +20,6 @@ class Controller {
   async initTask(userInput) {
     // Create new task instance with initial user input
     this.task = new Task(userInput)
-
-    // Get formatted messages from task initialization
-    const { userMessage, apiMessage } = await this.task.startTask(userInput)
-
-    // Update global store with API message
-    useChatStore.getState().addApiMessage(apiMessage)
-
-    return userMessage
   }
 
   /**
@@ -70,7 +62,7 @@ class Controller {
       ])
 
       // Update store with AI response
-      useChatStore.getState().addApiMessage(apiMessage)
+      useChatStore.getState().saveApiConversationHistory(apiMessage)
       const store = useChatStore.getState()
       console.log('Store state after processing:', {
         apiHistory: store.apiConversationHistory,
@@ -95,7 +87,7 @@ class Controller {
       }
 
       // Update store
-      useChatStore.getState().addApiMessage(apiMessage)
+      useChatStore.getState().saveApiConversationHistory(apiMessage)
 
       // Create processing indicator
       const apiRequestStartedMessage = {
@@ -117,7 +109,7 @@ class Controller {
       console.log('AI Response11111:', copilotMessage, responseApiMessage)
 
       // Update store with AI response
-      useChatStore.getState().addApiMessage(responseApiMessage)
+      useChatStore.getState().saveApiConversationHistory(responseApiMessage)
 
       return { userMessage, apiRequestStartedMessage, copilotMessage }
     }
@@ -153,7 +145,7 @@ class Controller {
     }
 
     // Update store
-    useChatStore.getState().addApiMessage(apiMessage)
+    useChatStore.getState().saveApiConversationHistory(apiMessage)
 
     // Create processing indicator
     const apiRequestStartedMessage = {
@@ -184,7 +176,7 @@ class Controller {
       }
 
       // Update store with AI response
-      useChatStore.getState().addApiMessage(responseApiMessage)
+      useChatStore.getState().saveApiConversationHistory(responseApiMessage)
     } else if (response === 'reject') {
       // Handle rejection with standard response
       copilotMessage = {
@@ -205,7 +197,7 @@ class Controller {
       }
 
       // Update store with rejection response
-      useChatStore.getState().addApiMessage(responseApiMessage)
+      useChatStore.getState().saveApiConversationHistory(responseApiMessage)
     }
 
     return { userMessage, apiRequestStartedMessage, copilotMessage }

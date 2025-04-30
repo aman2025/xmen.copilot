@@ -22,17 +22,9 @@ export async function POST(request) {
 
     // Get AI response with tools
     const mistralResponse = await createMistral(optimizedMessages, INSTANCE_TOOLS)
-    const mistralMessage = await formatMistralResponse(mistralResponse)
+    const response = await formatMistralResponse(mistralResponse)
 
-    console.log('Raw AI Response:', JSON.stringify(mistralMessage))
-
-    // Create response object with raw AI response
-    const response = {
-      ...mistralMessage
-    }
-
-    // Log response before sending
-    console.log('API Response:', response)
+    console.log('Raw AI Response:', JSON.stringify(response))
 
     return new Response(JSON.stringify(response), {
       status: 200,

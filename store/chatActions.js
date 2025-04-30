@@ -34,14 +34,14 @@ export const sendMessage = async (content) => {
       await controller.handleUserMessage(content)
 
     // Update the store with new UI messages
-    store.addCopilotMessage(userMessage) // Add user message to clineMessages for UI
-    store.addCopilotMessage(apiRequestStartedMessage) // Add API request started message
-    store.addCopilotMessage(copilotMessage) // Add AI response
+    store.saveClineMessages(userMessage) // Add user message to clineMessages for UI
+    store.saveClineMessages(apiRequestStartedMessage) // Add API request started message
+    store.saveClineMessages(copilotMessage) // Add AI response
     store.setMessageInput('') // Clear input field
   } catch (error) {
     // Silently handle error without console.error to avoid linting issues
     // Add error message to the chat
-    store.addCopilotMessage({
+    store.saveClineMessages({
       ts: Date.now(),
       type: 'say',
       say: 'error',
@@ -73,15 +73,15 @@ export const handleResponse = async (response, text) => {
     // Update store if there's a valid result
     if (result) {
       const { userMessage, apiRequestStartedMessage, copilotMessage } = result
-      store.addCopilotMessage(userMessage) // Add user response to clineMessages for UI
-      store.addCopilotMessage(apiRequestStartedMessage) // Add API request started message
-      store.addCopilotMessage(copilotMessage) // Add AI response
+      store.saveClineMessages(userMessage) // Add user response to clineMessages for UI
+      store.saveClineMessages(apiRequestStartedMessage) // Add API request started message
+      store.saveClineMessages(copilotMessage) // Add AI response
       store.setMessageInput('')
     }
   } catch (error) {
     // Silently handle error without console.error to avoid linting issues
     // Add error message to the chat
-    store.addCopilotMessage({
+    store.saveClineMessages({
       ts: Date.now(),
       type: 'say',
       say: 'error',

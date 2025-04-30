@@ -21,7 +21,7 @@ const useChatStore = create((set) => ({
   setMessageInput: (text) => set({ messageInput: text }),
 
   // Message actions
-  addApiMessage: (message) =>
+  saveApiConversationHistory: (message) =>
     set((state) => {
       const newState = {
         apiConversationHistory: [...state.apiConversationHistory, message]
@@ -30,7 +30,7 @@ const useChatStore = create((set) => ({
       return newState
     }),
 
-  addCopilotMessage: (message) =>
+  saveClineMessages: (message) =>
     set((state) => {
       const newState = {
         clineMessages: [...state.clineMessages, message]

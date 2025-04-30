@@ -13,6 +13,10 @@ class Task {
    * @param {string} [task] - Initial task/message to start with
    */
   constructor(task = null) {
+    isInitialized = false
+    apiConversationHistory = []
+    clineMessages = []
+    assistantMessageContent = []
     // Unique identifier for the task using timestamp
     this.taskId = Date.now().toString()
     // Initialize context manager for message optimization
@@ -40,27 +44,113 @@ class Task {
    * @returns {Object} Contains formatted messages for UI and API
    */
   async startTask(task) {
-    // Format message for UI display
-    const userMessage = {
-      ts: Date.now(),
-      type: 'ask',
-      ask: 'followup',
-      text: task
-    }
+    console.log('Task: startTask')
+    this.clineMessages = []
+    this.apiConversationHistory = []
 
-    // Format message for API conversation history
-    // Following the format expected by Mistral AI
-    const apiMessage = {
+    await this.say('text', task)
+
+    this.isInitialized = true
+
+    await this.initiateTaskLoop([
+      {
+        type: 'text',
+        text: `<task>\n${task}\n</task>`
+      }
+    ])
+  }
+
+  async initiateTaskLoop(userContent) {
+    let nextUserContent = userContent
+    await this.recursivelyMakeClineRequests(nextUserContent)
+  }
+  async recursivelyMakeClineRequests(userContent) {
+    // previousApiReqIndex 具体使用多少个历史记录
+    // get previous api req's index to check token usage and determine if we need to truncate conversation history
+    // const previousApiReqIndex = findLastIndex(
+    //   this.clineMessages,
+    //   (m) => m.say === 'api_req_started'
+    // )
+    await this.say(
+      'api_req_started',
+      JSON.stringify({
+        request: 'start request Loading...'
+      })
+    )
+
+    await this.addToApiConversationHistory({
       role: 'user',
-      content: [
-        {
-          type: 'text',
-          text: task
-        }
-      ]
-    }
+      content: userContent
+    })
 
-    return { userMessage, apiMessage }
+    const lastApiReqIndex = findLastIndex(this.clineMessages, (m) => m.say === 'api_req_started')
+    this.clineMessages[lastApiReqIndex].text = JSON.stringify({
+      request: userContent.map(() => '[Text:] or [Tool Use:]')
+    })
+    // 更新最后一个clineMessage
+    await this.saveClineMessagesAndUpdateHistory(this.clineMessages[lastApiReqIndex])
+
+    // 发起api请求
+    const assistantMessage = await this.attemptApiRequest(this.clineMessages)
+    this.assistantMessageContent = parseAssistantMessage(assistantMessage)
+
+    // present content to user
+    this.presentAssistantMessage()
+
+    if (assistantMessage.length > 0) {
+      await this.addToApiConversationHistory({
+        role: 'assistant',
+        content: [{ type: 'text', text: assistantMessage }]
+      })
+    }
+  }
+
+  async presentAssistantMessage() {
+    // todo: 需要cloneDeep：
+    const block = this.assistantMessageContent // 这里只返回一个object，因为是非stream
+    switch (block.type) {
+      case 'text': {
+        await this.say('text', content)
+        break
+      }
+      case 'tool_use':
+        await this.say('tool', content)
+        break
+    }
+  }
+
+  async say(type, text) {
+    const sayTs = Date.now()
+    await this.addToClineMessages({
+      ts: sayTs,
+      type: 'say',
+      say: type,
+      text
+    })
+  }
+
+  async addToClineMessages(message) {
+    this.clineMessages.push(message)
+    await this.saveClineMessagesAndUpdateHistory(message)
+  }
+
+  async addToApiConversationHistory(message) {
+    this.apiConversationHistory.push(message)
+    await useChatStore.getState().saveApiConversationHistory(message)
+  }
+
+  async saveClineMessagesAndUpdateHistory(message) {
+    useChatStore.getState().saveClineMessages(message)
+  }
+
+  findLastIndex(array, predicate) {
+    let l = array.length
+    while (l--) {
+      if (predicate(array[l], l, array)) {
+        return l
+      }
+    }
+    return -1
   }
 
   /**
@@ -101,7 +191,7 @@ class Task {
    * @param {Array} messages - Formatted messages for API
    * @returns {Promise} API response
    */
-  async makeAPIRequest(messages) {
+  async attemptApiRequest(messages) {
     return await fetch('/api/message-flow', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
