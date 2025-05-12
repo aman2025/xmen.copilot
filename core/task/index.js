@@ -60,7 +60,8 @@ class Task {
       role: 'user',
       content: userContent
     })
-    console.log(this.apiConversationHistory, this.clineMessages)
+    console.log("apiConversationHistory: ", this.apiConversationHistory)
+    console.log("clineMessages: ", this.clineMessages)
 
     const lastApiReqIndex = this.findLastIndex(
       this.clineMessages,
