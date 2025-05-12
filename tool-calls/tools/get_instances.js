@@ -15,12 +15,12 @@ const get_instances = async () => {
       id: '002',
       instanceId: '129',
       instanceName: 'dfa-crc@10.168.1.129',
-      serviceId: '001',
+      serviceId: '002',
       serviceName: 'dfa-crc',
       ip: '10.168.1.129',
       port: 8089,
-      instanceStatus: 'running',
-      statusDesc: 'The instance is running'
+      instanceStatus: 'stopped',
+      statusDesc: 'The instance is stopped'
     }
   ]
   return data
