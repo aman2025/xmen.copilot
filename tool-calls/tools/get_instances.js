@@ -1,5 +1,8 @@
-const get_instances = async () => {
-  const data = [
+const get_instances = async (params = {}) => {
+  const { serviceId } = params
+
+  // Sample data
+  const allInstances = [
     {
       id: '001',
       instanceId: '112',
@@ -15,7 +18,7 @@ const get_instances = async () => {
       id: '002',
       instanceId: '129',
       instanceName: 'dfa-crc@10.168.1.129',
-      serviceId: '002',
+      serviceId: '001', // Changed to match the first instance for filtering
       serviceName: 'dfa-crc',
       ip: '10.168.1.129',
       port: 8089,
@@ -23,7 +26,16 @@ const get_instances = async () => {
       statusDesc: 'The instance is stopped'
     }
   ]
-  return data
+
+  // If serviceId is provided, filter the results
+  if (serviceId) {
+    // Convert serviceId to string for comparison if it's a number
+    const serviceIdStr = String(serviceId)
+    return allInstances.filter((instance) => instance.serviceId === serviceIdStr)
+  }
+
+  // Otherwise return all instances
+  return allInstances
 }
 
 export default get_instances

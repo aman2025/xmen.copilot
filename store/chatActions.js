@@ -55,27 +55,27 @@ export const sendMessage = async (content) => {
 /**
  * Handles user responses to AI questions or prompts
  * @param {string} response - The type of response (e.g., 'approve', 'reject')
- * @param {string} text - Optional text content of the response
  */
-export const handleResponse = async (response, text) => {
+export const handleResponse = async (response) => {
   const store = useChatStore.getState()
 
   try {
     store.setIsLoading(true)
 
-    // Get all copilot messages for context
-    const allMessages = store.clineMessages
-
     // Process the user's response through the controller
     // Note: API messages are added to the store directly in the controller
-    const result = await controller.handleUserResponse(response, text, allMessages)
+    const result = await controller.handleUserResponse(response)
 
     // Update store if there's a valid result
     if (result) {
       const { userMessage, apiRequestStartedMessage, copilotMessage } = result
       store.saveClineMessages(userMessage) // Add user response to clineMessages for UI
-      store.saveClineMessages(apiRequestStartedMessage) // Add API request started message
-      store.saveClineMessages(copilotMessage) // Add AI response
+      if (apiRequestStartedMessage) {
+        store.saveClineMessages(apiRequestStartedMessage) // Add API request started message
+      }
+      if (copilotMessage) {
+        store.saveClineMessages(copilotMessage) // Add AI response
+      }
       store.setMessageInput('')
     }
   } catch (error) {
