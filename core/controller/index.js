@@ -7,7 +7,11 @@ class Controller {
   }
 
   async initTask(userInput) {
+    console.log('Controller: initTask called with userInput:', userInput)
+
+    // Create a new task instance
     this.task = new Task(userInput)
+    console.log('Controller: Created new Task instance')
 
     // Return messages for UI
     const userMessage = {
@@ -42,7 +46,12 @@ class Controller {
   }
 
   async handleUserResponse(response) {
-    if (!this.task || !this.task.waitingForApproval) {
+    if (!this.task) {
+      console.warn('No active task')
+      return null
+    }
+
+    if (!this.task.waitingForApproval) {
       console.warn('No task waiting for approval')
       return null
     }
@@ -57,7 +66,9 @@ class Controller {
     }
 
     // Process the approval/rejection
+    console.log('Controller: Processing approval/rejection:', response)
     await this.task.handleApprovalResponse(response === 'approve' ? 'approved' : 'rejected')
+    console.log('Controller: Finished processing approval/rejection')
 
     // Find the API request started message (if any)
     const apiRequestStartedIndex = this.task.findLastIndex(
@@ -71,6 +82,12 @@ class Controller {
     // Find the last message (which should be the assistant's response)
     const lastMessageIndex = this.task.clineMessages.length - 1
     const copilotMessage = lastMessageIndex >= 0 ? this.task.clineMessages[lastMessageIndex] : null
+
+    console.log('Controller: Returning result from handleUserResponse:', {
+      userMessage,
+      apiRequestStartedMessage,
+      copilotMessage
+    })
 
     return {
       userMessage,

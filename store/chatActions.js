@@ -57,6 +57,7 @@ export const sendMessage = async (content) => {
  * @param {string} response - The type of response (e.g., 'approve', 'reject')
  */
 export const handleResponse = async (response) => {
+  console.log('chatActions: handleResponse called with response:', response)
   const store = useChatStore.getState()
 
   try {
@@ -64,19 +65,33 @@ export const handleResponse = async (response) => {
 
     // Process the user's response through the controller
     // Note: API messages are added to the store directly in the controller
+    console.log('chatActions: Calling controller.handleUserResponse')
     const result = await controller.handleUserResponse(response)
 
     // Update store if there's a valid result
     if (result) {
+      console.log('chatActions: Got result from controller:', result)
       const { userMessage, apiRequestStartedMessage, copilotMessage } = result
+
+      console.log('chatActions: Saving userMessage to store:', userMessage)
       store.saveClineMessages(userMessage) // Add user response to clineMessages for UI
+
       if (apiRequestStartedMessage) {
+        console.log(
+          'chatActions: Saving apiRequestStartedMessage to store:',
+          apiRequestStartedMessage
+        )
         store.saveClineMessages(apiRequestStartedMessage) // Add API request started message
       }
+
       if (copilotMessage) {
+        console.log('chatActions: Saving copilotMessage to store:', copilotMessage)
         store.saveClineMessages(copilotMessage) // Add AI response
       }
+
       store.setMessageInput('')
+    } else {
+      console.log('chatActions: No result from controller')
     }
   } catch (error) {
     // Silently handle error without console.error to avoid linting issues

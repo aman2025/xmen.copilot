@@ -14,6 +14,7 @@ const ChatView = () => {
 
   // Handle user response to questions or tool requests
   const handleResponse = (response) => {
+    console.log('ChatView: handleResponse called with response:', response)
     handleResponseAction(response)
   }
 

@@ -186,24 +186,36 @@ class Task {
 
   // New method to handle user approval response
   async handleApprovalResponse(response) {
+    console.log('handleApprovalResponse called with response:', response)
+    console.log(
+      'Current state - waitingForApproval:',
+      this.waitingForApproval,
+      'pendingToolCall:',
+      this.pendingToolCall
+    )
+
     if (!this.pendingToolCall) {
       console.warn('No pending tool call to approve/reject')
       return
     }
 
+    // Store the current values before processing
     const { name, params, toolCallId } = this.pendingToolCall
 
+    // Reset approval state immediately to prevent race conditions
+    // We'll set it back to true if needed during tool execution
+    this.waitingForApproval = false
+    this.pendingToolCall = null
+
     if (response === 'approved') {
+      console.log(`Executing tool ${name} with params:`, params)
       // Execute the tool with the stored tool call ID
       await this.executeToolCall(name, params, toolCallId)
     } else {
+      console.log(`Rejecting tool ${name}`)
       // Handle rejection
       await this.handleToolRejection(name)
     }
-
-    // Reset approval state
-    this.waitingForApproval = false
-    this.pendingToolCall = null
   }
 
   // New method to execute a tool call
@@ -336,20 +348,25 @@ class Task {
       const nextAssistantMessage = await this.attemptApiRequest(this.apiConversationHistory)
       this.assistantMessageContent = parseAssistantMessage(nextAssistantMessage)
 
+      // Store the current waitingForApproval state
+      const wasWaitingForApproval = this.waitingForApproval
+
       // Present the next assistant message to the user
       await this.presentAssistantMessage()
 
-      // Add the assistant message to the conversation history
-      if (!this.waitingForApproval) {
+      // If we weren't waiting for approval before, but now we are,
+      // it means the new assistant message triggered a new tool call
+      // that needs approval. In this case, we should add the assistant message
+      // to the conversation history.
+      if (!wasWaitingForApproval) {
         await this.addToApiConversationHistory(nextAssistantMessage)
       }
     } catch (error) {
       console.error(`Error executing tool ${toolName}:`, error)
       await this.say('error', `Error executing tool ${toolName}: ${error.message}`)
 
-      // Reset approval state since tool execution failed
-      this.waitingForApproval = false
-      this.pendingToolCall = null
+      // We don't need to reset approval state here since it's already been reset in handleApprovalResponse
+      // This prevents potential race conditions
     }
   }
 
@@ -385,11 +402,17 @@ class Task {
     const nextAssistantMessage = await this.attemptApiRequest(this.apiConversationHistory)
     this.assistantMessageContent = parseAssistantMessage(nextAssistantMessage)
 
+    // Store the current waitingForApproval state
+    const wasWaitingForApproval = this.waitingForApproval
+
     // Present the next assistant message to the user
     await this.presentAssistantMessage()
 
-    // Add the assistant message to the conversation history
-    if (!this.waitingForApproval) {
+    // If we weren't waiting for approval before, but now we are,
+    // it means the new assistant message triggered a new tool call
+    // that needs approval. In this case, we should add the assistant message
+    // to the conversation history.
+    if (!wasWaitingForApproval) {
       await this.addToApiConversationHistory(nextAssistantMessage)
     }
   }

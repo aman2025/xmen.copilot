@@ -7,7 +7,7 @@ const get_instances = async (params = {}) => {
       id: '001',
       instanceId: '112',
       instanceName: 'dfa-crc@10.168.1.112',
-      serviceId: '001',
+      serviceId: '1',
       serviceName: 'dfa-crc',
       ip: '10.168.1.112',
       port: 8080,
@@ -18,7 +18,7 @@ const get_instances = async (params = {}) => {
       id: '002',
       instanceId: '129',
       instanceName: 'dfa-crc@10.168.1.129',
-      serviceId: '001', // Changed to match the first instance for filtering
+      serviceId: '1', // Changed to match the first instance for filtering
       serviceName: 'dfa-crc',
       ip: '10.168.1.129',
       port: 8089,
