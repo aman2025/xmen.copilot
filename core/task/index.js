@@ -145,7 +145,8 @@ class Task {
         // Store the tool call for potential approval
         this.pendingToolCall = {
           name: block.name,
-          params: block.params
+          params: block.params,
+          toolCallId: block.toolCallId // Store the tool call ID from the assistant message
         }
 
         // Check if this tool needs approval
@@ -159,12 +160,13 @@ class Task {
             JSON.stringify({
               tool: block.name,
               parameters: block.params,
+              toolCallId: block.toolCallId, // Include the tool call ID in the approval request
               description: `Execute ${block.name} with parameters: ${JSON.stringify(block.params)}`
             })
           )
         } else {
           // Auto-approve and execute the tool
-          await this.executeToolCall(block.name, block.params)
+          await this.executeToolCall(block.name, block.params, block.toolCallId)
         }
         break
       }
@@ -189,11 +191,11 @@ class Task {
       return
     }
 
-    const { name, params } = this.pendingToolCall
+    const { name, params, toolCallId } = this.pendingToolCall
 
     if (response === 'approved') {
-      // Execute the tool
-      await this.executeToolCall(name, params)
+      // Execute the tool with the stored tool call ID
+      await this.executeToolCall(name, params, toolCallId)
     } else {
       // Handle rejection
       await this.handleToolRejection(name)
@@ -205,11 +207,14 @@ class Task {
   }
 
   // New method to execute a tool call
-  async executeToolCall(toolName, params) {
+  async executeToolCall(toolName, params, toolCallId) {
     try {
       if (!toolName) {
         throw new Error('Tool name is required')
       }
+
+      // If no tool call ID is provided, generate one
+      const actualToolCallId = toolCallId || this.generateToolCallId()
 
       // Import the tool dynamically
       let toolModule
@@ -251,7 +256,7 @@ class Task {
         role: 'assistant',
         tool_calls: [
           {
-            id: Date.now().toString(),
+            id: actualToolCallId,
             function: {
               name: toolName,
               arguments: JSON.stringify(params || {})
@@ -263,25 +268,81 @@ class Task {
 
       // Add the tool result to the API conversation
       // Format the result as a string as expected by the API
+      // Use the same tool_call_id as in the assistant message
       await this.addToApiConversationHistory({
         role: 'tool',
-        tool_call_id: Date.now().toString(),
+        tool_call_id: actualToolCallId,
         content: typeof result === 'string' ? result : JSON.stringify(result)
       })
 
-      // After a tool message, we need to add an assistant message before continuing with user input
-      // This is required by the Mistral API which expects assistant after tool, not user
-      await this.addToApiConversationHistory({
-        role: 'assistant',
-        content: `I've received the result from the ${toolName} tool. Here's what I found: ${typeof result === 'string' ? result : JSON.stringify(result)}`
-      })
+      // Format a helpful message based on the tool type to display to the user
+      // We'll use this for the UI but won't add it to the API conversation history
+      // since the Mistral API expects the last message to be from the user or a tool
+      let assistantMessage = ''
+
+      if (toolName === 'get_services') {
+        // For get_services, mention the service ID that can be used for get_instances
+        const services = Array.isArray(result) ? result : [result]
+        if (services.length > 0) {
+          const serviceInfo = services
+            .map(
+              (s) =>
+                `${s.serviceName} (ID: ${s.serviceId}${s.description ? `, ${s.description}` : ''})`
+            )
+            .join(', ')
+          assistantMessage = `I found the following services: ${serviceInfo}. You can get instances for a service by using its serviceId.`
+        } else {
+          assistantMessage = "I didn't find any services matching your criteria."
+        }
+      } else if (toolName === 'get_instances') {
+        // For get_instances, summarize the instances found
+        const instances = Array.isArray(result) ? result : [result]
+        if (instances.length > 0) {
+          const runningCount = instances.filter((i) => i.instanceStatus === 'running').length
+          const stoppedCount = instances.filter((i) => i.instanceStatus === 'stopped').length
+          assistantMessage = `I found ${instances.length} instances (${runningCount} running, ${stoppedCount} stopped).`
+        } else {
+          assistantMessage = "I didn't find any instances matching your criteria."
+        }
+      } else {
+        // Generic message for other tools
+        assistantMessage = `I've received the result from the ${toolName} tool. Here's what I found: ${typeof result === 'string' ? result : JSON.stringify(result)}`
+      }
+
+      // Display the message to the user in the UI
+      await this.say('text', assistantMessage)
 
       // Now we can continue with the next user message
       // Convert the tool result to a text message that the API can understand
       await this.say('text', `Tool ${toolName} returned: ${JSON.stringify(result)}`)
 
-      // We don't need to call recursivelyMakeClineRequests here as it would add a user message
-      // which would cause the "Unexpected role 'user' after role 'tool'" error
+      // Add a user message to prompt the next action
+      // This ensures the last message is from the user before making the API request
+      await this.addToApiConversationHistory({
+        role: 'user',
+        content: `I've received the ${toolName} results. What should I do next?`
+      })
+
+      // Trigger a new API request to get the next assistant response
+      // This will allow the assistant to decide what to do next (e.g., call get_instances)
+      await this.say(
+        'api_req_started',
+        JSON.stringify({
+          request: 'Continuing conversation after tool execution...'
+        })
+      )
+
+      // Make a new API request with the current conversation history
+      const nextAssistantMessage = await this.attemptApiRequest(this.apiConversationHistory)
+      this.assistantMessageContent = parseAssistantMessage(nextAssistantMessage)
+
+      // Present the next assistant message to the user
+      await this.presentAssistantMessage()
+
+      // Add the assistant message to the conversation history
+      if (!this.waitingForApproval) {
+        await this.addToApiConversationHistory(nextAssistantMessage)
+      }
     } catch (error) {
       console.error(`Error executing tool ${toolName}:`, error)
       await this.say('error', `Error executing tool ${toolName}: ${error.message}`)
@@ -296,18 +357,41 @@ class Task {
   async handleToolRejection(toolName) {
     await this.say('text', `Tool execution for ${toolName} was rejected.`)
 
-    // Add assistant message to API conversation about the rejection
-    // This follows the correct sequence: assistant -> user -> assistant
-    await this.addToApiConversationHistory({
-      role: 'assistant',
-      content: `I understand that you don't want to execute the ${toolName} tool. Let me help you in another way.`
-    })
+    // We'll display a message to the user in the UI, but we won't add it to the API conversation
+    // history since the Mistral API expects the last message to be from the user or a tool
 
     // Now we can display the rejection message to the user
     await this.say(
       'text',
       `The ${toolName} tool was not executed. Let me know if you need anything else.`
     )
+
+    // Add a user message to prompt the next action
+    // This ensures the last message is from the user before making the API request
+    await this.addToApiConversationHistory({
+      role: 'user',
+      content: `I rejected the ${toolName} tool. What else can you help me with?`
+    })
+
+    // Trigger a new API request to get the next assistant response
+    await this.say(
+      'api_req_started',
+      JSON.stringify({
+        request: 'Continuing conversation after tool rejection...'
+      })
+    )
+
+    // Make a new API request with the current conversation history
+    const nextAssistantMessage = await this.attemptApiRequest(this.apiConversationHistory)
+    this.assistantMessageContent = parseAssistantMessage(nextAssistantMessage)
+
+    // Present the next assistant message to the user
+    await this.presentAssistantMessage()
+
+    // Add the assistant message to the conversation history
+    if (!this.waitingForApproval) {
+      await this.addToApiConversationHistory(nextAssistantMessage)
+    }
   }
 
   // New method to ask for user input
@@ -394,6 +478,17 @@ class Task {
       }
     }
 
+    // Check if the last message is from the assistant
+    // Mistral API requires the last message to be from the user or a tool
+    const lastMessage = validatedMessages[validatedMessages.length - 1]
+    if (lastMessage && lastMessage.role === 'assistant') {
+      // Add a user message to ensure the last message is from the user
+      validatedMessages.push({
+        role: 'user',
+        content: 'Please continue with the information you found.'
+      })
+    }
+
     return validatedMessages
   }
 
@@ -406,6 +501,17 @@ class Task {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ messages: validatedMessages })
     }).then((res) => res.json())
+  }
+
+  // Generate a valid tool call ID (alphanumeric with length of 9)
+  generateToolCallId() {
+    // Generate a random string of alphanumeric characters
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'
+    let result = ''
+    for (let i = 0; i < 9; i++) {
+      result += chars.charAt(Math.floor(Math.random() * chars.length))
+    }
+    return result
   }
 
   async handleToolUse(_toolData, metadata) {

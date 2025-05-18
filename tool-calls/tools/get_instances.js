@@ -28,9 +28,10 @@ const get_instances = async (params = {}) => {
   ]
 
   // If serviceId is provided, filter the results
-  if (serviceId) {
-    // Convert serviceId to string for comparison if it's a number
+  if (serviceId !== undefined && serviceId !== null) {
+    // Convert serviceId to string for comparison (it might come as an integer from the API)
     const serviceIdStr = String(serviceId)
+    console.log(`Filtering instances by serviceId: ${serviceIdStr}`)
     return allInstances.filter((instance) => instance.serviceId === serviceIdStr)
   }
 
