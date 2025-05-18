@@ -12,6 +12,7 @@ class Task {
     this.contextManager = new ContextManager()
     this.pendingToolCall = null
     this.waitingForApproval = false
+    this.lastToolCallId = null // Track the last tool call ID for debugging
 
     // Start task if initial task is provided
     if (task) {
@@ -228,6 +229,11 @@ class Task {
       // If no tool call ID is provided, generate one
       const actualToolCallId = toolCallId || this.generateToolCallId()
 
+      console.log(`Executing tool ${toolName} with ID ${actualToolCallId}`)
+
+      // Store the tool call ID for later reference
+      this.lastToolCallId = actualToolCallId
+
       // Import the tool dynamically
       let toolModule
       try {
@@ -244,7 +250,9 @@ class Task {
       }
 
       // Execute the tool
+      console.log(`Calling tool function ${toolName} with params:`, params)
       const result = await toolFunction(params)
+      console.log(`Tool ${toolName} returned result:`, result)
 
       // Add tool result to the conversation
       await this.say(
@@ -264,6 +272,8 @@ class Task {
       )
 
       // Continue the conversation with the tool result
+      // First, add the assistant message with the tool call
+      console.log(`Adding assistant message with tool call ID: ${actualToolCallId}`)
       await this.addToApiConversationHistory({
         role: 'assistant',
         tool_calls: [
@@ -278,9 +288,10 @@ class Task {
         content: ''
       })
 
-      // Add the tool result to the API conversation
+      // Then, add the tool result to the API conversation
       // Format the result as a string as expected by the API
       // Use the same tool_call_id as in the assistant message
+      console.log(`Adding tool response with tool_call_id: ${actualToolCallId}`)
       await this.addToApiConversationHistory({
         role: 'tool',
         tool_call_id: actualToolCallId,
@@ -482,6 +493,9 @@ class Task {
 
   // Helper method to validate conversation history
   validateConversationHistory(messages) {
+    // Use the preprocessMessages function from mistral.js
+    // This is just a simplified version that handles the most common issues
+
     if (!messages || messages.length === 0) {
       return messages
     }
@@ -516,14 +530,44 @@ class Task {
   }
 
   async attemptApiRequest(messages) {
+    console.log(
+      'Original messages before validation:',
+      JSON.stringify(
+        messages.map((m) => ({
+          role: m.role,
+          tool_call_id: m.tool_call_id,
+          tool_calls: m.tool_calls ? m.tool_calls.map((tc) => tc.id) : undefined
+        })),
+        null,
+        2
+      )
+    )
+
     // Validate the conversation history before making the API request
     const validatedMessages = this.validateConversationHistory(messages)
 
-    return await fetch('/api/message-flow', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ messages: validatedMessages })
-    }).then((res) => res.json())
+    try {
+      const response = await fetch('/api/message-flow', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ messages: validatedMessages })
+      })
+
+      if (!response.ok) {
+        const errorText = await response.text()
+        console.error(`API request failed with status ${response.status}:`, errorText)
+        throw new Error(`API request failed: ${response.status} ${errorText}`)
+      }
+
+      return await response.json()
+    } catch (error) {
+      console.error('Error in attemptApiRequest:', error)
+      // Return a fallback response
+      return {
+        role: 'assistant',
+        content: `I'm sorry, but I encountered an error: ${error.message}. Please try again.`
+      }
+    }
   }
 
   // Generate a valid tool call ID (alphanumeric with length of 9)
