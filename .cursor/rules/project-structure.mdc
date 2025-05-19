@@ -24,13 +24,13 @@ This document outlines the key directories in the codebase.
 -   **`core/`**: Contains the core application logic.
     -   `core/assistant-message/`: Logic related to assistant messages.
     -   `core/context/`: Application context management.
-    -   `core/controller/`: Controllers handling application flow or logic.
-    -   `core/task/`: Logic related to specific tasks.
+    -   `core/controller/`: Handles webview messages and task management. Handles the distribution of state to webview components
+    -   `core/task/`: Executes API requests and tool operations.
 -   **`lib/`**: Utility functions and libraries used across the application.
 -   **`utils/`**: General utility functions, possibly including helpers for AI SDKs (`utils/ai-sdk/`).
 -   **`public/`**: Static assets served directly (e.g., images, fonts).
 -   **`styles/`**: Global or shared stylesheets (besides `app/globals.css`).
--   **`store/`**: State management configuration and modules (e.g., Zustand, Redux).
+-   **`store/`**: State management configuration and modules (e.g., Zustand).
 -   **`prisma/`**: Database schema, migrations, and Prisma client setup.
 -   **`prompts/`**: Contains prompts used for AI interactions.
 -   **`tool-calls/`**: Logic related to defining or handling AI tool calls.

@@ -1,0 +1,34 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# Task flow
+
+flowchart TD
+    A[Parse assistant message]
+    B{Contains tool use?}
+    C{Needs approval?}
+    D[Ask user for approval]
+    E{User response}
+    F[E  G[Process tool result]
+    H[Continue consult]
+    I[Send rejection to LLMonversation with rejection]
+  ation]
+    L[Get next model response]
+
+    A --> B
+    B -- Yes --> C
+    B -- No --> K
+    C -- Yes --> D
+    C -- No (Auto-approved) --> F
+    D --> E
+    E -- Approved --> F
+    E -- Rejected --> I
+    F --> G
+    G --> H
+    H --> L
+    I --> J
+    J --> L
+    K --> L
+
