@@ -34,10 +34,12 @@ flowchart TD
     C{Needs approval?}
     D[Ask user for approval]
     E{User response}
-    F[E  G[Process tool result]
-    H[Continue consult]
-    I[Send rejection to LLMonversation with rejection]
-  ation]
+    F[Execute tool]
+    G[Process tool result]
+    H[Continue conversation with result]
+    I[Send rejection to LLM]
+    J[Continue conversation with rejection]
+    K[Continue conversation]
     L[Get next model response]
 
     A --> B
