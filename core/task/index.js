@@ -167,7 +167,7 @@ class Task {
           )
         } else {
           // Auto-approve and execute the tool
-          await this.executeToolCall(block.name, block.params, block.toolCallId)
+          await this.executeTool(block.name, block.params, block.toolCallId)
         }
         break
       }
@@ -211,7 +211,7 @@ class Task {
     if (response === 'approved') {
       console.log(`Executing tool ${name} with params:`, params)
       // Execute the tool with the stored tool call ID
-      await this.executeToolCall(name, params, toolCallId)
+      await this.executeTool(name, params, toolCallId)
     } else {
       console.log(`Rejecting tool ${name}`)
       // Handle rejection
@@ -220,7 +220,7 @@ class Task {
   }
 
   // New method to execute a tool call
-  async executeToolCall(toolName, params, toolCallId) {
+  async executeTool(toolName, params, toolCallId) {
     try {
       if (!toolName) {
         throw new Error('Tool name is required')
