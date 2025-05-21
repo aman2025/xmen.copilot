@@ -1,0 +1,62 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+## Project Structure
+
+```
+├── app/                 
+│   ├── api/              
+│   │   ├── chat/          
+│   │   └── message-flow/  
+│   ├── globals.css        
+│   ├── layout.jsx         
+│   ├── page.jsx           
+│   └── providers.jsx      
+├── components/            
+│   ├── copilot/            
+│   │   ├── ChatView.jsx    
+│   │   ├── Copilot.jsx     
+│   │   └── Messages.jsx   
+│   ├── ui/                 
+│   └── Sidebar.jsx        
+├── core/                   
+│   ├── assistant-message/ 
+│   ├── context/            
+│   ├── controller/         
+│   └── task/             
+├── lib/                   
+├── prisma/
+│   └── schema.prisma     
+├── public/ 
+├── store/                 
+│   ├── useChatStore.js    
+│   └── chatActions.js      
+├── tool-calls/          
+└── utils/                 
+    └── ai-sdk/           
+```
+
+---
+
+## Technology Stack
+
+- **Frontend:** React, Next.js (App Router), Javascript, Jsx
+- **Styling:** TailwindCSS, Shadcn UI, Radix UI
+- **Backend:** Next.js API routes, Node.js
+- **Database:** Prisma ORM (likely PostgreSQL)
+- **AI Integration:** Custom AI SDK utilities, prompt management
+- **State Management:** Zustand and TanStack Query
+
+---
+
+## Data Flow
+
+1. **User interacts** with the chat UI (`components/copilot/`).
+2. **Messages** are sent to API routes (`app/api/chat/`, `app/api/message-flow/`).
+3. **Core logic** in `core/` handles message processing, context, and task management.
+4. **Tool calls**  define related function to handle AI tool calls.
+5. **Responses** are returned to the frontend and rendered in the chat interface.
+
+

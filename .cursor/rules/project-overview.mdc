@@ -1,0 +1,218 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# Xmen Copilot Architecture & Development Guide
+
+## Project Overview
+
+Xmen Copilot is an AI-powered assistant built with Next.js, React, TypeScript, and modern UI/UX frameworks. It provides chat-based interactions, context management, and integrating Mistral AI and OpenAI to enhance X-MEN (application instance management business system) with copilot functionality and function calling capabilities.
+
+
+
+### Core Architecture
+The core follows a clear hierarchical structure:
+
+1. **Webview** (components/copilot/*): Manages the webview lifecycle and communication
+2. **Controller** (core/controller/index.js): Handles webview messages and task management
+3. **Task** (core/task/index.js): Executes API requests and tool operations
+
+This architecture provides clear separation of concerns:
+- Webview focuses on webview UI/UX integration
+- Controller manages state and coordinates tasks
+- Task handles the execution of AI requests and tool operations
+
+## Task Execution System
+
+The Task class is responsible for executing AI requests and tool operations. Each task runs in its own instance of the Task class, ensuring isolation and proper state management.
+
+```mermaid
+flowchart TD
+    A[Parse assistant message]
+    B{Contains tool use?}
+    C{Needs approval?}
+    D[Ask user for approval]
+    E{User response}
+    F[E  G[Process tool result]
+    H[Continue consult]
+    I[Send rejection to LLMonversation with rejection]
+  ation]
+    L[Get next model response]
+
+    A --> B
+    B -- Yes --> C
+    B -- No --> K
+    C -- Yes --> D
+    C -- No (Auto-approved) --> F
+    D --> E
+    E -- Approved --> F
+    E -- Rejected --> I
+    F --> G
+    G --> H
+    H --> L
+    I --> J
+    J --> L
+    K --> L
+```
+
+
+### Task Execution Loop
+
+The core task execution loop follows this pattern:
+
+```javascript
+class Task {
+  async initiateTaskLoop(userContent) {
+    while (!this.abort) {
+      // 1. Make API request, notice stream response is false
+      const assistantMessage = this.attemptApiRequest()
+      
+      // 2. Parse and present content blocks
+      this.assistantMessageContent = parseAssistantMessage(assistantMessage)
+
+      // Present blocks to user
+      await this.presentAssistantMessage()
+
+      // Only add to API conversation history if not waiting for approval
+      if (!this.waitingForApproval) {
+        await this.addToApiConversationHistory(assistantMessage)
+      }
+      
+      // 3. Wait for tool execution to complete
+      await pWaitFor(() => this.userMessageContentReady)
+      
+      // 4. Continue loop with tool result
+      const recDidEndLoop = await this.recursivelyMakeClineRequests(
+        this.userMessageContent
+      )
+    }
+  }
+}
+```
+
+### Tool Execution Flow
+
+Tools follow a strict execution pattern:
+
+```javascript
+class Task {
+  async executeToolWithApproval(block) {
+    // 1. Request user approval
+      const didApprove = await askApproval("tool", message)
+      if (!didApprove) {
+        this.didRejectTool = true
+        return
+      }
+
+    // 2. Execute tool
+    const result = await this.executeTool(block)
+
+
+    // 3. Return result to API
+    return result
+  }
+}
+```
+
+### Context Management System
+
+The Context Management System handles conversation history truncation to prevent context window overflow errors. Implemented in the `ContextManager` class, it ensures long-running conversations remain within model context limits while preserving critical context.
+
+### Task State & Resumption
+
+The Task class provides robust task state management and resumption capabilities:
+
+```javascript
+class Task {
+  async resumeTaskFromHistory() {
+    // 1. Load saved state
+    this.clineMessages = await getSavedClineMessages(this.getContext(), this.taskId)
+    this.apiConversationHistory = await getSavedApiConversationHistory(this.getContext(), this.taskId)
+
+    // 2. Handle interrupted tool executions
+    const lastMessage = this.apiConversationHistory[this.apiConversationHistory.length - 1]
+    if (lastMessage.role === "assistant") {
+      const toolUseBlocks = content.filter(block => block.type === "tool_use")
+      if (toolUseBlocks.length > 0) {
+        // Add interrupted tool responses
+        const toolResponses = toolUseBlocks.map(block => ({
+          type: "tool_result",
+          tool_use_id: block.id,
+          content: "Task was interrupted before this tool call could be completed."
+        }))
+        modifiedOldUserContent = [...toolResponses]
+      }
+    }
+
+    // 3. Notify about interruption
+    const agoText = this.getTimeAgoText(lastMessage?.ts)
+    newUserContent.push({
+      type: "text",
+      text: `[TASK RESUMPTION] This task was interrupted ${agoText}. It may or may not be complete, so please reassess the task context.`
+    })
+
+    // 4. Resume task execution
+    await this.initiateTaskLoop(newUserContent, false)
+  }
+
+  async saveTaskState() {
+    // Save conversation history
+    await saveApiConversationHistory(this.getContext(), this.taskId, this.apiConversationHistory)
+    await saveClineMessages(this.getContext(), this.taskId, this.clineMessages)
+    
+    // Update task history
+    await this.controllerRef.deref()?.updateTaskHistory({
+      id: this.taskId,
+      ts: lastMessage.ts,
+      task: taskMessage.text,
+      // ... other metadata
+    })
+  }
+}
+```
+
+### Storage management
+
+The Storage Management handles message state and conversation history persistence and retrieval.
+
+```javascript
+saveClineMessages(context, taskId, uiMessages) {
+  // Implementation for saving cline messages
+}
+getSavedClineMessages(context, taskId) {
+  // Implementation for retrieving saved cline messages
+}
+saveApiConversationHistory(context, taskId, apiConversationHistory) {
+  // Implementation for saving API conversation history
+}
+getSavedApiConversationHistory(context, taskId) {
+  // Implementation for retrieving saved API conversation history
+}
+```
+
+## Conclusion
+
+This guide provides a comprehensive overview of the architecture, with special focus on state management, data persistence, and code organization. Following these patterns ensures robust feature implementation with proper state handling across the copilot's components.
+
+Remember:
+- The core architecture follows a Webview -> Controller -> Task flow
+- Use proper typing for all state and messages
+- Handle errors and edge cases
+- Follow the established patterns for consistency
+- Place new code in appropriate directories
+- Maintain clear separation of concerns
+
+
+
+
+
+
+
+
+
+
+
+
+
+
