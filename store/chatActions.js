@@ -28,15 +28,17 @@ export const sendMessage = async (content) => {
     store.setIsLoading(true)
     initController()
 
-    // Process message through the controller and get both user and AI responses
-    // Note: API messages are added to the store directly in the controller
-    const { userMessage, apiRequestStartedMessage, copilotMessage } =
-      await controller.handleUserMessage(content)
+    // Process message through the controller.
+    // The Task instance created within the controller will handle adding clineMessages to the store.
+    await controller.handleUserMessage(content)
 
-    // Update the store with new UI messages
-    store.saveClineMessages(userMessage) // Add user message to clineMessages for UI
-    store.saveClineMessages(apiRequestStartedMessage) // Add API request started message
-    store.saveClineMessages(copilotMessage) // Add AI response
+    // The Task instance now directly updates the store with all necessary clineMessages.
+    // No need to save messages here.
+    // const { userMessage, apiRequestStartedMessage, copilotMessage } = result;
+    // store.saveClineMessages(userMessage);
+    // store.saveClineMessages(apiRequestStartedMessage);
+    // store.saveClineMessages(copilotMessage);
+
     store.setMessageInput('') // Clear input field
   } catch (error) {
     // Silently handle error without console.error to avoid linting issues
@@ -62,37 +64,29 @@ export const handleResponse = async (response) => {
 
   try {
     store.setIsLoading(true)
+    initController(); // Ensure controller is initialized
 
     // Process the user's response through the controller
-    // Note: API messages are added to the store directly in the controller
     console.log('chatActions: Calling controller.handleUserResponse')
     const result = await controller.handleUserResponse(response)
 
-    // Update store if there's a valid result
-    if (result) {
-      console.log('chatActions: Got result from controller:', result)
-      const { userMessage, apiRequestStartedMessage, copilotMessage } = result
-
-      console.log('chatActions: Saving userMessage to store:', userMessage)
-      store.saveClineMessages(userMessage) // Add user response to clineMessages for UI
-
-      if (apiRequestStartedMessage) {
-        console.log(
-          'chatActions: Saving apiRequestStartedMessage to store:',
-          apiRequestStartedMessage
-        )
-        store.saveClineMessages(apiRequestStartedMessage) // Add API request started message
-      }
-
-      if (copilotMessage) {
-        console.log('chatActions: Saving copilotMessage to store:', copilotMessage)
-        store.saveClineMessages(copilotMessage) // Add AI response
-      }
-
-      store.setMessageInput('')
+    // Update store if there's a valid userMessage to display for the action.
+    // Other messages (like api_req_started, or new assistant messages following the action)
+    // will be added by the Task itself directly to the store.
+    if (result && result.userMessage) {
+      console.log('chatActions: Got userMessage from controller:', result.userMessage)
+      store.saveClineMessages(result.userMessage) // Add user's explicit action message (e.g., "Approved tool execution.")
+    } else if (result) {
+      console.log('chatActions: controller.handleUserResponse returned a result, but no specific userMessage to display for this action.', result);
     } else {
-      console.log('chatActions: No result from controller')
+      console.log('chatActions: No result from controller.handleUserResponse, or task was not waiting for approval.')
     }
+
+    // No need to handle apiRequestStartedMessage or copilotMessage here,
+    // as the Task's handleApprovalResponse flow will add subsequent messages to the store.
+
+    // Clearing message input might not be necessary here as approval/rejection doesn't usually involve the text input field.
+    // store.setMessageInput('')
   } catch (error) {
     // Silently handle error without console.error to avoid linting issues
     // Add error message to the chat

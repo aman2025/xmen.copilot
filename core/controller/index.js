@@ -10,35 +10,13 @@ class Controller {
     console.log('Controller: initTask called with userInput:', userInput)
 
     // Create a new task instance
+    // The Task constructor will call startTask, which will handle adding initial messages to the store.
     this.task = new Task(userInput)
     console.log('Controller: Created new Task instance')
 
-    // Return messages for UI
-    const userMessage = {
-      ts: Date.now(),
-      type: 'say',
-      say: 'text',
-      text: userInput
-    }
-
-    // Find the API request started message
-    const apiRequestStartedIndex = this.task.findLastIndex(
-      this.task.clineMessages,
-      (m) => m.say === 'api_req_started'
-    )
-
-    const apiRequestStartedMessage =
-      apiRequestStartedIndex >= 0 ? this.task.clineMessages[apiRequestStartedIndex] : null
-
-    // Find the last message (which should be the assistant's response)
-    const lastMessageIndex = this.task.clineMessages.length - 1
-    const copilotMessage = lastMessageIndex >= 0 ? this.task.clineMessages[lastMessageIndex] : null
-
-    return {
-      userMessage,
-      apiRequestStartedMessage,
-      copilotMessage
-    }
+    // No need to return messages here, as Task manages clineMessages directly with the store
+    // and adds them.
+    return {}
   }
 
   async handleUserMessage(text) {
@@ -56,43 +34,25 @@ class Controller {
       return null
     }
 
-    // Create user response message
-    const userMessage = {
+    // Create user response message that will be shown in the UI.
+    const userActionDisplayMessage = {
       ts: Date.now(),
       type: 'say',
       say: 'text',
       text:
-        response === 'approve' ? 'I approve this tool execution.' : 'I reject this tool execution.'
+        response === 'approve' ? 'Approved tool execution.' : 'Rejected tool execution.'
     }
 
-    // Process the approval/rejection
+    // Process the approval/rejection. The Task will handle its own internal state
+    // and update the clineMessages in the store with subsequent messages (tool results, new AI responses etc.)
     console.log('Controller: Processing approval/rejection:', response)
     await this.task.handleApprovalResponse(response === 'approve' ? 'approved' : 'rejected')
     console.log('Controller: Finished processing approval/rejection')
 
-    // Find the API request started message (if any)
-    const apiRequestStartedIndex = this.task.findLastIndex(
-      this.task.clineMessages,
-      (m) => m.say === 'api_req_started'
-    )
-
-    const apiRequestStartedMessage =
-      apiRequestStartedIndex >= 0 ? this.task.clineMessages[apiRequestStartedIndex] : null
-
-    // Find the last message (which should be the assistant's response)
-    const lastMessageIndex = this.task.clineMessages.length - 1
-    const copilotMessage = lastMessageIndex >= 0 ? this.task.clineMessages[lastMessageIndex] : null
-
-    console.log('Controller: Returning result from handleUserResponse:', {
-      userMessage,
-      apiRequestStartedMessage,
-      copilotMessage
-    })
-
+    // Return only the message that explicitly shows the user's action.
+    // Other messages (like api_req_started, or new assistant messages) will be added by the Task itself.
     return {
-      userMessage,
-      apiRequestStartedMessage,
-      copilotMessage
+      userMessage: userActionDisplayMessage
     }
   }
 }
