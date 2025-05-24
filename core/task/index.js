@@ -53,12 +53,20 @@ class Task {
     //   this.clineMessages,
     //   (m) => m.say === 'api_req_started'
     // )
-    await this.say(
-      'api_req_started',
-      JSON.stringify({
-        request: 'start request Loading...'
-      })
-    )
+
+    // Construct the final text for the api_req_started message first.
+    // This maps the userContent to a more descriptive request string.
+    const apiReqStartedText = JSON.stringify({
+      request: userContent.map((item) => {
+        if (typeof item === 'object' && item.type === 'text') return '[Text Content]'
+        if (typeof item === 'object' && item.type === 'tool_result') return '[Tool Result]'
+        if (typeof item === 'string') return '[Text Content]' // Handle plain strings if they appear
+        return '[Processing Content]' // Fallback for other types
+      }),
+    })
+
+    // Add the api_req_started message to clineMessages and the store once.
+    await this.say('api_req_started', apiReqStartedText)
 
     // Format user content properly for the API
     let formattedContent = userContent
@@ -101,16 +109,6 @@ class Task {
     })
     console.log('apiConversationHistory: ', this.apiConversationHistory)
     console.log('clineMessages: ', this.clineMessages)
-
-    const lastApiReqIndex = this.findLastIndex(
-      this.clineMessages,
-      (m) => m.say === 'api_req_started'
-    )
-    this.clineMessages[lastApiReqIndex].text = JSON.stringify({
-      request: userContent.map(() => '[Text:] or [Tool Use:]')
-    })
-    // 更新最后一个clineMessage
-    await this.saveClineMessagesAndUpdateHistory(this.clineMessages[lastApiReqIndex])
 
     // 发起api请求
     const assistantMessage = await this.attemptApiRequest(this.apiConversationHistory)

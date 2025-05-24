@@ -64,7 +64,7 @@ export const handleResponse = async (response) => {
 
   try {
     store.setIsLoading(true)
-    initController(); // Ensure controller is initialized
+    initController() // Ensure controller is initialized
 
     // Process the user's response through the controller
     console.log('chatActions: Calling controller.handleUserResponse')
@@ -77,9 +77,14 @@ export const handleResponse = async (response) => {
       console.log('chatActions: Got userMessage from controller:', result.userMessage)
       store.saveClineMessages(result.userMessage) // Add user's explicit action message (e.g., "Approved tool execution.")
     } else if (result) {
-      console.log('chatActions: controller.handleUserResponse returned a result, but no specific userMessage to display for this action.', result);
+      console.log(
+        'chatActions: controller.handleUserResponse returned a result, but no specific userMessage to display for this action.',
+        result
+      )
     } else {
-      console.log('chatActions: No result from controller.handleUserResponse, or task was not waiting for approval.')
+      console.log(
+        'chatActions: No result from controller.handleUserResponse, or task was not waiting for approval.'
+      )
     }
 
     // No need to handle apiRequestStartedMessage or copilotMessage here,
