@@ -87,7 +87,7 @@ const ChatHistory = () => {
                     </svg>
                   </div>
                   <div>
-                    <div className="font-medium">{chat.title || 'What can GitHub Copilot do?'}</div>
+                    <div className="font-medium">{chat.title || 'What can you do?'}</div>
                     <div className="text-sm text-gray-500">{getTimeAgo(chat.createdAt)}</div>
                   </div>
                 </div>

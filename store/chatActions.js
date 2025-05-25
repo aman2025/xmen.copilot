@@ -34,10 +34,10 @@ export const sendMessage = async (content) => {
 
     // The Task instance now directly updates the store with all necessary clineMessages.
     // No need to save messages here.
-    // const { userMessage, apiRequestStartedMessage, copilotMessage } = result;
+    // const { userMessage, apiRequestStartedMessage, clineMessage } = result;
     // store.saveClineMessages(userMessage);
     // store.saveClineMessages(apiRequestStartedMessage);
-    // store.saveClineMessages(copilotMessage);
+    // store.saveClineMessages(clineMessage);
 
     store.setMessageInput('') // Clear input field
   } catch (error) {
@@ -87,7 +87,7 @@ export const handleResponse = async (response) => {
       )
     }
 
-    // No need to handle apiRequestStartedMessage or copilotMessage here,
+    // No need to handle apiRequestStartedMessage or clineMessage here,
     // as the Task's handleApprovalResponse flow will add subsequent messages to the store.
 
     // Clearing message input might not be necessary here as approval/rejection doesn't usually involve the text input field.

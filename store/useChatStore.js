@@ -35,7 +35,7 @@ const useChatStore = create((set) => ({
       const newState = {
         clineMessages: [...state.clineMessages, message]
       }
-      console.log('Copilot Messages updated:', newState.clineMessages)
+      console.log('Cline Messages updated:', newState.clineMessages)
       return newState
     }),
 

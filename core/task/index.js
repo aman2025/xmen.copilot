@@ -580,7 +580,7 @@ class Task {
   }
 
   async handleToolUse(_toolData, metadata) {
-    const copilotMessage = {
+    const clineMessage = {
       ts: Date.now(),
       type: 'say',
       say: 'tool',
@@ -600,7 +600,7 @@ class Task {
       ]
     }
 
-    return { copilotMessage, apiMessage }
+    return { clineMessage, apiMessage }
   }
 }
 

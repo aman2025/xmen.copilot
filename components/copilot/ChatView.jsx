@@ -32,7 +32,7 @@ const ChatView = () => {
         }
 
         return (
-          <div className="copilot-message tool-approval">
+          <div className="cline-message tool-approval">
             <div className="message-content">
               <p className="font-medium">Tool Execution Request</p>
               <p>
@@ -74,7 +74,7 @@ const ChatView = () => {
         case 'api_req_started':
           // Optionally show a loading indicator or API request info
           return (
-            <div className="copilot-message api-request">
+            <div className="cline-message api-request">
               <div className="message-content">
                 <p>Processing request...</p>
               </div>
@@ -91,7 +91,7 @@ const ChatView = () => {
           }
 
           return (
-            <div className="copilot-message tool">
+            <div className="cline-message tool">
               <div className="message-content">
                 <p>Using tool: {toolData.tool || 'Unknown tool'}</p>
                 <pre className="tool-metadata">{message.text}</pre>
@@ -109,7 +109,7 @@ const ChatView = () => {
           }
 
           return (
-            <div className="copilot-message tool-result">
+            <div className="cline-message tool-result">
               <div className="message-content">
                 <p className="font-medium">Tool Result: {resultData.tool || 'Unknown tool'}</p>
                 <pre className="my-2 rounded bg-gray-100 p-2 text-sm dark:bg-gray-800">
@@ -121,7 +121,7 @@ const ChatView = () => {
 
         case 'completion_result':
           return (
-            <div className="copilot-message completion">
+            <div className="cline-message completion">
               <div className="message-content">
                 <p>{message.text}</p>
               </div>
@@ -130,7 +130,7 @@ const ChatView = () => {
 
         case 'error':
           return (
-            <div className="copilot-message error">
+            <div className="cline-message error">
               <div className="message-content">
                 <p>{message.text}</p>
               </div>
@@ -139,7 +139,7 @@ const ChatView = () => {
 
         default:
           return (
-            <div className="copilot-message">
+            <div className="cline-message">
               <div className="message-content">{message.text}</div>
             </div>
           )
@@ -148,7 +148,7 @@ const ChatView = () => {
 
     // Fallback for any other message types
     return (
-      <div className="copilot-message">
+      <div className="cline-message">
         <div className="message-content">
           {message && typeof message.text === 'string'
             ? message.text
