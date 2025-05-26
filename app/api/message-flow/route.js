@@ -47,7 +47,7 @@ export async function POST(request) {
 
     // Prepare messages for AI with system prompt
     const formattedMessages = [{ role: 'system', content: SYSTEM_PROMPT }, ...(messages || [])]
-    console.log('Formatted messages for AI:', formattedMessages)
+    // console.log('Formatted messages for AI:', formattedMessages)
 
     // Apply context optimizations
     const optimizedMessages = contextManager.getUpdatedContextMessages(formattedMessages)

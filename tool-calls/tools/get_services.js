@@ -6,8 +6,8 @@ const get_services = async (params = {}) => {
   // Sample data
   const allServices = [
     {
-      id: '10001',
-      serviceId: '001',
+      id: '1001',
+      serviceId: '1001',
       serviceName: 'dfa-crc',
       description: 'Handles all order processing workflows.'
     }
