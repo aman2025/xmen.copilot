@@ -173,16 +173,27 @@ export const createMistral = async (messages, tools) => {
 export const formatMistralResponse = async (response) => {
   let message = response.choices[0].message
 
-  // Attempt to correct malformed tool calls where 'content' might contain the tool call
-  // and 'tool_calls' is null, undefined, or empty.
+  // If we have content but no tool_calls, and the content starts with obvious text markers,
+  // we should just return the message as-is
   if (
     (!message.tool_calls || message.tool_calls.length === 0) &&
     message.content &&
-    typeof message.content === 'string'
+    typeof message.content === 'string' &&
+    (message.content.startsWith('The') || 
+     message.content.startsWith('|') ||
+     message.content.includes('\n'))
+  ) {
+    return message
+  }
+
+  // Only attempt JSON parsing if the content looks like it might be JSON
+  if (
+    (!message.tool_calls || message.tool_calls.length === 0) &&
+    message.content &&
+    typeof message.content === 'string' &&
+    (message.content.startsWith('[') || message.content.startsWith('{'))
   ) {
     try {
-      // Attempt to parse the content as JSON.
-      // It's expected to be an array of tool call-like objects.
       const potentialToolCalls = JSON.parse(message.content)
 
       if (Array.isArray(potentialToolCalls) && potentialToolCalls.length > 0) {
@@ -224,13 +235,10 @@ export const formatMistralResponse = async (response) => {
         }
       }
     } catch (e) {
-      // Content was not valid JSON or did not match the expected tool call structure.
-      // Log this for debugging but proceed with the original message.
-      console.log(
-        'Message content was not a parseable/correctable tool call structure, or tool_calls already populated.',
-        e
-      )
+      console.log('Content is not JSON format, returning original message')
+      return message
     }
   }
+
   return message
 }
