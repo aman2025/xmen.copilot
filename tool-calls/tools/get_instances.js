@@ -22,8 +22,8 @@ const get_instances = async (params = {}) => {
       serviceName: 'dfa-crc',
       ip: '10.168.1.129',
       port: 8089,
-      instanceStatus: 'stopped',
-      statusDesc: 'The instance is stopped'
+      instanceStatus: 'running',
+      statusDesc: 'The instance is running'
     }
   ]
 

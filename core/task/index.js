@@ -252,7 +252,7 @@ class Task {
       const result = await toolFunction(params)
       console.log(`Tool ${toolName} returned result:`, result)
 
-      // Add tool result to the conversation
+      // Add tool result to the clineMessages for UI display
       await this.say(
         'tool_result',
         JSON.stringify({
@@ -261,145 +261,79 @@ class Task {
         })
       )
 
-      // Add API request started message for the tool result
-      await this.say(
-        'api_req_started',
-        JSON.stringify({
-          request: `<r>\n${JSON.stringify(result)}\n</r>`
-        })
-      )
-
-      // Continue the conversation with the tool result
-      // First, add the assistant message with the tool call
-      console.log(`Adding assistant message with tool call ID: ${actualToolCallId}`)
+      // Add the assistant message (that initiated the tool call) to API history
+      // This ensures the AI's request for the tool is recorded.
+      console.log(`Adding assistant message with tool call ID: ${actualToolCallId} to API history`)
       await this.addToApiConversationHistory({
         role: 'assistant',
         tool_calls: [
           {
             id: actualToolCallId,
+            type: 'function', // Ensure 'type: function' is included for Mistral compatibility
             function: {
               name: toolName,
               arguments: JSON.stringify(params || {})
             }
           }
         ],
-        content: ''
+        content: '' // Mistral allows null or empty content when tool_calls are present
       })
 
-      // Then, add the tool result to the API conversation
-      // Format the result as a string as expected by the API
-      // Use the same tool_call_id as in the assistant message
-      console.log(`Adding tool response with tool_call_id: ${actualToolCallId}`)
+      // Then, add the tool result to the API conversation history
+      console.log(`Adding tool response with tool_call_id: ${actualToolCallId} to API history`)
       await this.addToApiConversationHistory({
         role: 'tool',
         tool_call_id: actualToolCallId,
         content: typeof result === 'string' ? result : JSON.stringify(result)
       })
 
-      // Format a helpful message based on the tool type to display to the user
-      // We'll use this for the UI but won't add it to the API conversation history
-      // since the Mistral API expects the last message to be from the user or a tool
-      let assistantMessage = ''
-
-      if (toolName === 'get_services') {
-        // For get_services, mention the service ID that can be used for get_instances
-        const services = Array.isArray(result) ? result : [result]
-        if (services.length > 0) {
-          const serviceInfo = services
-            .map(
-              (s) =>
-                `${s.serviceName} (ID: ${s.serviceId}${s.description ? `, ${s.description}` : ''})`
-            )
-            .join(', ')
-          assistantMessage = `I found the following services: ${serviceInfo}. You can get instances for a service by using its serviceId.`
-        } else {
-          assistantMessage = "I didn't find any services matching your criteria."
-        }
-      } else if (toolName === 'get_instances') {
-        // For get_instances, summarize the instances found
-        const instances = Array.isArray(result) ? result : [result]
-        if (instances.length > 0) {
-          const runningCount = instances.filter((i) => i.instanceStatus === 'running').length
-          const stoppedCount = instances.filter((i) => i.instanceStatus === 'stopped').length
-          assistantMessage = `I found ${instances.length} instances (${runningCount} running, ${stoppedCount} stopped).`
-        } else {
-          assistantMessage = "I didn't find any instances matching your criteria."
-        }
-      } else {
-        // Generic message for other tools
-        assistantMessage = `I've received the result from the ${toolName} tool. Here's what I found: ${typeof result === 'string' ? result : JSON.stringify(result)}`
-      }
-
-      // Display the message to the user in the UI
-      await this.say('text', assistantMessage)
-
-      // Now we can continue with the next user message
-      // Convert the tool result to a text message that the API can understand
-      await this.say('text', `Tool ${toolName} returned: ${JSON.stringify(result)}`)
-
-      // Add a user message to prompt the next action
-      // This ensures the last message is from the user before making the API request
+      // Add a user message to API history to prompt the AI with the tool's result.
+      // This maintains the conversational flow for the AI.
+      const userPromptAfterTool = `The ${toolName} tool was executed. Result: ${typeof result === 'string' ? result : JSON.stringify(result)}. What is the next step based on this information?`
       await this.addToApiConversationHistory({
         role: 'user',
-        content: `I've received the ${toolName} results. What should I do next?`
+        content: userPromptAfterTool
       })
 
-      // Trigger a new API request to get the next assistant response
-      // This will allow the assistant to decide what to do next (e.g., call get_instances)
+      // Indicate in the UI that a new request to the AI is being made.
       await this.say(
         'api_req_started',
         JSON.stringify({
-          request: 'Continuing conversation after tool execution...'
+          request: 'Continuing conversation after tool execution and providing results to AI...'
         })
       )
 
-      // Make a new API request with the current conversation history
-      const nextAssistantMessage = await this.attemptApiRequest(this.apiConversationHistory)
-      this.assistantMessageContent = parseAssistantMessage(nextAssistantMessage)
+      // Make a new API request to get the AI's response to the tool execution.
+      const nextAssistantMessageFromAI = await this.attemptApiRequest(this.apiConversationHistory)
+      this.assistantMessageContent = parseAssistantMessage(nextAssistantMessageFromAI)
 
-      // Store the current waitingForApproval state
-      const wasWaitingForApproval = this.waitingForApproval
-
-      // Present the next assistant message to the user
+      // Present the AI's actual response to the user.
+      // `presentAssistantMessage` handles calling `this.say` with appropriate types.
       await this.presentAssistantMessage()
 
-      // If we weren't waiting for approval before, but now we are,
-      // it means the new assistant message triggered a new tool call
-      // that needs approval. In this case, we should add the assistant message
-      // to the conversation history.
-      if (!wasWaitingForApproval) {
-        await this.addToApiConversationHistory(nextAssistantMessage)
-      }
+      // Add the AI's response to the API conversation history.
+      // `addToApiConversationHistory` handles duplicate prevention.
+      await this.addToApiConversationHistory(nextAssistantMessageFromAI)
     } catch (error) {
       console.error(`Error executing tool ${toolName}:`, error)
       await this.say('error', `Error executing tool ${toolName}: ${error.message}`)
 
-      // We don't need to reset approval state here since it's already been reset in handleApprovalResponse
-      // This prevents potential race conditions
+      // Error handling remains, approval state is managed by `handleApprovalResponse`
     }
   }
 
   // New method to handle tool rejection
   async handleToolRejection(toolName) {
+    // Display a message to the user in the UI confirming the rejection.
     await this.say('text', `Tool execution for ${toolName} was rejected.`)
 
-    // We'll display a message to the user in the UI, but we won't add it to the API conversation
-    // history since the Mistral API expects the last message to be from the user or a tool
-
-    // Now we can display the rejection message to the user
-    await this.say(
-      'text',
-      `The ${toolName} tool was not executed. Let me know if you need anything else.`
-    )
-
-    // Add a user message to prompt the next action
-    // This ensures the last message is from the user before making the API request
+    // Add a user message to API history to inform the AI about the rejection and prompt the next action.
     await this.addToApiConversationHistory({
       role: 'user',
-      content: `I rejected the ${toolName} tool. What else can you help me with?`
+      content: `I have rejected the execution of the ${toolName} tool. What else can you help me with?`
     })
 
-    // Trigger a new API request to get the next assistant response
+    // Indicate in the UI that a new request to the AI is being made.
     await this.say(
       'api_req_started',
       JSON.stringify({
@@ -407,23 +341,17 @@ class Task {
       })
     )
 
-    // Make a new API request with the current conversation history
-    const nextAssistantMessage = await this.attemptApiRequest(this.apiConversationHistory)
-    this.assistantMessageContent = parseAssistantMessage(nextAssistantMessage)
+    // Make a new API request to get the AI's response to the tool rejection.
+    const nextAssistantMessageFromAI = await this.attemptApiRequest(this.apiConversationHistory)
+    this.assistantMessageContent = parseAssistantMessage(nextAssistantMessageFromAI)
 
-    // Store the current waitingForApproval state
-    const wasWaitingForApproval = this.waitingForApproval
-
-    // Present the next assistant message to the user
+    // Present the AI's actual response to the user.
+    // `presentAssistantMessage` handles calling `this.say` with appropriate types.
     await this.presentAssistantMessage()
 
-    // If we weren't waiting for approval before, but now we are,
-    // it means the new assistant message triggered a new tool call
-    // that needs approval. In this case, we should add the assistant message
-    // to the conversation history.
-    if (!wasWaitingForApproval) {
-      await this.addToApiConversationHistory(nextAssistantMessage)
-    }
+    // Add the AI's response to the API conversation history.
+    // `addToApiConversationHistory` handles duplicate prevention.
+    await this.addToApiConversationHistory(nextAssistantMessageFromAI)
   }
 
   // New method to ask for user input
@@ -458,8 +386,16 @@ class Task {
       if (msg.role !== message.role) return false
 
       // For assistant messages with tool calls, check tool call IDs
-      if (msg.role === 'assistant' && msg.tool_calls && message.tool_calls) {
-        return msg.tool_calls.some((tc1) => message.tool_calls.some((tc2) => tc1.id === tc2.id))
+      if (
+        msg.role === 'assistant' &&
+        msg.tool_calls &&
+        Array.isArray(msg.tool_calls) &&
+        message.tool_calls &&
+        Array.isArray(message.tool_calls)
+      ) {
+        return msg.tool_calls.some((tc1) =>
+          message.tool_calls.some((tc2) => tc1.id === tc2.id && tc1.function?.name === tc2.function?.name)
+        )
       }
 
       // For tool responses, check tool_call_id
@@ -467,7 +403,14 @@ class Task {
         return msg.tool_call_id === message.tool_call_id
       }
 
-      // For other messages, compare content
+      // For other messages (user, assistant with content), compare content
+      // Avoid comparing content for assistant messages that primarily carry tool_calls (content might be "" or null)
+      if (
+        message.role === 'assistant' &&
+        (message.tool_calls_length > 0 || (msg.tool_calls && msg.tool_calls_length > 0))
+      ) {
+        return false // Don't consider content for de-duplication if tool_calls are present
+      }
       return msg.content === message.content
     })
 
@@ -476,6 +419,7 @@ class Task {
     } else {
       console.log('Prevented duplicate message addition to conversation history:', {
         role: message.role,
+        contentPreview: typeof message.content === 'string' ? message.content.substring(0, 50) : undefined,
         toolCallId: message.tool_calls?.[0]?.id || message.tool_call_id
       })
     }
