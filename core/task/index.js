@@ -62,7 +62,7 @@ class Task {
         if (typeof item === 'object' && item.type === 'tool_result') return '[Tool Result]'
         if (typeof item === 'string') return '[Text Content]' // Handle plain strings if they appear
         return '[Processing Content]' // Fallback for other types
-      }),
+      })
     })
 
     // Add the api_req_started message to clineMessages and the store once.
@@ -453,26 +453,32 @@ class Task {
   }
 
   async addToApiConversationHistory(message) {
-    // Ensure the message is properly formatted for the API
-    let formattedMessage = message
+    // Helper method to prevent duplicate messages
+    const isDuplicate = this.apiConversationHistory.some((msg) => {
+      if (msg.role !== message.role) return false
 
-    // If the message has a content property that's an array, convert it to a string
-    if (message.content && Array.isArray(message.content)) {
-      formattedMessage = {
-        ...message,
-        content: message.content
-          .map((item) => {
-            if (typeof item === 'object' && item.type === 'text') {
-              return item.text
-            }
-            return JSON.stringify(item)
-          })
-          .join('\n')
+      // For assistant messages with tool calls, check tool call IDs
+      if (msg.role === 'assistant' && msg.tool_calls && message.tool_calls) {
+        return msg.tool_calls.some((tc1) => message.tool_calls.some((tc2) => tc1.id === tc2.id))
       }
-    }
 
-    this.apiConversationHistory.push(formattedMessage)
-    await useChatStore.getState().saveApiConversationHistory(formattedMessage)
+      // For tool responses, check tool_call_id
+      if (msg.role === 'tool' && message.role === 'tool') {
+        return msg.tool_call_id === message.tool_call_id
+      }
+
+      // For other messages, compare content
+      return msg.content === message.content
+    })
+
+    if (!isDuplicate) {
+      this.apiConversationHistory.push(message)
+    } else {
+      console.log('Prevented duplicate message addition to conversation history:', {
+        role: message.role,
+        toolCallId: message.tool_calls?.[0]?.id || message.tool_call_id
+      })
+    }
   }
 
   async saveClineMessagesAndUpdateHistory(message) {
