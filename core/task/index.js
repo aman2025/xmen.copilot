@@ -534,30 +534,6 @@ class Task {
     }
     return result
   }
-
-  async handleToolUse(_toolData, metadata) {
-    const clineMessage = {
-      ts: Date.now(),
-      type: 'say',
-      say: 'tool',
-      text: JSON.stringify({
-        tool: metadata.name || 'unknown',
-        content: `Tool was used successfully.`
-      })
-    }
-
-    const apiMessage = {
-      role: 'assistant',
-      content: [
-        {
-          type: 'text',
-          text: `Tool ${metadata.name || 'unknown'} was used successfully.`
-        }
-      ]
-    }
-
-    return { clineMessage, apiMessage }
-  }
 }
 
 export default Task
