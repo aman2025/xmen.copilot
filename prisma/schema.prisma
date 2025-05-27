@@ -1,27 +1,49 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "postgresql" // Or your chosen database
   url      = env("DATABASE_URL")
 }
 
-model Chat {
-  id        String    @id @default(uuid())
-  title     String
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  messages  Message[] @relation("ChatToMessages")
+model ChatSession {
+  id            String    @id @default(cuid())
+  title         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  apiMessages   ApiMessage[]
+  clineMessages ClineMessage[]
+
+  @@index([updatedAt])
 }
 
-model Message {
-  id           String   @id @default(uuid())
-  content      String
-  role         String   // 'user', 'assistant', or 'tool'
-  toolCalls    Json?    // Store tool_calls array
-  toolCallId   String?  // Store tool_call_id for tool responses
-  createdAt    DateTime @default(now())
-  chatId       String
-  chat         Chat     @relation("ChatToMessages", fields: [chatId], references: [id], onDelete: Cascade)
+model ApiMessage {
+  id            String    @id @default(cuid())
+  chatSessionId String
+  chatSession   ChatSession @relation(fields: [chatSessionId], references: [id], onDelete: Cascade)
+  role          String // "user", "assistant", "system", "tool"
+  content       String?
+  tool_calls    Json? // For assistant's requests for tool use. [{ id: "...", type: "function", function: { name: "...", arguments: "..." } }]
+  tool_call_id  String? // For tool responses, linking back to a tool_call.id
+  name          String? // For tool role, storing tool name. Also for function call's name if not in tool_calls.
+  timestamp     DateTime  @default(now())
+
+  @@index([chatSessionId, timestamp])
+}
+
+model ClineMessage {
+  id            String    @id @default(cuid())
+  chatSessionId String
+  chatSession   ChatSession @relation(fields: [chatSessionId], references: [id], onDelete: Cascade)
+  ts            BigInt // Original timestamp from the source system
+  type          String // "ask" or "say"
+  subType       String // Detailed type: e.g., "text", "api_req_started", "tool_result", "call_sys_tool", "completion_result", "error"
+  text          String // Content, could be plain text or stringified JSON
+  createdAt     DateTime  @default(now())
+
+  @@index([chatSessionId, createdAt])
 } 
