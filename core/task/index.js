@@ -134,10 +134,16 @@ class Task {
     }
 
     const { type } = block
+    const completionMarker = 'TASK_COMPLETE:'
 
     switch (type) {
       case 'text': {
-        await this.say('text', block.content)
+        if (block.content && typeof block.content === 'string' && block.content.startsWith(completionMarker)) {
+          const resultText = block.content.substring(completionMarker.length).trim()
+          await this.say('completion_result', resultText)
+        } else {
+          await this.say('text', block.content)
+        }
         break
       }
       case 'tool_use': {

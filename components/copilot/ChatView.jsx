@@ -121,8 +121,14 @@ const ChatView = () => {
 
         case 'completion_result':
           return (
-            <div className="cline-message completion">
+            <div className="cline-message completion-result">
               <div className="message-content">
+                <p className="mb-2 flex items-center font-semibold text-green-600 dark:text-green-400">
+                  <span role="img" aria-label="completed" className="mr-2 text-xl">
+                    ✅
+                  </span>
+                  Task Completed
+                </p>
                 <p>{message.text}</p>
               </div>
             </div>
