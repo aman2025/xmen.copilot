@@ -23,6 +23,17 @@ This architecture provides clear separation of concerns:
 - Controller manages state and coordinates tasks
 - Task handles the execution of AI requests and tool operations
 
+### Core State
+
+The `Controller` class in core/controller/index.js manages multiple types of persistent storage (global state, conversation history and ui messages), handles state distribution to webview components. 
+
+The Controller acts as the single source of truth for all persistent state. It:
+- Manages global state and conversation data
+- Coordinates state updates between components
+- Ensures state consistency across webview reloads
+- Saving and loading task state
+- Managing task history
+
 ## Task Execution System
 
 The Task class is responsible for executing AI requests and tool operations. Each task runs in its own instance of the Task class, ensuring isolation and proper state management.
@@ -157,20 +168,7 @@ class Task {
     // 4. Resume task execution
     await this.initiateTaskLoop(newUserContent, false)
   }
-
-  async saveTaskState() {
-    // Save conversation history
-    await saveApiConversationHistory(this.getContext(), this.taskId, this.apiConversationHistory)
-    await saveClineMessages(this.getContext(), this.taskId, this.clineMessages)
-    
-    // Update task history
-    await this.controllerRef.deref()?.updateTaskHistory({
-      id: this.taskId,
-      ts: lastMessage.ts,
-      task: taskMessage.text,
-      // ... other metadata
-    })
-  }
+  
 }
 ```
 
@@ -198,7 +196,7 @@ getSavedApiConversationHistory(context, taskId) {
 This guide provides a comprehensive overview of the architecture, with special focus on state management, data persistence, and code organization. Following these patterns ensures robust feature implementation with proper state handling across the copilot's components.
 
 Remember:
-- The core architecture follows a Webview -> Controller -> Task flow
+- The core architecture follows a WebviewUI -> Controller -> Task flow
 - Use proper typing for all state and messages
 - Handle errors and edge cases
 - Follow the established patterns for consistency
