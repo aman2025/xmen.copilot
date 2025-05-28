@@ -56,8 +56,8 @@ const ChatHistory = () => {
 
   const handleSelectChat = (chatIdToLoad, chatTitle) => {
     if (currentChatId === chatIdToLoad) {
-        setView('chat')
-        return
+      setView('chat')
+      return
     }
     loadChatSession(chatIdToLoad, chatTitle)
   }
@@ -93,7 +93,7 @@ const ChatHistory = () => {
 
   return (
     <div className="flex h-full flex-col">
-      <div className="flex-1 overflow-y-auto p-3 space-y-2">
+      <div className="flex-1 space-y-2 overflow-y-auto p-3">
         {chatHistory.map((chat) => (
           <div
             key={chat.id}
@@ -104,7 +104,7 @@ const ChatHistory = () => {
             <div className="flex min-w-0 items-center gap-3">
               <MessageSquare className="h-5 w-5 flex-shrink-0 text-gray-500 dark:text-gray-400" />
               <div className="min-w-0 flex-1">
-                <div className="truncate font-medium text-sm text-gray-800 dark:text-gray-200">
+                <div className="truncate text-sm font-medium text-gray-800 dark:text-gray-200">
                   {chat.title || 'Untitled Chat'}
                 </div>
                 <div className="truncate text-xs text-gray-500 dark:text-gray-400">

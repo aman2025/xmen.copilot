@@ -15,10 +15,17 @@ export async function POST(request) {
       }
     })
 
-    return new Response(JSON.stringify({ chatId: chatSession.id, title: chatSession.title, createdAt: chatSession.createdAt }), {
-      status: 201, // 201 Created
-      headers: { 'Content-Type': 'application/json' }
-    })
+    return new Response(
+      JSON.stringify({
+        chatId: chatSession.id,
+        title: chatSession.title,
+        createdAt: chatSession.createdAt
+      }),
+      {
+        status: 201, // 201 Created
+        headers: { 'Content-Type': 'application/json' }
+      }
+    )
   } catch (error) {
     console.error('Failed to create chat session:', error)
     return new Response(JSON.stringify({ error: 'Failed to create chat session' }), {
@@ -35,11 +42,12 @@ export async function GET() {
       orderBy: {
         updatedAt: 'desc' // Order by most recently updated
       },
-      select: { // Select only necessary fields for the history list
+      select: {
+        // Select only necessary fields for the history list
         id: true,
         title: true,
         createdAt: true,
-        updatedAt: true,
+        updatedAt: true
         // Optionally, include a snippet of the last message or message count
       }
     })

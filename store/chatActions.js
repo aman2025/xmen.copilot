@@ -44,7 +44,8 @@ export const sendMessage = async (content) => {
     store.setMessageInput('') // Clear input field after sending
   } catch (error) {
     console.error('chatActions: Error sending message:', error)
-    store.addClineMessage({ // Use addClineMessage
+    store.addClineMessage({
+      // Use addClineMessage
       ts: Date.now(),
       type: 'say',
       say: 'error',
@@ -59,7 +60,8 @@ export const sendMessage = async (content) => {
  * Handles user responses to AI questions or prompts
  * @param {string} response - The type of response (e.g., 'approve', 'reject')
  */
-export const handleResponse = async (responseType) => { // e.g., 'approve', 'reject'
+export const handleResponse = async (responseType) => {
+  // e.g., 'approve', 'reject'
   console.log('chatActions: handleResponse called with:', responseType)
   const store = useChatStore.getState()
   store.setIsLoading(true)
@@ -68,11 +70,11 @@ export const handleResponse = async (responseType) => { // e.g., 'approve', 'rej
   if (!activeController || !activeController.getCurrentTask()) {
     console.warn('chatActions: No active task to handle response.')
     store.addClineMessage({
-        ts: Date.now(),
-        type: 'say',
-        say: 'error',
-        text: 'No active task to process your response.'
-    });
+      ts: Date.now(),
+      type: 'say',
+      say: 'error',
+      text: 'No active task to process your response.'
+    })
     store.setIsLoading(false)
     return
   }
@@ -84,7 +86,8 @@ export const handleResponse = async (responseType) => { // e.g., 'approve', 'rej
     await activeController.handleUserResponse(responseType) // Pass 'approve' or 'reject'
   } catch (error) {
     console.error('chatActions: Error handling response:', error)
-    store.addClineMessage({ // Use addClineMessage
+    store.addClineMessage({
+      // Use addClineMessage
       ts: Date.now(),
       type: 'say',
       say: 'error',
@@ -111,7 +114,8 @@ export const loadChatSession = async (chatId, chatTitle = 'Chat') => {
     store.setView('chat') // Switch to chat view
   } catch (error) {
     console.error('chatActions: Error loading chat session:', error)
-    store.addClineMessage({ // Use addClineMessage
+    store.addClineMessage({
+      // Use addClineMessage
       ts: Date.now(),
       type: 'say',
       say: 'error',
@@ -133,17 +137,17 @@ export const startNewChat = async () => {
   store.setCurrentChatId(null)
   store.setCurrentChatTitle('New Conversation') // Or derive from first message later
 
-  const activeController = initController();
+  const activeController = initController()
   // We don't provide initial user input here. The user will type it.
   // The controller needs a way to set up a "clean slate" or the first `sendMessage` will handle it.
   // For now, let's assume controller.initOrLoadTask(null, null) clears any existing task.
   try {
-    await activeController.initOrLoadTask(null, null); // This will clear the current task in controller
-    store.setView('chat');
+    await activeController.initOrLoadTask(null, null) // This will clear the current task in controller
+    store.setView('chat')
   } catch (error) {
-      console.error("chatActions: Error preparing for new chat:", error);
-      // Handle error appropriately
+    console.error('chatActions: Error preparing for new chat:', error)
+    // Handle error appropriately
   } finally {
-    store.setIsLoading(false);
+    store.setIsLoading(false)
   }
 }

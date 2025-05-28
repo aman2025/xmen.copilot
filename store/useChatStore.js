@@ -13,7 +13,7 @@ const useChatStore = create((set, get) => ({
   // apiConversationHistory is now primarily managed within the active Task instance
   // and persisted/fetched via backend. Store might not need to hold it directly.
   // clineMessages is the source of truth for UI.
-  clineMessages: [], 
+  clineMessages: [],
   messageInput: '',
 
   // Basic setters
@@ -30,11 +30,15 @@ const useChatStore = create((set, get) => ({
     set((state) => {
       // Prevent duplicates based on timestamp and text (simple check)
       const exists = state.clineMessages.some(
-        (m) => m.ts === message.ts && m.text === message.text && m.type === message.type && m.say === message.say
-      );
+        (m) =>
+          m.ts === message.ts &&
+          m.text === message.text &&
+          m.type === message.type &&
+          m.say === message.say
+      )
       if (exists) {
-        console.log('Prevented duplicate cline message addition to store:', message);
-        return {}; // No change
+        console.log('Prevented duplicate cline message addition to store:', message)
+        return {} // No change
       }
       const newState = {
         clineMessages: [...state.clineMessages, message]
@@ -52,7 +56,7 @@ const useChatStore = create((set, get) => ({
       console.log('Cline Messages set (replaced all):', newState.clineMessages.length)
       return newState
     }),
-  
+
   // Clears messages, typically when starting a new chat or clearing UI
   clearMessages: () => {
     console.log('Clearing clineMessages from store')

@@ -3,7 +3,12 @@ import useChatStore from '../../store/useChatStore'
 import { parseAssistantMessage } from '../assistant-message/parse-assistant-message'
 
 class Task {
-  constructor(chatId, initialUserInput = null, existingApiHistory = [], existingClineMessages = []) {
+  constructor(
+    chatId,
+    initialUserInput = null,
+    existingApiHistory = [],
+    existingClineMessages = []
+  ) {
     this.chatId = chatId
     this.isInitialized = false
     this.apiConversationHistory = [...existingApiHistory] // Initialize with fetched history
@@ -15,26 +20,24 @@ class Task {
     this.waitingForApproval = false
     this.lastToolCallId = null
 
-    console.log(`Task instantiated for chatId: ${this.chatId}`);
-    console.log('Initial API History:', this.apiConversationHistory);
-    console.log('Initial Cline Messages:', this.clineMessages);
-
+    console.log(`Task instantiated for chatId: ${this.chatId}`)
+    console.log('Initial API History:', this.apiConversationHistory)
+    console.log('Initial Cline Messages:', this.clineMessages)
 
     if (this.chatId && !initialUserInput && existingClineMessages.length > 0) {
       // Resuming task: populate store with loaded clineMessages
       // Ensure not to add duplicates if store already has them from a previous load
       useChatStore.getState().setClineMessages([...this.clineMessages]) // Use a setter to replace
-      console.log(`Task for ${this.chatId} resumed, clineMessages restored to store.`);
+      console.log(`Task for ${this.chatId} resumed, clineMessages restored to store.`)
       // Consider if any specific "resumption" message should be added to UI
       // this.say('text', '[Task Resumed]', true); // Example, true to persist
-      this.isInitialized = true; // Mark as initialized if loading existing
+      this.isInitialized = true // Mark as initialized if loading existing
     }
-
 
     if (initialUserInput && this.chatId) {
       this.startTask(initialUserInput)
     } else if (!this.chatId) {
-        console.error("Task initialized without a chatId!");
+      console.error('Task initialized without a chatId!')
     }
   }
 
@@ -47,14 +50,13 @@ class Task {
     console.log(`Task (${this.chatId}): startTask with input:`, taskInputText)
     // this.clineMessages = [] // Don't clear if resuming/loading
     // this.apiConversationHistory = [] // Don't clear if resuming/loading
-    
+
     // The first user message for a new task
-    const userApiMessage = { role: 'user', content: taskInputText };
+    const userApiMessage = { role: 'user', content: taskInputText }
     // This initial message is saved by the POST /api/chat/[chatId]/messages route
     // So, we don't need to explicitly save it here via addToApiConversationHistory(userApiMessage, true)
     // However, we do need to add it to our local history for the first AI call.
-    this.apiConversationHistory.push(userApiMessage);
-
+    this.apiConversationHistory.push(userApiMessage)
 
     // The corresponding cline message for UI. Also saved by POST messages route.
     // But we add it to UI immediately.
@@ -65,39 +67,39 @@ class Task {
     // The content for the AI should be just the user's input for the first turn
     await this.initiateTaskLoop(taskInputText)
   }
-  
+
   // New method to handle subsequent user inputs in an ongoing task
   async handleUserProvidedInput(userInputText) {
     if (!this.isInitialized || !this.chatId) {
-        console.error("Task not initialized or no chatId, cannot handle user input.");
-        return;
+      console.error('Task not initialized or no chatId, cannot handle user input.')
+      return
     }
-    console.log(`Task (${this.chatId}): handleUserProvidedInput:`, userInputText);
+    console.log(`Task (${this.chatId}): handleUserProvidedInput:`, userInputText)
 
     // Add user's message to local history and UI
-    const userApiMessage = { role: 'user', content: userInputText };
+    const userApiMessage = { role: 'user', content: userInputText }
     // this.apiConversationHistory.push(userApiMessage); // Will be added by the API call flow
-                                                      // but needed for the payload to attemptApiRequest
+    // but needed for the payload to attemptApiRequest
 
-    await this.say('text', userInputText, true); // Persist this cline message
+    await this.say('text', userInputText, true) // Persist this cline message
 
     // Make API request with this new user input
-    await this.initiateTaskLoop(userInputText);
+    await this.initiateTaskLoop(userInputText)
   }
-
 
   async initiateTaskLoop(currentUserInputContent) {
     // currentUserInputContent is a string from user, or an object for tool results
-    let payloadForApi;
+    let payloadForApi
     if (typeof currentUserInputContent === 'string') {
-        payloadForApi = { role: 'user', content: currentUserInputContent };
-    } else if (currentUserInputContent && currentUserInputContent.role === 'tool') { // For tool results
-        payloadForApi = currentUserInputContent;
+      payloadForApi = { role: 'user', content: currentUserInputContent }
+    } else if (currentUserInputContent && currentUserInputContent.role === 'tool') {
+      // For tool results
+      payloadForApi = currentUserInputContent
     } else {
-        console.error("initiateTaskLoop: Invalid currentUserInputContent", currentUserInputContent);
-        return;
+      console.error('initiateTaskLoop: Invalid currentUserInputContent', currentUserInputContent)
+      return
     }
-    
+
     // Add to local history *before* sending, so it's part of the context if attemptApiRequest uses it (though it shouldn't)
     // The backend `POST /messages` will save this user/tool message.
     // We just push to local apiConversationHistory to keep track on client if needed, but primary source is backend.
@@ -110,21 +112,20 @@ class Task {
     await this.say('api_req_started', JSON.stringify({ request: 'Processing...' }), true) // Persist this
 
     try {
-        const assistantRawApiMessage = await this.attemptApiRequest(payloadForApi)
-        if (!assistantRawApiMessage || !assistantRawApiMessage.role) {
-            throw new Error("Received invalid or empty response from API.");
-        }
+      const assistantRawApiMessage = await this.attemptApiRequest(payloadForApi)
+      if (!assistantRawApiMessage || !assistantRawApiMessage.role) {
+        throw new Error('Received invalid or empty response from API.')
+      }
 
-        // Add AI's response to local API history. Backend already saved it.
-        await this.addToApiConversationHistory(assistantRawApiMessage, false) // false: don't saveToBackend, it's already saved
+      // Add AI's response to local API history. Backend already saved it.
+      await this.addToApiConversationHistory(assistantRawApiMessage, false) // false: don't saveToBackend, it's already saved
 
-        this.assistantMessageContent = parseAssistantMessage(assistantRawApiMessage)
+      this.assistantMessageContent = parseAssistantMessage(assistantRawApiMessage)
 
-        await this.presentAssistantMessage() // This will generate and save clineMessages
-
+      await this.presentAssistantMessage() // This will generate and save clineMessages
     } catch (error) {
-        console.error(`Task (${this.chatId}): Error in task loop:`, error);
-        await this.say('error', `Error: ${error.message}`, true); // Persist error message
+      console.error(`Task (${this.chatId}): Error in task loop:`, error)
+      await this.say('error', `Error: ${error.message}`, true) // Persist error message
     }
   }
 
@@ -143,8 +144,12 @@ class Task {
 
     switch (type) {
       case 'text': {
-        let textToSay = block.content;
-        if (block.content && typeof block.content === 'string' && block.content.startsWith(completionMarker)) {
+        let textToSay = block.content
+        if (
+          block.content &&
+          typeof block.content === 'string' &&
+          block.content.startsWith(completionMarker)
+        ) {
           textToSay = block.content.substring(completionMarker.length).trim()
           // The 'completion_result' subType will be handled by this.say()
           await this.say('completion_result', textToSay, true) // true to persist
@@ -179,7 +184,7 @@ class Task {
       }
       default: {
         console.warn(`Task (${this.chatId}): Unknown message type:`, type)
-        await this.say('error', `Unknown assistant message type: ${type}`, true);
+        await this.say('error', `Unknown assistant message type: ${type}`, true)
         break
       }
     }
@@ -194,8 +199,8 @@ class Task {
     if (!this.waitingForApproval || !this.pendingToolCall) {
       console.warn(`Task (${this.chatId}): No pending tool call or not waiting for approval.`)
       // Reset states just in case
-      this.waitingForApproval = false;
-      this.pendingToolCall = null;
+      this.waitingForApproval = false
+      this.pendingToolCall = null
       return
     }
 
@@ -212,12 +217,12 @@ class Task {
       console.log(`Task (${this.chatId}): Tool ${name} rejected.`)
       // Inform AI about rejection
       const rejectionMessageForAI = {
-          role: 'user', // Or 'tool' with special content indicating rejection
-          content: `The user rejected the execution of the tool: ${name}. What is the next step?`
-      };
+        role: 'user', // Or 'tool' with special content indicating rejection
+        content: `The user rejected the execution of the tool: ${name}. What is the next step?`
+      }
       // This message needs to be sent to the AI.
       // This implies another call to initiateTaskLoop or a similar flow.
-      await this.initiateTaskLoop(rejectionMessageForAI.content); // Send simple text for now
+      await this.initiateTaskLoop(rejectionMessageForAI.content) // Send simple text for now
     }
   }
 
@@ -225,11 +230,10 @@ class Task {
     try {
       if (!toolName) throw new Error('Tool name is required')
       const actualToolCallId = toolCallId || this.generateToolCallId() // Should always have toolCallId from AI
-      this.lastToolCallId = actualToolCallId;
+      this.lastToolCallId = actualToolCallId
 
       console.log(`Task (${this.chatId}): Executing tool ${toolName} (ID: ${actualToolCallId})`)
-      await this.say('tool_execution_started', JSON.stringify({ tool: toolName, params }), true);
-
+      await this.say('tool_execution_started', JSON.stringify({ tool: toolName, params }), true)
 
       let toolModule
       try {
@@ -239,7 +243,8 @@ class Task {
         throw new Error(`Tool '${toolName}' not found`)
       }
       const toolFunction = toolModule.default
-      if (typeof toolFunction !== 'function') throw new Error(`Tool '${toolName}' is not a function`)
+      if (typeof toolFunction !== 'function')
+        throw new Error(`Tool '${toolName}' is not a function`)
 
       const result = await toolFunction(params)
       console.log(`Task (${this.chatId}): Tool ${toolName} result:`, result)
@@ -258,42 +263,44 @@ class Task {
         content: typeof result === 'string' ? result : JSON.stringify(result)
         // name: toolName // Mistral might expect 'name' here for 'tool' role messages
       }
-      
+
       // Add AI's request for tool (the original assistant message with tool_calls) to local history
       // This should have been added when assistantRawApiMessage was received.
       // Ensure it's there. The AI's message that *contained* the tool_call.
       const assistantMessageWithToolCall = this.apiConversationHistory.find(
-        msg => msg.role === 'assistant' && msg.tool_calls && msg.tool_calls.some(tc => tc.id === actualToolCallId)
-      );
+        (msg) =>
+          msg.role === 'assistant' &&
+          msg.tool_calls &&
+          msg.tool_calls.some((tc) => tc.id === actualToolCallId)
+      )
       if (!assistantMessageWithToolCall) {
-          console.warn(`Task (${this.chatId}): Could not find original assistant message for tool_call_id ${actualToolCallId} in history. This is unexpected.`);
-          // Potentially construct a placeholder if critical for context, though backend handles history now.
+        console.warn(
+          `Task (${this.chatId}): Could not find original assistant message for tool_call_id ${actualToolCallId} in history. This is unexpected.`
+        )
+        // Potentially construct a placeholder if critical for context, though backend handles history now.
       }
-      
+
       // Add the tool result to local API history. Backend will save it on next POST /messages call.
       // await this.addToApiConversationHistory(toolResultMessageForAI, false); // Already handled by backend
 
       // Continue the conversation by sending the tool result to the AI
       await this.initiateTaskLoop(toolResultMessageForAI)
-
     } catch (error) {
       console.error(`Task (${this.chatId}): Error executing tool ${toolName}:`, error)
       await this.say('error', `Error executing tool ${toolName}: ${error.message}`, true)
       // Inform AI about tool execution error
-       const toolErrorMessageForAI = {
-            role: 'tool',
-            tool_call_id: toolCallId, // Use the original toolCallId
-            content: JSON.stringify({ error: `Tool execution failed: ${error.message}` })
-            // name: toolName 
-        };
-      await this.initiateTaskLoop(toolErrorMessageForAI);
+      const toolErrorMessageForAI = {
+        role: 'tool',
+        tool_call_id: toolCallId, // Use the original toolCallId
+        content: JSON.stringify({ error: `Tool execution failed: ${error.message}` })
+        // name: toolName
+      }
+      await this.initiateTaskLoop(toolErrorMessageForAI)
     }
   }
 
-
   // handleToolRejection logic is now partly in handleApprovalResponse
   // async handleToolRejection(toolName) { ... }
-
 
   async ask(askType, text, saveToBackend = false) {
     const askTs = Date.now()
@@ -322,13 +329,12 @@ class Task {
   async addToClineMessages(message, saveToBackend = false) {
     // Ensure message has chatId if not already present
     if (!message.chatId && this.chatId) {
-        message.chatId = this.chatId;
+      message.chatId = this.chatId
     }
 
     this.clineMessages.push(message) // Add to local cache
     // Update Zustand store. This should append, not replace, unless it's an initial load.
-    useChatStore.getState().addClineMessage(message); 
-
+    useChatStore.getState().addClineMessage(message)
 
     if (saveToBackend && this.chatId && message.chatId === this.chatId) {
       try {
@@ -339,7 +345,7 @@ class Task {
           subType: message.type === 'say' ? message.say : message.ask,
           text: message.text
           // chatId is taken from the URL parameters on the backend, so not needed in the body here.
-        };
+        }
 
         const response = await fetch(`/api/chat/${this.chatId}/cline-messages`, {
           method: 'POST',
@@ -347,31 +353,40 @@ class Task {
           body: JSON.stringify(payloadForBackend) // Send the corrected payload
         })
         if (!response.ok) {
-          console.error(`Task (${this.chatId}): Failed to save cline message to backend: ${response.statusText}`, await response.text())
+          console.error(
+            `Task (${this.chatId}): Failed to save cline message to backend: ${response.statusText}`,
+            await response.text()
+          )
         } else {
-            console.log(`Task (${this.chatId}): Cline message saved to backend successfully.`);
+          console.log(`Task (${this.chatId}): Cline message saved to backend successfully.`)
         }
       } catch (error) {
         console.error(`Task (${this.chatId}): Error saving cline message to backend`, error)
       }
     } else if (saveToBackend && !this.chatId) {
-        console.warn(`Task (${this.chatId}): Cannot save cline message, chatId is missing.`);
+      console.warn(`Task (${this.chatId}): Cannot save cline message, chatId is missing.`)
     }
   }
-  
+
   // addToApiConversationHistory: only adds to local history. Backend manages persistence.
-  async addToApiConversationHistory(message, saveToBackend = false /* This param is now mostly ignored */) {
+  async addToApiConversationHistory(
+    message,
+    saveToBackend = false /* This param is now mostly ignored */
+  ) {
     const isDuplicate = this.apiConversationHistory.some((msg) => {
       if (msg.role !== message.role) return false
       if (msg.role === 'assistant' && msg.tool_calls && message.tool_calls) {
-        return msg.tool_calls.some(tc1 => message.tool_calls.some(tc2 => tc1.id === tc2.id))
+        return msg.tool_calls.some((tc1) => message.tool_calls.some((tc2) => tc1.id === tc2.id))
       }
       if (msg.role === 'tool' && message.role === 'tool') {
         return msg.tool_call_id === message.tool_call_id
       }
       // For content comparison, ensure it's not just empty/null content for tool_calls messages
-      if (message.role === 'assistant' && (message.tool_calls?.length > 0 || msg.tool_calls?.length > 0)) {
-          return false; 
+      if (
+        message.role === 'assistant' &&
+        (message.tool_calls?.length > 0 || msg.tool_calls?.length > 0)
+      ) {
+        return false
       }
       return msg.content === message.content
     })
@@ -380,9 +395,19 @@ class Task {
       this.apiConversationHistory.push(message)
       // No direct saving to backend here; it's handled by the main POST /messages flow
       // or if a specific API message needs ad-hoc saving (rare).
-      console.log(`Task (${this.chatId}): Added to local apiConversationHistory:`, message.role, message.content ? message.content.substring(0,50) : (message.tool_calls ? "Tool Call" : "No Content"));
+      console.log(
+        `Task (${this.chatId}): Added to local apiConversationHistory:`,
+        message.role,
+        message.content
+          ? message.content.substring(0, 50)
+          : message.tool_calls
+            ? 'Tool Call'
+            : 'No Content'
+      )
     } else {
-      console.log(`Task (${this.chatId}): Prevented duplicate message addition to local apiConversationHistory.`)
+      console.log(
+        `Task (${this.chatId}): Prevented duplicate message addition to local apiConversationHistory.`
+      )
     }
   }
 
@@ -392,7 +417,8 @@ class Task {
   // validateConversationHistory - This logic is now primarily on the backend before calling Mistral.
   // The client sends individual messages, and the backend assembles and validates history.
 
-  async attemptApiRequest(messagePayloadToPost) { // messagePayloadToPost is the user/tool message
+  async attemptApiRequest(messagePayloadToPost) {
+    // messagePayloadToPost is the user/tool message
     if (!this.chatId) {
       console.error(`Task (${this.chatId}): Cannot make API request without chatId.`)
       throw new Error('Chat ID is missing for API request.')
@@ -404,7 +430,7 @@ class Task {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         // The body should be structured as the API expects, e.g., { message: messagePayloadToPost }
-        body: JSON.stringify({ message: messagePayloadToPost }) 
+        body: JSON.stringify({ message: messagePayloadToPost })
       })
 
       if (!response.ok) {
@@ -413,8 +439,8 @@ class Task {
         throw new Error(`API request failed: ${response.status} ${errorText}`)
       }
       const assistantRawApiResponse = await response.json() // Expects the raw AI message object
-      console.log(`Task (${this.chatId}): Received raw AI response:`, assistantRawApiResponse);
-      return assistantRawApiResponse;
+      console.log(`Task (${this.chatId}): Received raw AI response:`, assistantRawApiResponse)
+      return assistantRawApiResponse
     } catch (error) {
       console.error(`Task (${this.chatId}): Error in attemptApiRequest:`, error)
       // Return a structured error that can be parsed by parseAssistantMessage
@@ -431,7 +457,7 @@ class Task {
     for (let i = 0; i < 9; i++) {
       result += chars.charAt(Math.floor(Math.random() * chars.length))
     }
-    return `clt_${result}`; // Prefix to denote client-generated if ever needed for debugging
+    return `clt_${result}` // Prefix to denote client-generated if ever needed for debugging
   }
 }
 

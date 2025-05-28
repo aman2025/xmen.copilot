@@ -17,11 +17,17 @@ export async function POST(request, { params }) {
     const clineMessageData = await request.json()
 
     // Validate clineMessageData (basic validation)
-    if (!clineMessageData || typeof clineMessageData.ts !== 'number' || !clineMessageData.type || !clineMessageData.subType || typeof clineMessageData.text !== 'string') {
-        return new Response(JSON.stringify({ error: 'Invalid ClineMessage payload' }), {
-            status: 400,
-            headers: { 'Content-Type': 'application/json' }
-        });
+    if (
+      !clineMessageData ||
+      typeof clineMessageData.ts !== 'number' ||
+      !clineMessageData.type ||
+      !clineMessageData.subType ||
+      typeof clineMessageData.text !== 'string'
+    ) {
+      return new Response(JSON.stringify({ error: 'Invalid ClineMessage payload' }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' }
+      })
     }
 
     const savedClineMessage = await prisma.clineMessage.create({
@@ -34,7 +40,7 @@ export async function POST(request, { params }) {
         // Add any other relevant fields from clineMessageData if they exist in your model
       }
     })
-    
+
     // Update ChatSession's updatedAt timestamp
     await prisma.chatSession.update({
       where: { id: chatId },
@@ -45,7 +51,7 @@ export async function POST(request, { params }) {
     const responseMessage = {
       ...savedClineMessage,
       ts: savedClineMessage.ts.toString()
-    };
+    }
 
     return new Response(JSON.stringify(responseMessage), {
       status: 201, // 201 Created
@@ -53,15 +59,22 @@ export async function POST(request, { params }) {
     })
   } catch (error) {
     console.error(`Failed to save ClineMessage for chat ${chatId}:`, error)
-    if (error.code === 'P2003') { // Foreign key constraint failed (chatId likely doesn't exist)
-        return new Response(JSON.stringify({ error: 'Chat session not found for this ClineMessage' }), {
-            status: 404,
-            headers: { 'Content-Type': 'application/json' }
-        });
+    if (error.code === 'P2003') {
+      // Foreign key constraint failed (chatId likely doesn't exist)
+      return new Response(
+        JSON.stringify({ error: 'Chat session not found for this ClineMessage' }),
+        {
+          status: 404,
+          headers: { 'Content-Type': 'application/json' }
+        }
+      )
     }
-    return new Response(JSON.stringify({ error: 'Failed to save ClineMessage', message: error.message }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json' }
-    })
+    return new Response(
+      JSON.stringify({ error: 'Failed to save ClineMessage', message: error.message }),
+      {
+        status: 500,
+        headers: { 'Content-Type': 'application/json' }
+      }
+    )
   }
-} 
+}

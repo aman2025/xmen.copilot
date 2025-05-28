@@ -45,13 +45,14 @@ export async function GET(request, { params }) {
     // Convert BigInt timestamps in clineMessages to strings for JSON serialization
     const serializableChatSession = {
       ...chatSession,
-      clineMessages: chatSession.clineMessages.map(message => ({
+      clineMessages: chatSession.clineMessages.map((message) => ({
         ...message,
         ts: message.ts ? message.ts.toString() : null // Convert BigInt to string
       }))
     }
 
-    return new Response(JSON.stringify(serializableChatSession), { // Returns the whole session including messages
+    return new Response(JSON.stringify(serializableChatSession), {
+      // Returns the whole session including messages
       status: 200,
       headers: { 'Content-Type': 'application/json' }
     })
@@ -79,13 +80,17 @@ export async function POST(request, { params }) {
     const body = await request.json()
     const incomingMessage = body.message
 
-    if (!incomingMessage || !incomingMessage.role || (incomingMessage.role !== 'tool' && !incomingMessage.content)) {
+    if (
+      !incomingMessage ||
+      !incomingMessage.role ||
+      (incomingMessage.role !== 'tool' && !incomingMessage.content)
+    ) {
       return new Response(JSON.stringify({ error: 'Invalid message payload' }), {
         status: 400,
         headers: { 'Content-Type': 'application/json' }
       })
     }
-    
+
     // --- First Transaction: Save incoming message and update session ---
     await prisma.$transaction(async (tx) => {
       // 1. Save the incoming (user or tool) ApiMessage
@@ -95,7 +100,7 @@ export async function POST(request, { params }) {
           role: incomingMessage.role,
           content: incomingMessage.content,
           tool_call_id: incomingMessage.tool_call_id,
-          name: incomingMessage.name,
+          name: incomingMessage.name
         }
       })
 
@@ -111,7 +116,7 @@ export async function POST(request, { params }) {
           }
         })
       }
-      
+
       // 3. Update ChatSession's updatedAt timestamp
       await tx.chatSession.update({
         where: { id: chatId },
@@ -128,28 +133,32 @@ export async function POST(request, { params }) {
     // --- Prepare messages for AI ---
     const messagesForAI = [
       { role: 'system', content: SYSTEM_PROMPT },
-      ...currentApiMessages.map(dbMsg => {
+      ...currentApiMessages.map((dbMsg) => {
         const messageOutput = {
           role: dbMsg.role,
-          content: (dbMsg.content === null || typeof dbMsg.content === 'undefined')
-                   ? (dbMsg.role === 'assistant' && dbMsg.tool_calls && dbMsg.tool_calls.length > 0 ? null : String(dbMsg.content || ""))
-                   : String(dbMsg.content)
-        };
+          content:
+            dbMsg.content === null || typeof dbMsg.content === 'undefined'
+              ? dbMsg.role === 'assistant' && dbMsg.tool_calls && dbMsg.tool_calls.length > 0
+                ? null
+                : String(dbMsg.content || '')
+              : String(dbMsg.content)
+        }
         if (dbMsg.role === 'assistant') {
           if (dbMsg.tool_calls && Array.isArray(dbMsg.tool_calls) && dbMsg.tool_calls.length > 0) {
-            messageOutput.tool_calls = dbMsg.tool_calls;
+            messageOutput.tool_calls = dbMsg.tool_calls
           }
         } else if (dbMsg.role === 'tool') {
-          messageOutput.tool_call_id = dbMsg.tool_call_id;
+          messageOutput.tool_call_id = dbMsg.tool_call_id
           if (dbMsg.name) {
-            messageOutput.name = dbMsg.name;
+            messageOutput.name = dbMsg.name
           }
-          messageOutput.content = typeof dbMsg.content === 'string' ? dbMsg.content : JSON.stringify(dbMsg.content);
+          messageOutput.content =
+            typeof dbMsg.content === 'string' ? dbMsg.content : JSON.stringify(dbMsg.content)
         }
-        return messageOutput;
+        return messageOutput
       })
     ]
-    
+
     const optimizedMessages = contextManager.getUpdatedContextMessages(messagesForAI)
 
     // --- Call Mistral AI (outside of a transaction) ---
@@ -159,7 +168,7 @@ export async function POST(request, { params }) {
       aiRawResponse = await formatMistralResponse(mistralResponse)
     } catch (aiError) {
       console.error('Error calling Mistral API:', aiError)
-      throw new Error(`AI API Error: ${aiError.message}`);
+      throw new Error(`AI API Error: ${aiError.message}`)
     }
 
     // --- Save the AI's ApiMessage (separate operation) ---
@@ -168,31 +177,50 @@ export async function POST(request, { params }) {
         chatSessionId: chatId,
         role: aiRawResponse.role || 'assistant',
         content: aiRawResponse.content,
-        tool_calls: aiRawResponse.tool_calls || undefined,
+        tool_calls: aiRawResponse.tool_calls || undefined
       }
     })
-    
-    return new Response(JSON.stringify(assistantApiMessage), { // Return the AI message
+
+    return new Response(JSON.stringify(assistantApiMessage), {
+      // Return the AI message
       status: 200,
       headers: { 'Content-Type': 'application/json' }
     })
-
   } catch (error) {
     console.error(`Failed to process message for chat ${chatId}:`, error)
-    if (error.message && error.message.includes('Not the same number of function calls and responses')) {
-        return new Response(JSON.stringify({ error: 'Tool call/response mismatch from AI', message: error.message }), {
-            status: 400, headers: { 'Content-Type': 'application/json' }
-        });
+    if (
+      error.message &&
+      error.message.includes('Not the same number of function calls and responses')
+    ) {
+      return new Response(
+        JSON.stringify({ error: 'Tool call/response mismatch from AI', message: error.message }),
+        {
+          status: 400,
+          headers: { 'Content-Type': 'application/json' }
+        }
+      )
     }
     // Check for Prisma-specific transaction errors, though the main one should be resolved
-    if (error.code && error.code.startsWith('P')) { // Prisma error codes start with P
-        return new Response(JSON.stringify({ error: 'Database operation failed', message: error.message, code: error.code }), {
-            status: 500, headers: { 'Content-Type': 'application/json' }
-        });
+    if (error.code && error.code.startsWith('P')) {
+      // Prisma error codes start with P
+      return new Response(
+        JSON.stringify({
+          error: 'Database operation failed',
+          message: error.message,
+          code: error.code
+        }),
+        {
+          status: 500,
+          headers: { 'Content-Type': 'application/json' }
+        }
+      )
     }
-    return new Response(JSON.stringify({ error: 'Failed to process message', message: error.message }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json' }
-    })
+    return new Response(
+      JSON.stringify({ error: 'Failed to process message', message: error.message }),
+      {
+        status: 500,
+        headers: { 'Content-Type': 'application/json' }
+      }
+    )
   }
 }

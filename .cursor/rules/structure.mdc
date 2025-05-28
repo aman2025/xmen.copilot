@@ -54,7 +54,7 @@ alwaysApply: true
 ## Data Flow
 
 1. **User interacts** with the chat UI (`components/copilot/`).
-2. **Messages** are sent to API routes (`app/api/chat/`, `app/api/message-flow/`).
+2. **Messages** are sent to API routes (`app/api/chat/route.js`, `app/api/[chatId]/route.js`, `app/api/[chatId]/messages/route.js`, `app/api/[chatId]/cline-messages/route.js`).
 3. **Core logic** in `core/` handles message processing, context, and task management.
 4. **Tool calls**  define related function to handle AI tool calls.
 5. **Responses** are returned to the frontend and rendered in the chat interface.

@@ -43,11 +43,12 @@ export async function DELETE(request, { params }) {
     })
   } catch (error) {
     console.error('Failed to delete chat session:', error)
-    if (error.code === 'P2025') { // Prisma error code for record not found
-        return new Response(JSON.stringify({ error: 'Chat session not found' }), {
+    if (error.code === 'P2025') {
+      // Prisma error code for record not found
+      return new Response(JSON.stringify({ error: 'Chat session not found' }), {
         status: 404,
         headers: { 'Content-Type': 'application/json' }
-        })
+      })
     }
     return new Response(JSON.stringify({ error: 'Failed to delete chat session' }), {
       status: 500,
