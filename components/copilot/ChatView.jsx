@@ -196,8 +196,17 @@ const ChatView = () => {
   // Filter out messages without timestamps and sort by timestamp
   // Also filter out api_req_started for cleaner UI, as isLoading flag handles this.
   const displayMessages = [...(clineMessages || [])]
-    .filter((message) => message && typeof message.ts === 'number' && message.say !== 'api_req_started')
-    .sort((a, b) => Number(a.ts) - Number(b.ts)) // Ensure ts is treated as number for sort
+    .filter((message) => {
+      // Ensure message and ts exist
+      // ts can be a string (from API) or a number (locally added)
+      // Ensure ts can be converted to a valid number
+      // Filter out 'api_req_started' messages as they are handled by the isLoading state
+      return message &&
+             message.ts != null && // Check for null or undefined
+             !isNaN(Number(message.ts)) && // Ensure ts is a valid number or numeric string
+             message.say !== 'api_req_started';
+    })
+    .sort((a, b) => Number(a.ts) - Number(b.ts)); // Sort by numeric value of ts
 
   if (!currentChatId && !isLoading && displayMessages.length === 0) {
     // This state is handled by ChatBox (preset questions) when no chatId is active.

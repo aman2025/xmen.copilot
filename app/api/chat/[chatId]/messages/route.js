@@ -42,7 +42,16 @@ export async function GET(request, { params }) {
       })
     }
 
-    return new Response(JSON.stringify(chatSession), { // Returns the whole session including messages
+    // Convert BigInt timestamps in clineMessages to strings for JSON serialization
+    const serializableChatSession = {
+      ...chatSession,
+      clineMessages: chatSession.clineMessages.map(message => ({
+        ...message,
+        ts: message.ts ? message.ts.toString() : null // Convert BigInt to string
+      }))
+    }
+
+    return new Response(JSON.stringify(serializableChatSession), { // Returns the whole session including messages
       status: 200,
       headers: { 'Content-Type': 'application/json' }
     })
