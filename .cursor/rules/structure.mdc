@@ -8,18 +8,27 @@ alwaysApply: true
 ```
 ├── app/                 
 │   ├── api/              
-│   │   ├── chat/          
-│   │   └── message-flow/  
+│   │   ├── chat/ 
+│   │   │   ├── [chatId]/ 
+│   │   │   │   ├── cline-messages/
+│   │   │   │   │   └── route.js
+│   │   │   │   ├── messages/
+│   │   │   │   │   └── route.js
+│   │   │   │   └── route.js
+│   │   │   └── route.js 
 │   ├── globals.css        
 │   ├── layout.jsx         
 │   ├── page.jsx           
 │   └── providers.jsx      
 ├── components/            
-│   ├── copilot/            
-│   │   ├── ChatView.jsx    
+│   ├── copilot/        
+│   │   ├── ChatBox.jsx    
+│   │   ├── ChatInput.jsx    
+│   │   ├── ChatView.jsx
 │   │   ├── Copilot.jsx     
-│   │   └── Messages.jsx   
+│   │   └── History.jsx   
 │   ├── ui/                 
+│   ├── Loading.jsx                
 │   └── Sidebar.jsx        
 ├── core/                   
 │   ├── assistant-message/ 
@@ -31,8 +40,9 @@ alwaysApply: true
 │   └── schema.prisma     
 ├── public/ 
 ├── store/                 
-│   ├── useChatStore.js    
-│   └── chatActions.js      
+│   ├── chatActions.js    
+│   └── useChatStore.js      
+│   └── useGlobalStore.js      
 ├── tool-calls/          
 └── utils/                 
     └── ai-sdk/           
