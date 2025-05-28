@@ -21,8 +21,8 @@ const Copilot = () => {
   const [isOpen, setIsOpen] = useState(true)
 
   useEffect(() => {
-    initController();
-  }, []);
+    initController()
+  }, [])
 
   const handleToggle = () => {
     setIsOpen(!isOpen)
@@ -39,7 +39,7 @@ const Copilot = () => {
 
   const handleBackToChatList = () => {
     setView('history')
-    setView('chat');
+    setView('chat')
   }
 
   const handleFullscreenToggle = () => {
@@ -57,11 +57,11 @@ const Copilot = () => {
     'Help me start an instance named "my-new-app".',
     'What tasks can I ask you to perform?'
   ]
-  
+
   const getHeaderTitle = () => {
-    if (view === 'history') return "All Chats";
-    if (currentChatId && currentChatTitle) return currentChatTitle;
-    return "New Conversation";
+    if (view === 'history') return 'All Chats'
+    if (currentChatId && currentChatTitle) return currentChatTitle
+    return 'New Conversation'
   }
 
   if (!isOpen) {
@@ -78,18 +78,21 @@ const Copilot = () => {
 
   return (
     <div
-      className={`fixed z-[999] shadow-2xl rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 
-                  ${isFullscreen
-                    ? 'inset-0 sm:inset-[45px]'
-                    : 'bottom-4 right-4 w-[calc(100%-2rem)] max-w-md sm:w-[400px]'
+      className={`fixed z-[999] rounded-xl border border-gray-200 bg-white shadow-2xl dark:border-gray-700 dark:bg-gray-800 
+                  ${
+                    isFullscreen
+                      ? 'inset-0 sm:inset-[45px]'
+                      : 'bottom-4 right-4 w-[calc(100%-2rem)] max-w-md sm:w-[400px]'
                   } 
                   transition-all duration-300 ease-in-out`}
       role="dialog"
       aria-modal="true"
       aria-labelledby="copilot-header-title"
     >
-      <div className={`flex ${isFullscreen ? 'h-full' : 'h-[600px] max-h-[80vh] sm:max-h-[600px]'} flex-col overflow-hidden rounded-xl`}>
-        <div className="flex-shrink-0 border-b border-gray-200 dark:border-gray-700 px-3 py-2.5">
+      <div
+        className={`flex ${isFullscreen ? 'h-full' : 'h-[600px] max-h-[80vh] sm:max-h-[600px]'} flex-col overflow-hidden rounded-xl`}
+      >
+        <div className="flex-shrink-0 border-b border-gray-200 px-3 py-2.5 dark:border-gray-700">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-1.5">
               {view === 'history' && (
@@ -102,30 +105,31 @@ const Copilot = () => {
                   <ArrowLeft className="h-5 w-5" />
                 </button>
               )}
-              {view === 'chat' && currentChatId && (
-                <button
-                  onClick={handleHistoryToggle}
-                  className="rounded-md p-1.5 text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
-                  title="View Chat History"
-                  aria-label="View Chat History"
-                >
-                  <History className="h-5 w-5" />
-                </button>
-              )}
-              <span id="copilot-header-title" className="text-sm font-semibold text-gray-800 dark:text-gray-100 truncate">
+              <span
+                id="copilot-header-title"
+                className="truncate text-sm font-semibold text-gray-800 dark:text-gray-100"
+              >
                 {getHeaderTitle()}
               </span>
             </div>
             <div className="flex items-center space-x-0.5">
               {view === 'chat' && (
-                <button
-                  onClick={handleNewChatClick}
-                  className="rounded-md p-1.5 text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
-                  title="New Chat"
-                  aria-label="New Chat"
-                >
-                  <Plus className="h-5 w-5" />
-                </button>
+                <>
+                  <button
+                    onClick={handleNewChatClick}
+                    className="rounded-md p-1.5 text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
+                    title="New Chat"
+                    aria-label="New Chat"
+                  >
+                    <Plus className="h-5 w-5" />
+                  </button>
+                  <button
+                    onClick={handleHistoryToggle}
+                    className="rounded-lg p-2 hover:bg-gray-100 dark:hover:bg-gray-700"
+                  >
+                    <History className="h-5 w-5" />
+                  </button>
+                </>
               )}
               <button
                 onClick={handleFullscreenToggle}
