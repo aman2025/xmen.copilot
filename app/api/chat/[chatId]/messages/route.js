@@ -1,39 +1,53 @@
 import { PrismaClient } from '@prisma/client'
 import { SYSTEM_PROMPT } from '@/prompts'
+import { INSTANCE_TOOLS } from '@/prompts/tools/instance'
 import { createMistral, formatMistralResponse } from '@/utils/ai-sdk/mistral'
-import Task from '@/core/task'
-import { ContextManager } from '@/core/context/context-management/ContextManager'
+import ContextManager from '@/core/context/context-management/ContextManager'
 
 const prisma = new PrismaClient()
+const contextManager = new ContextManager()
 
+// Fetches all messages (API and Cline) for a chat session
 export async function GET(request, { params }) {
   const { chatId } = params
 
+  if (!chatId) {
+    return new Response(JSON.stringify({ error: 'Chat ID is required' }), {
+      status: 400,
+      headers: { 'Content-Type': 'application/json' }
+    })
+  }
+
   try {
-    const chat = await prisma.chat.findUnique({
+    const chatSession = await prisma.chatSession.findUnique({
       where: { id: chatId },
       include: {
-        messages: {
+        apiMessages: {
           orderBy: {
-            createdAt: 'asc'
+            timestamp: 'asc'
+          }
+        },
+        clineMessages: {
+          orderBy: {
+            ts: 'asc' // Order by original timestamp
           }
         }
       }
     })
 
-    if (!chat) {
-      return new Response(JSON.stringify({ error: 'Chat not found' }), {
+    if (!chatSession) {
+      return new Response(JSON.stringify({ error: 'Chat session not found' }), {
         status: 404,
         headers: { 'Content-Type': 'application/json' }
       })
     }
 
-    return new Response(JSON.stringify({ messages: chat.messages }), {
+    return new Response(JSON.stringify(chatSession), { // Returns the whole session including messages
       status: 200,
       headers: { 'Content-Type': 'application/json' }
     })
   } catch (error) {
-    console.error('Failed to fetch messages:', error)
+    console.error('Failed to fetch messages for chat session:', error)
     return new Response(JSON.stringify({ error: 'Failed to fetch messages' }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' }
@@ -41,106 +55,133 @@ export async function GET(request, { params }) {
   }
 }
 
+// Handles a new message from the user, gets AI response, and saves messages
 export async function POST(request, { params }) {
   const { chatId } = params
 
+  if (!chatId) {
+    return new Response(JSON.stringify({ error: 'Chat ID is required' }), {
+      status: 400,
+      headers: { 'Content-Type': 'application/json' }
+    })
+  }
+
   try {
     const body = await request.json()
-    const { content, role, messageType } = body
+    const incomingMessage = body.message
 
-    // Verify the chat exists and get previous messages
-    const chat = await prisma.chat.findUnique({
-      where: { id: chatId },
-      include: {
-        messages: {
-          orderBy: {
-            createdAt: 'asc'
-          }
-        }
-      }
-    })
-
-    if (!chat) {
-      return new Response(JSON.stringify({ error: 'Chat not found' }), {
-        status: 404,
+    if (!incomingMessage || !incomingMessage.role || (incomingMessage.role !== 'tool' && !incomingMessage.content)) {
+      return new Response(JSON.stringify({ error: 'Invalid message payload' }), {
+        status: 400,
         headers: { 'Content-Type': 'application/json' }
       })
     }
-
-    // Create the user message
-    const userMessage = await prisma.message.create({
-      data: {
-        content,
-        role,
-        chatId
-      }
-    })
-
-    // If it's a user message, generate AI response using our Task architecture
-    if (role === 'user') {
-      // Initialize Task and ContextManager
-      const task = new Task()
-      const contextManager = new ContextManager()
-
-      // Prepare messages for AI
-      const messages = [
-        { role: 'system', content: SYSTEM_PROMPT },
-        ...chat.messages.map((msg) => ({
-          role: msg.role,
-          content: msg.content
-        })),
-        { role, content }
-      ]
-
-      // Apply context optimizations
-      const optimizedMessages = contextManager.getUpdatedContextMessages(messages)
-
-      // Get AI response
-      const mistralResponse = await createMistral(optimizedMessages)
-      const { content: aiContent } = await formatMistralResponse(mistralResponse)
-
-      // Parse the response to determine message type
-      let messageType = 'say'
-      let metadata = {}
-
-      // Check for specific patterns in the response
-      if (aiContent.includes('?') && aiContent.toLowerCase().includes('would you like')) {
-        messageType = 'ask'
-      } else if (aiContent.includes('```') && aiContent.includes('```')) {
-        messageType = 'tool'
-        metadata = { tool: 'code', language: 'javascript' } // Default, could be more sophisticated
-      }
-
-      // Create the assistant message
-      const assistantMessage = await prisma.message.create({
+    
+    // --- First Transaction: Save incoming message and update session ---
+    await prisma.$transaction(async (tx) => {
+      // 1. Save the incoming (user or tool) ApiMessage
+      await tx.apiMessage.create({
         data: {
-          content: aiContent,
-          role: 'assistant',
-          toolCalls: metadata && Object.keys(metadata).length > 0 ? metadata : null,
-          chatId
+          chatSessionId: chatId,
+          role: incomingMessage.role,
+          content: incomingMessage.content,
+          tool_call_id: incomingMessage.tool_call_id,
+          name: incomingMessage.name,
         }
       })
 
-      return new Response(
-        JSON.stringify({
-          messages: [assistantMessage],
-          messageType,
-          metadata
-        }),
-        {
-          status: 200,
-          headers: { 'Content-Type': 'application/json' }
+      // 2. If it's a user message, create a corresponding ClineMessage
+      if (incomingMessage.role === 'user') {
+        await tx.clineMessage.create({
+          data: {
+            chatSessionId: chatId,
+            ts: BigInt(Date.now()),
+            type: 'say',
+            subType: 'text',
+            text: incomingMessage.content
+          }
+        })
+      }
+      
+      // 3. Update ChatSession's updatedAt timestamp
+      await tx.chatSession.update({
+        where: { id: chatId },
+        data: { updatedAt: new Date() }
+      })
+    })
+
+    // --- Fetch messages for AI (outside of a transaction) ---
+    const currentApiMessages = await prisma.apiMessage.findMany({
+      where: { chatSessionId: chatId },
+      orderBy: { timestamp: 'asc' }
+    })
+
+    // --- Prepare messages for AI ---
+    const messagesForAI = [
+      { role: 'system', content: SYSTEM_PROMPT },
+      ...currentApiMessages.map(dbMsg => {
+        const messageOutput = {
+          role: dbMsg.role,
+          content: (dbMsg.content === null || typeof dbMsg.content === 'undefined')
+                   ? (dbMsg.role === 'assistant' && dbMsg.tool_calls && dbMsg.tool_calls.length > 0 ? null : String(dbMsg.content || ""))
+                   : String(dbMsg.content)
+        };
+        if (dbMsg.role === 'assistant') {
+          if (dbMsg.tool_calls && Array.isArray(dbMsg.tool_calls) && dbMsg.tool_calls.length > 0) {
+            messageOutput.tool_calls = dbMsg.tool_calls;
+          }
+        } else if (dbMsg.role === 'tool') {
+          messageOutput.tool_call_id = dbMsg.tool_call_id;
+          if (dbMsg.name) {
+            messageOutput.name = dbMsg.name;
+          }
+          messageOutput.content = typeof dbMsg.content === 'string' ? dbMsg.content : JSON.stringify(dbMsg.content);
         }
-      )
+        return messageOutput;
+      })
+    ]
+    
+    const optimizedMessages = contextManager.getUpdatedContextMessages(messagesForAI)
+
+    // --- Call Mistral AI (outside of a transaction) ---
+    let aiRawResponse
+    try {
+      const mistralResponse = await createMistral(optimizedMessages, INSTANCE_TOOLS)
+      aiRawResponse = await formatMistralResponse(mistralResponse)
+    } catch (aiError) {
+      console.error('Error calling Mistral API:', aiError)
+      throw new Error(`AI API Error: ${aiError.message}`);
     }
 
-    return new Response(JSON.stringify({ messages: [userMessage] }), {
+    // --- Save the AI's ApiMessage (separate operation) ---
+    const assistantApiMessage = await prisma.apiMessage.create({
+      data: {
+        chatSessionId: chatId,
+        role: aiRawResponse.role || 'assistant',
+        content: aiRawResponse.content,
+        tool_calls: aiRawResponse.tool_calls || undefined,
+      }
+    })
+    
+    return new Response(JSON.stringify(assistantApiMessage), { // Return the AI message
       status: 200,
       headers: { 'Content-Type': 'application/json' }
     })
+
   } catch (error) {
-    console.error('Failed to process message:', error)
-    return new Response(JSON.stringify({ error: 'Failed to process message' }), {
+    console.error(`Failed to process message for chat ${chatId}:`, error)
+    if (error.message && error.message.includes('Not the same number of function calls and responses')) {
+        return new Response(JSON.stringify({ error: 'Tool call/response mismatch from AI', message: error.message }), {
+            status: 400, headers: { 'Content-Type': 'application/json' }
+        });
+    }
+    // Check for Prisma-specific transaction errors, though the main one should be resolved
+    if (error.code && error.code.startsWith('P')) { // Prisma error codes start with P
+        return new Response(JSON.stringify({ error: 'Database operation failed', message: error.message, code: error.code }), {
+            status: 500, headers: { 'Content-Type': 'application/json' }
+        });
+    }
+    return new Response(JSON.stringify({ error: 'Failed to process message', message: error.message }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' }
     })
