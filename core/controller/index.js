@@ -1,11 +1,17 @@
 import Task from '../task'
 import useChatStore from '../../store/useChatStore' // To set currentChatId
+import useGlobalStore from '../../store/useGlobalStore'
 
 class Controller {
   constructor() {
     // Current active task instance
     this.task = null
     this.currentChatId = null // Keep track of the active chatId
+    // Get environment details from useGlobalStore
+    this.environmentDetails = {
+      user: useGlobalStore.getState().user,
+      system: useGlobalStore.getState().system
+    }
   }
 
   // Initializes a new task or loads an existing one
@@ -53,7 +59,7 @@ class Controller {
         const newChatSession = await response.json() // Expects { chatId, title, createdAt }
         this.currentChatId = newChatSession.chatId
 
-        this.task = new Task(this.currentChatId, userInput, [], [])
+        this.task = new Task(this.currentChatId, userInput, [], [], this.environmentDetails)
         // The Task's startTask method will handle the first message processing and saving
         useChatStore.getState().setCurrentChatId(this.currentChatId)
         console.log('Controller: Initialized new task', this.currentChatId)
@@ -149,3 +155,4 @@ class Controller {
 }
 
 export default Controller
+

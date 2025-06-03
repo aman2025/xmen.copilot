@@ -69,22 +69,13 @@ export async function GET(request, { params }) {
 export async function POST(request, { params }) {
   const { chatId } = params
 
-  if (!chatId) {
-    return new Response(JSON.stringify({ error: 'Chat ID is required' }), {
-      status: 400,
-      headers: { 'Content-Type': 'application/json' }
-    })
-  }
-
   try {
-    const body = await request.json()
-    const incomingMessage = body.message
+    const { message } = await request.json()
 
-    if (
-      !incomingMessage ||
-      !incomingMessage.role ||
-      (incomingMessage.role !== 'tool' && !incomingMessage.content)
-    ) {
+    // Log the incoming message to verify it has the proper formatting
+    console.log('Received message in API route:', message)
+
+    if (!message || !message.role || (message.role !== 'tool' && !message.content)) {
       return new Response(JSON.stringify({ error: 'Invalid message payload' }), {
         status: 400,
         headers: { 'Content-Type': 'application/json' }
@@ -97,22 +88,22 @@ export async function POST(request, { params }) {
       await tx.apiMessage.create({
         data: {
           chatSessionId: chatId,
-          role: incomingMessage.role,
-          content: incomingMessage.content,
-          tool_call_id: incomingMessage.tool_call_id,
-          name: incomingMessage.name
+          role: message.role,
+          content: message.content,
+          tool_call_id: message.tool_call_id,
+          name: message.name
         }
       })
 
       // 2. If it's a user message, create a corresponding ClineMessage
-      if (incomingMessage.role === 'user') {
+      if (message.role === 'user') {
         await tx.clineMessage.create({
           data: {
             chatSessionId: chatId,
             ts: BigInt(Date.now()),
             type: 'say',
             subType: 'text',
-            text: incomingMessage.content
+            text: message.content
           }
         })
       }
@@ -134,6 +125,9 @@ export async function POST(request, { params }) {
     const messagesForAI = [
       { role: 'system', content: SYSTEM_PROMPT },
       ...currentApiMessages.map((dbMsg) => {
+        // Log each message from the database to verify formatting
+        console.log('Message from DB:', dbMsg.role, dbMsg.content?.substring(0, 50))
+
         const messageOutput = {
           role: dbMsg.role,
           content:
@@ -160,6 +154,11 @@ export async function POST(request, { params }) {
     ]
 
     const optimizedMessages = contextManager.getUpdatedContextMessages(messagesForAI)
+    // Log the optimized messages to see if formatting is preserved
+    console.log(
+      'Optimized messages:',
+      optimizedMessages.map((m) => ({ role: m.role, content: m.content?.substring(0, 50) }))
+    )
 
     // --- Call Mistral AI (outside of a transaction) ---
     let aiRawResponse

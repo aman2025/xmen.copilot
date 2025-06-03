@@ -39,7 +39,12 @@ const preprocessMessages = (messages) => {
     if (message.role === 'assistant' && message.tool_calls && Array.isArray(message.tool_calls)) {
       const cleanedToolCalls = []
       for (const toolCall of message.tool_calls) {
-        if (toolCall.id && toolCall.function && typeof toolCall.function.name === 'string' && toolCall.function.arguments !== undefined) {
+        if (
+          toolCall.id &&
+          toolCall.function &&
+          typeof toolCall.function.name === 'string' &&
+          toolCall.function.arguments !== undefined
+        ) {
           // Ensure arguments are stringified, as required by the Mistral API.
           const stringifiedArguments =
             typeof toolCall.function.arguments === 'string'
@@ -55,7 +60,10 @@ const preprocessMessages = (messages) => {
             }
           })
         } else {
-          console.warn('Encountered a potentially malformed tool_call during preprocessing:', toolCall)
+          console.warn(
+            'Encountered a potentially malformed tool_call during preprocessing:',
+            toolCall
+          )
         }
       }
       message.tool_calls = cleanedToolCalls
@@ -138,7 +146,9 @@ const preprocessMessages = (messages) => {
  */
 export const createMistral = async (messages, tools) => {
   const client = new MistralClient(process.env.MISTRAL_API_KEY)
-  console.log('***********request messages:**********', messages)
+
+  // Log the messages to see if they have the proper formatting
+  console.log('***********request messages:**********', JSON.stringify(messages, null, 2))
 
   // Preprocess messages to ensure each tool call has a corresponding tool response
   // and that tool calls are well-formed.
@@ -179,9 +189,9 @@ export const formatMistralResponse = async (response) => {
     (!message.tool_calls || message.tool_calls.length === 0) &&
     message.content &&
     typeof message.content === 'string' &&
-    (message.content.startsWith('The') || 
-     message.content.startsWith('|') ||
-     message.content.includes('\n'))
+    (message.content.startsWith('The') ||
+      message.content.startsWith('|') ||
+      message.content.includes('\n'))
   ) {
     return message
   }

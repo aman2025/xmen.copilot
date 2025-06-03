@@ -1,5 +1,6 @@
 import ContextManager from '../context/context-management/ContextManager'
 import useChatStore from '../../store/useChatStore'
+import useGlobalStore from '../../store/useGlobalStore'
 import { parseAssistantMessage } from '../assistant-message/parse-assistant-message'
 
 class Task {
@@ -7,19 +8,25 @@ class Task {
     chatId,
     initialUserInput = null,
     existingApiHistory = [],
-    existingClineMessages = []
+    existingClineMessages = [],
+    environmentDetails = null
   ) {
     this.chatId = chatId
     this.isInitialized = false
     this.apiConversationHistory = [...existingApiHistory] // Initialize with fetched history
     this.clineMessages = [...existingClineMessages] // Initialize with fetched history
     this.assistantMessageContent = null
-    // taskId is now chatId
     this.contextManager = new ContextManager()
     this.pendingToolCall = null
     this.waitingForApproval = false
     this.lastToolCallId = null
-
+    
+    // Use provided environmentDetails or get from useGlobalStore
+    this.environmentDetails = environmentDetails || {
+      user: useGlobalStore.getState().user,
+      system: useGlobalStore.getState().system
+    }
+    
     console.log(`Task instantiated for chatId: ${this.chatId}`)
     console.log('Initial API History:', this.apiConversationHistory)
     console.log('Initial Cline Messages:', this.clineMessages)
@@ -48,14 +55,13 @@ class Task {
 
   async startTask(taskInputText) {
     console.log(`Task (${this.chatId}): startTask with input:`, taskInputText)
-    // this.clineMessages = [] // Don't clear if resuming/loading
-    // this.apiConversationHistory = [] // Don't clear if resuming/loading
+
+    // Format the user input with task and environment details tags
+    const formattedInput = this.formatUserInput(taskInputText)
 
     // The first user message for a new task
-    const userApiMessage = { role: 'user', content: taskInputText }
+    const userApiMessage = { role: 'user', content: formattedInput }
     // This initial message is saved by the POST /api/chat/[chatId]/messages route
-    // So, we don't need to explicitly save it here via addToApiConversationHistory(userApiMessage, true)
-    // However, we do need to add it to our local history for the first AI call.
     this.apiConversationHistory.push(userApiMessage)
 
     // The corresponding cline message for UI. Also saved by POST messages route.
@@ -87,17 +93,15 @@ class Task {
     await this.initiateTaskLoop(userInputText)
   }
 
-  async initiateTaskLoop(currentUserInputContent) {
-    // currentUserInputContent is a string from user, or an object for tool results
-    let payloadForApi
-    if (typeof currentUserInputContent === 'string') {
-      payloadForApi = { role: 'user', content: currentUserInputContent }
-    } else if (currentUserInputContent && currentUserInputContent.role === 'tool') {
-      // For tool results
-      payloadForApi = currentUserInputContent
-    } else {
-      console.error('initiateTaskLoop: Invalid currentUserInputContent', currentUserInputContent)
-      return
+  async initiateTaskLoop(userContent) {
+    // Check if userContent is a string (plain text input) or an object (tool response)
+    const payloadForApi =
+      typeof userContent === 'object' ? userContent : { role: 'user', content: userContent }
+
+    // PROBLEM: Here we're using the raw userContent, not the formatted version
+    // FIX: If it's a user message, format it with task and environment details
+    if (payloadForApi.role === 'user') {
+      payloadForApi.content = this.formatUserInput(payloadForApi.content)
     }
 
     // Add to local history *before* sending, so it's part of the context if attemptApiRequest uses it (though it shouldn't)
@@ -459,6 +463,25 @@ class Task {
     }
     return `clt_${result}` // Prefix to denote client-generated if ever needed for debugging
   }
+
+  // Add a new method to format the user input
+  formatUserInput(userInput) {
+    const { user, system } = this.environmentDetails
+
+    return `<task>
+    ${userInput}
+  </task>
+
+  <environment_details>
+    # User info
+          Name: ${user.name}
+          Email: ${user.email}
+    # System info
+          Mode: ${system.mode}
+          Version: ${system.version}
+  </environment_details>`
+  }
 }
 
 export default Task
+
