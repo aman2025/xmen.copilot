@@ -1,22 +1,31 @@
 'use client'
 
-import { useRef, useEffect } from 'react'
+import { useRef, useEffect, useState } from 'react'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import ChatInput from './ChatInput'
 import ChatView from './ChatView'
 import useChatStore from '../../store/useChatStore'
-import { initController, sendMessage, startNewChat }
+import { initController, sendMessage, startNewChat, handleResponse as handleApprovalResponseAction }
 from '../../store/chatActions'
 import { SendHorizontal, MessageSquarePlus } from 'lucide-react'
 
 const ChatBox = ({ presetQuestions, onPresetQuestionClick }) => {
   const { currentChatId, messageInput, setMessageInput, isLoading, clineMessages } = useChatStore()
+  const [pendingToolApproval, setPendingToolApproval] = useState(null)
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
       initController()
     }
   }, [])
+
+  // Check for pending tool approval requests in messages
+  useEffect(() => {
+    const toolApprovalMessage = clineMessages.find(
+      msg => msg.type === 'ask' && msg.ask === 'call_sys_tool'
+    )
+    setPendingToolApproval(toolApprovalMessage)
+  }, [clineMessages])
 
   const handleSendMessage = () => {
     if (messageInput.trim()) {
@@ -31,6 +40,20 @@ const ChatBox = ({ presetQuestions, onPresetQuestionClick }) => {
         onPresetQuestionClick(question)
     }
   };
+
+  const handleToolApproval = (response) => {
+    if (!pendingToolApproval) return
+    
+    let toolData = {}
+    try {
+      toolData = JSON.parse(pendingToolApproval.text)
+    } catch (e) {
+      console.error('Failed to parse tool data for approval:', pendingToolApproval.text, e)
+    }
+    
+    handleApprovalResponseAction(response)
+    setPendingToolApproval(null)
+  }
 
   return (
     <div className="flex h-full flex-col bg-white dark:bg-gray-800">
@@ -60,6 +83,24 @@ const ChatBox = ({ presetQuestions, onPresetQuestionClick }) => {
         )}
       </div>
       
+      {/* Tool Approval Bar */}
+      {pendingToolApproval && (
+        <div className="flex border-t border-gray-200 dark:border-gray-700">
+          <button
+            onClick={() => handleToolApproval('approve')}
+            className="flex-1 py-3 bg-green-500 text-white font-medium hover:bg-green-600 transition-colors"
+          >
+            Approve
+          </button>
+          <button
+            onClick={() => handleToolApproval('reject')}
+            className="flex-1 py-3 bg-red-500 text-white font-medium hover:bg-red-600 transition-colors border-l border-gray-200 dark:border-gray-600"
+          >
+            Reject
+          </button>
+        </div>
+      )}
+      
       <div className="border-t border-gray-200 dark:border-gray-700 px-4 py-3">
         <ChatInput
           placeholder={currentChatId ? "Type your message..." : "Start a new chat..."}
@@ -70,3 +111,4 @@ const ChatBox = ({ presetQuestions, onPresetQuestionClick }) => {
 }
 
 export default ChatBox
+
