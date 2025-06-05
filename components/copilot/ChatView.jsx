@@ -1,11 +1,11 @@
 'use client'
 
-import React, { useEffect, useRef } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import useChatStore from '../../store/useChatStore'
 import { handleResponse as handleApprovalResponseAction } from '../../store/chatActions'
-import { CheckCircle2, AlertTriangle, XCircle, Info, SendHorizontal, User } from 'lucide-react'
+import { CheckCircle2, AlertTriangle, XCircle, Info, SendHorizontal, User, Loader2 } from 'lucide-react'
 
 // --- CopilotAvatar Component ---
 const CopilotAvatar = () => {
@@ -22,6 +22,47 @@ const UserAvatar = () => {
   return (
     <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-gray-200 text-gray-600 dark:bg-gray-700 dark:text-gray-300">
       <User size={18} />
+    </div>
+  )
+}
+
+// --- Add this new component for API Request state ---
+const ApiRequestMessage = ({ message }) => {
+  // Parse task content if available
+  let taskContent = ''
+  let envDetails = null
+  
+  try {
+    // Try to parse the message text as JSON
+    const parsedData = JSON.parse(message.text || '{}')
+    taskContent = parsedData.request || ''
+    
+    // Check if the message contains environment details
+    if (taskContent.includes('</environment_detail>')) {
+      const parts = taskContent.split('</environment_detail>')
+      if (parts.length > 1) {
+        taskContent = parts[0].replace('<task>', '').replace('</task>', '')
+        envDetails = parts[1]
+      }
+    } else if (taskContent.includes('<task>')) {
+      taskContent = taskContent.replace('<task>', '').replace('</task>', '')
+    }
+  } catch (e) {
+    // If parsing fails, use the raw text
+    taskContent = message.text || ''
+  }
+  
+  // Determine if this is a completed request or still loading
+  const isCompleted = message.status === 'completed'
+  
+  return (
+    <div className="flex items-center">
+      {isCompleted ? (
+        <CheckCircle2 size={18} className="mr-1.5 text-green-500" />
+      ) : (
+        <Loader2 size={16} className="mr-1.5 animate-spin text-blue-500" />
+      )}
+      <span className="font-semibold text-gray-700 dark:text-gray-300">API Request</span>
     </div>
   )
 }
@@ -97,18 +138,15 @@ const MessageItem = ({ message }) => {
 
     // Handle 'say' type messages
     if (message.type === 'say') {
-      let content = message.text
-      let icon = null
       let title = null
+      let icon = null
+      let content = null
       let specialClass = ''
 
       switch (message.say) {
         case 'api_req_started':
-          // For now, let's not render these "in-progress" messages directly as chat bubbles,
-          // or make them very subtle. They are more for loading state.
-          // Returning null will hide it from the chat bubbles.
-          // The global isLoading flag can be used for a general loading indicator.
-          return null // Or a very subtle spinner/message
+          // Replace the null return with our new component
+          return <ApiRequestMessage message={message} />
         case 'tool_result':
           try {
             const resultData = JSON.parse(message.text)
@@ -213,72 +251,104 @@ const MessageItem = ({ message }) => {
 const ChatView = () => {
   const { clineMessages, isLoading, currentChatId, currentChatTitle } = useChatStore()
   const messagesEndRef = useRef(null)
-
+  
+  // Track if we should show API requests as completed
+  const [apiRequestCompleted, setApiRequestCompleted] = useState(false)
+  
+  // When clineMessages changes, check if we should mark API requests as completed
+  useEffect(() => {
+    // If we have any assistant messages after an api_req_started message,
+    // we can consider the API request completed
+    if (clineMessages.length > 0) {
+      const apiReqIndex = clineMessages.findIndex(msg => 
+        msg.type === 'say' && msg.say === 'api_req_started'
+      )
+      
+      if (apiReqIndex !== -1) {
+        // Check if there are any assistant messages after the API request
+        const hasAssistantMessagesAfter = clineMessages.some((msg, index) => 
+          index > apiReqIndex && 
+          (msg.role === 'assistant' || 
+           (msg.type === 'say' && msg.say !== 'api_req_started' && msg.say !== 'error'))
+        )
+        
+        setApiRequestCompleted(hasAssistantMessagesAfter)
+      }
+    }
+  }, [clineMessages])
+  
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }
 
   useEffect(() => {
     scrollToBottom()
-  }, [clineMessages]) // Scroll when new messages are added
+  }, [clineMessages, isLoading]) // Also scroll when loading state changes
 
   // Filter out messages without timestamps and sort by timestamp
-  // Also filter out api_req_started for cleaner UI, as isLoading flag handles this.
   const displayMessages = [...(clineMessages || [])]
     .filter((message) => {
-      // Ensure message and ts exist
-      // ts can be a string (from API) or a number (locally added)
-      // Ensure ts can be converted to a valid number
-      // Filter out 'api_req_started' messages as they are handled by the isLoading state
       return (
         message &&
         message.ts != null && // Check for null or undefined
-        !isNaN(Number(message.ts)) && // Ensure ts is a valid number or numeric string
-        message.say !== 'api_req_started'
+        !isNaN(Number(message.ts)) // Ensure ts is a valid number or numeric string
       )
     })
     .sort((a, b) => Number(a.ts) - Number(b.ts)) // Sort by numeric value of ts
-
-  if (!currentChatId && !isLoading && displayMessages.length === 0) {
-    // This state is handled by ChatBox (preset questions) when no chatId is active.
-    // ChatView itself might not need to render a "no messages" state if ChatBox handles it.
-    // For now, let's keep it simple. If ChatView is rendered, it expects messages or loading.
-  }
 
   return (
     <div className="flex h-full flex-col">
       <div className="scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600 flex-1 space-y-3 overflow-y-auto p-4">
         {displayMessages.map((message, index) => {
+          // Add the apiRequestCompleted flag to api_req_started messages
+          let enhancedMessage = message
+          if (message.type === 'say' && message.say === 'api_req_started' && apiRequestCompleted) {
+            enhancedMessage = { ...message, status: 'completed' }
+          }
+          
           // Determine sender for alignment
           const isAssistantMsg =
             message.type === 'ask' ||
             (message.type === 'say' &&
-              ['tool_result', 'completion_result', 'error', 'tool_execution_started'].includes(
+              ['tool_result', 'completion_result', 'error', 'tool_execution_started', 'api_req_started'].includes(
                 message.say
               )) ||
             message.role === 'assistant' // Explicit role check
 
           return (
             <div
-              key={`${message.ts}-${index}-${message.subType || message.say}`} // More robust key
+              key={`${message.ts}-${index}-${message.subType || message.say}`}
               className={`flex items-start gap-2.5 ${isAssistantMsg ? 'justify-start' : 'justify-end'}`}
             >
               {isAssistantMsg && <CopilotAvatar />}
-              <MessageItem message={message} />
+              <MessageItem message={enhancedMessage} />
               {!isAssistantMsg && <UserAvatar />}
             </div>
           )
         })}
+        
+        {/* Only show loading indicator if isLoading is true and apiRequestCompleted is false */}
+        {isLoading && !apiRequestCompleted && (
+          <div className="flex items-start gap-2.5 justify-start">
+            <CopilotAvatar />
+            <div className="px-3.5 py-2.5 rounded-xl max-w-[85%] bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-100">
+              <div className="flex items-center">
+                <Loader2 size={16} className="mr-1.5 animate-spin text-blue-500" />
+                <span className="font-semibold text-gray-700 dark:text-gray-300">API Request</span>
+              </div>
+            </div>
+          </div>
+        )}
+        
         <div ref={messagesEndRef} /> {/* Anchor for scrolling to bottom */}
       </div>
-      {/* isLoading can be shown as a subtle bar or overlay instead of a message bubble */}
-      {isLoading && (
-        <div className="border-t border-gray-200 p-4 text-center text-sm text-gray-500 dark:border-gray-700 dark:text-gray-400">
-          Processing...
-        </div>
-      )}
     </div>
   )
 }
 
 export default ChatView
+
+
+
+
+

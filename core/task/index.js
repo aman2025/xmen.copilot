@@ -121,6 +121,9 @@ class Task {
         throw new Error('Received invalid or empty response from API.')
       }
 
+      // Update the API request message to show it's completed
+      await this.updateClineMessage('api_req_started', { status: 'completed' })
+
       // Add AI's response to local API history. Backend already saved it.
       await this.addToApiConversationHistory(assistantRawApiMessage, false) // false: don't saveToBackend, it's already saved
 
@@ -481,7 +484,47 @@ class Task {
           Version: ${system.version}
   </environment_details>`
   }
+
+  // Add a new method to update existing cline messages
+  async updateClineMessage(sayType, updates) {
+    // Get the current clineMessages from the store
+    const store = useChatStore.getState()
+    const clineMessages = [...store.clineMessages]
+  
+    // Find the most recent message with the specified sayType
+    const index = clineMessages.findIndex(msg => 
+      msg.type === 'say' && msg.say === sayType
+    )
+  
+    if (index !== -1) {
+      // Update the message with the new properties
+      clineMessages[index] = {
+        ...clineMessages[index],
+        ...updates
+      }
+    
+      // Update the store
+      store.setClineMessages(clineMessages)
+    
+      // If we need to persist this to the backend
+      if (this.chatId) {
+        try {
+          await fetch(`/api/chat/${this.chatId}/cline-messages`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+              messageId: clineMessages[index].id, 
+              updates 
+            })
+          })
+        } catch (error) {
+          console.error(`Task (${this.chatId}): Error updating cline message:`, error)
+        }
+      }
+    }
+  }
 }
 
 export default Task
+
 
