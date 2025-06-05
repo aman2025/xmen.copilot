@@ -53,7 +53,7 @@ const Copilot = () => {
   }
 
   const presetQuestions = [
-    'How many instances are there?',
+    'Show me all instances with dfa-crc?',
     'Help me start an instance named "my-new-app".',
     'What tasks can I ask you to perform?'
   ]
