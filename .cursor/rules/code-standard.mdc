@@ -1,0 +1,13 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+# Code Standard and Best Practices
+
+## Modular Code Structure
+- Organize code into modules based on functionality (e.g., components, hooks, utils).
+
+## Help Functions
+- Create reusable helper functions for common tasks (e.g., formatting dates, manipulating strings).
+
