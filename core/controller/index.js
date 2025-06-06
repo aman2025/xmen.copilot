@@ -47,6 +47,15 @@ class Controller {
       }
     } else if (userInput) {
       // Initialize new task
+      const userClineMessage = {
+        ts: Date.now(),
+        type: 'say',
+        say: 'text',
+        text: userInput,
+        role: 'user'
+      }
+      useChatStore.getState().addClineMessage(userClineMessage)
+
       try {
         const response = await fetch('/api/chat', {
           method: 'POST',
@@ -59,7 +68,7 @@ class Controller {
         const newChatSession = await response.json() // Expects { chatId, title, createdAt }
         this.currentChatId = newChatSession.chatId
 
-        this.task = new Task(this.currentChatId, userInput, [], [], this.environmentDetails)
+        this.task = new Task(this.currentChatId, userInput, [], [userClineMessage], this.environmentDetails)
         // The Task's startTask method will handle the first message processing and saving
         useChatStore.getState().setCurrentChatId(this.currentChatId)
         console.log('Controller: Initialized new task', this.currentChatId)
@@ -85,9 +94,19 @@ class Controller {
     // If currentChatId is set, it implies sending to existing task.
     // If not, it's a new task.
     if (this.task && this.currentChatId) {
+      useChatStore.getState().setIsLoading(true)
       // Sending message to existing, loaded task
+      const userClineMessage = {
+        ts: Date.now(),
+        type: 'say',
+        say: 'text',
+        text: text,
+        role: 'user'
+      }
+      useChatStore.getState().addClineMessage(userClineMessage)
       console.log('Controller: Sending message to existing task:', this.currentChatId)
-      await this.task.handleUserProvidedInput(text) // New method in Task
+      await this.task.handleUserProvidedInput(text)
+      useChatStore.getState().setIsLoading(false)
     } else {
       // New task
       console.log('Controller: Initializing new task with user input:', text)

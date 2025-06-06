@@ -66,7 +66,12 @@ class Task {
 
     // The corresponding cline message for UI. Also saved by POST messages route.
     // But we add it to UI immediately.
-    await this.say('text', taskInputText, true) // Persist this initial cline message
+    const userMessageExists = this.clineMessages.some(
+      (msg) => msg.text === taskInputText && msg.role === 'user'
+    )
+    if (!userMessageExists) {
+      await this.say('text', taskInputText, true, 'user')
+    }
 
     this.isInitialized = true
 
@@ -82,12 +87,15 @@ class Task {
     }
     console.log(`Task (${this.chatId}): handleUserProvidedInput:`, userInputText)
 
-    // Add user's message to local history and UI
-    const userApiMessage = { role: 'user', content: userInputText }
-    // this.apiConversationHistory.push(userApiMessage); // Will be added by the API call flow
-    // but needed for the payload to attemptApiRequest
-
-    await this.say('text', userInputText, true) // Persist this cline message
+    // The optimistic update in the controller already added the message to the UI.
+    // The task just needs to proceed with the API request.
+    // We ensure the message is saved if it wasn't already.
+    const userMessageExists = this.clineMessages.some(
+      (msg) => msg.text === userInputText && msg.role === 'user'
+    )
+    if (!userMessageExists) {
+      await this.say('text', userInputText, true, 'user') // Persist this cline message
+    }
 
     // Make API request with this new user input
     await this.initiateTaskLoop(userInputText)
@@ -108,7 +116,7 @@ class Task {
     await this.addToApiConversationHistory(payloadForApi, true)
 
     // Show API request started message with the actual user input instead of "Processing..."
-    await this.say('api_req_started', JSON.stringify({ request: userContent }), true) // Use actual userContent
+    await this.say('api_req_started', JSON.stringify({ request: userContent }), true, 'assistant') // Use actual userContent
 
     try {
       const assistantRawApiMessage = await this.attemptApiRequest(payloadForApi)
@@ -127,7 +135,7 @@ class Task {
       await this.presentAssistantMessage() // This will generate and save clineMessages
     } catch (error) {
       console.error(`Task (${this.chatId}): Error in task loop:`, error)
-      await this.say('error', `Error: ${error.message}`, true) // Persist error message
+      await this.say('error', `Error: ${error.message}`, true, 'assistant') // Persist error message
     }
   }
 
@@ -154,9 +162,9 @@ class Task {
         ) {
           textToSay = block.content.substring(completionMarker.length).trim()
           // The 'completion_result' subType will be handled by this.say()
-          await this.say('completion_result', textToSay, true) // true to persist
+          await this.say('completion_result', textToSay, true, 'assistant') // true to persist
         } else {
-          await this.say('text', textToSay, true) // true to persist
+          await this.say('text', textToSay, true, 'assistant') // true to persist
         }
         break
       }
@@ -186,7 +194,7 @@ class Task {
       }
       default: {
         console.warn(`Task (${this.chatId}): Unknown message type:`, type)
-        await this.say('error', `Unknown assistant message type: ${type}`, true)
+        await this.say('error', `Unknown assistant message type: ${type}`, true, 'assistant')
         break
       }
     }
@@ -235,7 +243,12 @@ class Task {
       this.lastToolCallId = actualToolCallId
 
       console.log(`Task (${this.chatId}): Executing tool ${toolName} (ID: ${actualToolCallId})`)
-      await this.say('tool_execution_started', JSON.stringify({ tool: toolName, params }), true)
+      await this.say(
+        'tool_execution_started',
+        JSON.stringify({ tool: toolName, params }),
+        true,
+        'assistant'
+      )
 
       let toolModule
       try {
@@ -255,7 +268,8 @@ class Task {
       await this.say(
         'tool_result',
         JSON.stringify({ tool: toolName, result, toolCallId: actualToolCallId }),
-        true // true to persist
+        true, // true to persist
+        'assistant'
       )
 
       // Prepare tool result message for AI
@@ -289,7 +303,7 @@ class Task {
       await this.initiateTaskLoop(toolResultMessageForAI)
     } catch (error) {
       console.error(`Task (${this.chatId}): Error executing tool ${toolName}:`, error)
-      await this.say('error', `Error executing tool ${toolName}: ${error.message}`, true)
+      await this.say('error', `Error executing tool ${toolName}: ${error.message}`, true, 'assistant')
       // Inform AI about tool execution error
       const toolErrorMessageForAI = {
         role: 'tool',
@@ -316,14 +330,15 @@ class Task {
     await this.addToClineMessages(clineMessage, saveToBackend)
   }
 
-  async say(sayType, text, saveToBackend = false) {
+  async say(sayType, text, saveToBackend = false, role = null) {
     const sayTs = Date.now()
     const clineMessage = {
       chatId: this.chatId, // Important for persistence
       ts: sayTs,
       type: 'say',
       say: sayType, // this 'say' is the subType from schema (e.g. 'text', 'tool_result')
-      text
+      text,
+      role
     }
     await this.addToClineMessages(clineMessage, saveToBackend)
   }
@@ -345,7 +360,8 @@ class Task {
           ts: Number(message.ts), // Ensure ts is a number
           type: message.type,
           subType: message.type === 'say' ? message.say : message.ask,
-          text: message.text
+          text: message.text,
+          role: message.role
           // chatId is taken from the URL parameters on the backend, so not needed in the body here.
         }
 
@@ -485,31 +501,35 @@ class Task {
     // Get the current clineMessages from the store
     const store = useChatStore.getState()
     const clineMessages = [...store.clineMessages]
-  
-    // Find the most recent message with the specified sayType
-    const index = clineMessages.findIndex(msg => 
-      msg.type === 'say' && msg.say === sayType
-    )
-  
+
+    // Find the index of the last message with the specified sayType by searching backwards
+    let index = -1
+    for (let i = clineMessages.length - 1; i >= 0; i--) {
+      if (clineMessages[i].type === 'say' && clineMessages[i].say === sayType) {
+        index = i
+        break
+      }
+    }
+
     if (index !== -1) {
       // Update the message with the new properties
       clineMessages[index] = {
         ...clineMessages[index],
         ...updates
       }
-    
+
       // Update the store
       store.setClineMessages(clineMessages)
-    
+
       // If we need to persist this to the backend
       if (this.chatId) {
         try {
           await fetch(`/api/chat/${this.chatId}/cline-messages`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ 
-              messageId: clineMessages[index].id, 
-              updates 
+            body: JSON.stringify({
+              messageId: clineMessages[index].id,
+              updates
             })
           })
         } catch (error) {

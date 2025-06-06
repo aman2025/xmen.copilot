@@ -163,19 +163,19 @@ const ChatView = () => {
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [clineMessages])
+  }, [clineMessages, isLoading])
 
   const displayMessages = [...(clineMessages || [])]
-    .filter(message => message && message.ts != null && !isNaN(Number(message.ts)))
+    .filter((message) => message && message.ts != null && !isNaN(Number(message.ts)))
     .sort((a, b) => Number(a.ts) - Number(b.ts))
 
   return (
     <div className="flex h-full flex-col">
       <div className="scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600 flex-1 space-y-4 overflow-y-auto p-4">
         {displayMessages.map((message, index) => {
-          const isUser = !message.type || (message.type === 'say' && message.say === 'text' && !message.role)
+          const isUser = message.role === 'user'
           const isApiRequest = message.type === 'say' && message.say === 'api_req_started'
-          
+
           if (isApiRequest) {
             return (
               <div key={`${message.ts}-${index}`}>
@@ -184,23 +184,30 @@ const ChatView = () => {
             )
           }
 
+          // Render user messages and other assistant messages
+          if (isUser || message.role === 'assistant' || message.type === 'ask') {
+            return (
+              <div key={`${message.ts}-${index}`} className="flex items-start gap-3">
+                {isUser ? <UserAvatar /> : <CopilotAvatar />}
+                <div className="flex flex-col">
+                  <span className="mb-1 text-sm font-medium text-gray-700 dark:text-gray-300">
+                    {isUser ? 'You' : 'Xmen Copilot'}
+                  </span>
+                  <MessageItem message={message} />
+                </div>
+              </div>
+            )
+          }
+
+          // Fallback for messages without a role (like system messages)
           return (
             <div key={`${message.ts}-${index}`} className="flex items-start gap-3">
-              {isUser ? <UserAvatar /> : <CopilotAvatar />}
               <div className="flex flex-col">
-                <span className="mb-1 text-sm font-medium text-gray-700 dark:text-gray-300">
-                  {isUser ? 'You' : 'Xmen Copilot'}
-                </span>
                 <MessageItem message={message} />
               </div>
             </div>
           )
         })}
-        {isLoading && (
-          <div>
-            <ApiRequestMessage message={{ text: 'Processing...' }} />
-          </div>
-        )}
         <div ref={messagesEndRef} />
       </div>
     </div>
