@@ -1,0 +1,37 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+# Task flow
+
+## Task Execution Flow UI Interaction
+
+### 1: Task Initiation & API Request
+  - User input (etc. show me all instances with dfa-crc)
+  - Start API request with the user's message content, formatted as:
+```
+<task>show me all instances with dfa-crc</task>
+</environment_detail>User info...; System info...</environment_detail>
+```
+ - Display a loading icon indicator with "API Request..." title
+ - Show the API request content in a formatted code block
+
+### 2: Tool Approval Request
+- When AI responds with a tool call:
+  - Display a tool icon before the title
+  - Show the tool name and parameters in a formatted code block
+  - Display other additional context from the AI response
+  - Add a "Waiting for user approval..." status text
+  - Show "Approve" and "Reject" buttons at the bottom of the entire ChatBox component
+
+### 3: Tool Execution & Result
+- After user approval:
+  - Show a loading indicator during tool execution
+  - Display the tool execution result in a formatted manner
+  - Indicate that results are being sent back to the AI
+
+### 4: Task Completion
+- When AI responds without tool calls:
+  - Display a check icon with "Task Completed" title
+  - Show the AI response content in a properly formatted message
