@@ -524,14 +524,9 @@ class Task {
       // If we need to persist this to the backend
       if (this.chatId) {
         try {
-          await fetch(`/api/chat/${this.chatId}/cline-messages`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              messageId: clineMessages[index].id,
-              updates
-            })
-          })
+          // Removing PUT request that causes 405 errors
+          // The frontend state is already updated above with store.setClineMessages()
+          console.log(`Task (${this.chatId}): Updated cline message in local state only`)
         } catch (error) {
           console.error(`Task (${this.chatId}): Error updating cline message:`, error)
         }
@@ -541,6 +536,7 @@ class Task {
 }
 
 export default Task
+
 
 
 
