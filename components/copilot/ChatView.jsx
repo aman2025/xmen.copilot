@@ -4,6 +4,7 @@ import React, { useEffect, useRef, useState } from 'react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import useChatStore from '../../store/useChatStore'
+import useGlobalStore from '../../store/useGlobalStore'
 import { handleResponse as handleApprovalResponseAction } from '../../store/chatActions'
 import { CheckCircle2, AlertTriangle, XCircle, Info, SendHorizontal, User, Loader2, Wrench } from 'lucide-react'
 
@@ -26,11 +27,15 @@ const UserAvatar = () => {
   )
 }
 
-// --- Add this new component for API Request state ---
+// --- ApiRequestMessage Component ---
 const ApiRequestMessage = ({ message }) => {
   // Parse task content if available
   let taskContent = ''
-  let envDetails = null
+  
+  // Get environment details from useGlobalStore
+  const globalStore = useGlobalStore.getState()
+  const userInfo = globalStore.user || { name: 'ZR', email: '42589963@qq.com' }
+  const systemInfo = globalStore.system || { mode: 'ESIM', version: '1.0.40' }
   
   try {
     // Try to parse the message text as JSON
@@ -42,7 +47,6 @@ const ApiRequestMessage = ({ message }) => {
       const parts = taskContent.split('</environment_detail>')
       if (parts.length > 1) {
         taskContent = parts[0].replace('<task>', '').replace('</task>', '')
-        envDetails = parts[1]
       }
     } else if (taskContent.includes('<task>')) {
       taskContent = taskContent.replace('<task>', '').replace('</task>', '')
@@ -56,13 +60,30 @@ const ApiRequestMessage = ({ message }) => {
   const isCompleted = message.status === 'completed'
   
   return (
-    <div className="flex items-center">
-      {isCompleted ? (
-        <CheckCircle2 size={18} className="mr-1.5 text-green-500" />
-      ) : (
-        <Loader2 size={16} className="mr-1.5 animate-spin text-blue-500" />
-      )}
-      <span className="font-semibold text-gray-700 dark:text-gray-300">API Request</span>
+    <div className="flex flex-col space-y-2">
+      <div className="flex items-center">
+        {isCompleted ? (
+          <CheckCircle2 size={18} className="mr-1.5 text-green-500" />
+        ) : (
+          <Loader2 size={16} className="mr-1.5 animate-spin text-blue-500" />
+        )}
+        <span className="font-semibold text-gray-700 dark:text-gray-300">API Request{isCompleted ? "" : "..."}</span>
+      </div>
+      
+      <pre className="mt-2 whitespace-pre-wrap rounded-md bg-gray-50 p-3 text-xs text-gray-700 dark:bg-gray-700 dark:text-gray-200">
+{`<task>
+${taskContent}
+</task>
+
+<environment_details>
+# User info
+      Name: ${userInfo.name}
+      Email: ${userInfo.email}
+# System info
+      Mode: ${systemInfo.mode}
+      Version: ${systemInfo.version}
+</environment_details>`}
+      </pre>
     </div>
   )
 }
@@ -358,6 +379,11 @@ const isAssistantMessage = (message) => {
 }
 
 export default ChatView
+
+
+
+
+
 
 
 

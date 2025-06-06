@@ -104,16 +104,11 @@ class Task {
       payloadForApi.content = this.formatUserInput(payloadForApi.content)
     }
 
-    // Add to local history *before* sending, so it's part of the context if attemptApiRequest uses it (though it shouldn't)
-    // The backend `POST /messages` will save this user/tool message.
-    // We just push to local apiConversationHistory to keep track on client if needed, but primary source is backend.
-    // This particular message (payloadForApi) is what's sent to the backend.
-    // The backend then fetches *all* history including this one (after saving it).
-    // So, a bit redundant to add here if backend is source of truth for history.
-    // However, addToApiConversationHistory has deduplication logic.
-    // For now, let's assume the backend saves it, and we only add the *AI's* response later.
+    // Add the formatted user message to the API conversation history
+    await this.addToApiConversationHistory(payloadForApi, true)
 
-    await this.say('api_req_started', JSON.stringify({ request: 'Processing...' }), true) // Persist this
+    // Show API request started message with the actual user input instead of "Processing..."
+    await this.say('api_req_started', JSON.stringify({ request: userContent }), true) // Use actual userContent
 
     try {
       const assistantRawApiMessage = await this.attemptApiRequest(payloadForApi)
@@ -526,5 +521,6 @@ class Task {
 }
 
 export default Task
+
 
 
