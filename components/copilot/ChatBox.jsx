@@ -12,6 +12,7 @@ import { SendHorizontal, MessageSquarePlus } from 'lucide-react'
 const ChatBox = ({ presetQuestions, onPresetQuestionClick }) => {
   const { currentChatId, messageInput, setMessageInput, isLoading, clineMessages } = useChatStore()
   const [pendingToolApproval, setPendingToolApproval] = useState(null)
+  const [hasUserResponded, setHasUserResponded] = useState(false)
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -21,11 +22,24 @@ const ChatBox = ({ presetQuestions, onPresetQuestionClick }) => {
 
   // Check for pending tool approval requests in messages
   useEffect(() => {
-    const toolApprovalMessage = clineMessages.find(
+    // Find the most recent tool approval message (highest timestamp)
+    const toolApprovalMessages = clineMessages.filter(
       msg => msg.type === 'ask' && msg.ask === 'call_sys_tool'
     )
+
+    const toolApprovalMessage = toolApprovalMessages.length > 0
+      ? toolApprovalMessages.reduce((latest, current) =>
+          (current.ts > latest.ts) ? current : latest
+        )
+      : null
+
+    // If we have a new tool approval message (different timestamp), reset the response state
+    if (toolApprovalMessage && (!pendingToolApproval || toolApprovalMessage.ts !== pendingToolApproval.ts)) {
+      setHasUserResponded(false)
+    }
+
     setPendingToolApproval(toolApprovalMessage)
-  }, [clineMessages])
+  }, [clineMessages, pendingToolApproval])
 
   const handleSendMessage = () => {
     if (messageInput.trim()) {
@@ -42,17 +56,13 @@ const ChatBox = ({ presetQuestions, onPresetQuestionClick }) => {
   };
 
   const handleToolApproval = (response) => {
-    if (!pendingToolApproval) return
-    
-    let toolData = {}
-    try {
-      toolData = JSON.parse(pendingToolApproval.text)
-    } catch (e) {
-      console.error('Failed to parse tool data for approval:', pendingToolApproval.text, e)
-    }
-    
+    if (!pendingToolApproval || hasUserResponded) return
+
+    // Mark that user has responded to prevent multiple clicks
+    setHasUserResponded(true)
+
     handleApprovalResponseAction(response)
-    setPendingToolApproval(null)
+    // Don't set pendingToolApproval to null immediately - let it be handled by the next message update
   }
 
   return (
@@ -84,7 +94,7 @@ const ChatBox = ({ presetQuestions, onPresetQuestionClick }) => {
       </div>
       
       {/* Tool Approval Bar */}
-      {pendingToolApproval && (
+      {pendingToolApproval && !hasUserResponded && (
         <div className="flex border-t border-gray-200 dark:border-gray-700">
           <button
             onClick={() => handleToolApproval('approve')}
