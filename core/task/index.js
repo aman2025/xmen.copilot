@@ -245,7 +245,7 @@ class Task {
       this.lastToolCallId = actualToolCallId
 
       console.log(`Task (${this.chatId}): Executing tool ${toolName} (ID: ${actualToolCallId})`)
-      // Don't show loading state for tool execution, just show completed state after execution
+      // Don't show loading state here - it will be shown when making API request
 
       let toolModule
       try {
@@ -261,13 +261,8 @@ class Task {
       const result = await toolFunction(params)
       console.log(`Task (${this.chatId}): Tool ${toolName} result:`, result)
 
-      // Show completed API request for tool execution
-      await this.say(
-        'api_req_started',
-        JSON.stringify({ request: `Executing ${toolName}...`, status: 'completed' }),
-        true,
-        'assistant'
-      )
+      // Tool execution completed successfully - no need to update message here
+      // The API request message will be shown when sending tool result to AI
 
       // Prepare tool result message for AI
       const toolResultMessageForAI = {
@@ -293,32 +288,87 @@ class Task {
         // Potentially construct a placeholder if critical for context, though backend handles history now.
       }
 
-      // Add the tool result to local API history. Backend will save it on next POST /messages call.
-      // await this.addToApiConversationHistory(toolResultMessageForAI, false); // Already handled by backend
+      // Show loading state before making API request with tool result
+      await this.say(
+        'api_req_started',
+        JSON.stringify({ request: `Processing tool result...` }),
+        true,
+        'assistant'
+      )
 
-      // Continue the conversation by sending the tool result to the AI
-      await this.initiateTaskLoop(toolResultMessageForAI)
+      // Send tool result directly to API
+      try {
+        const assistantRawApiMessage = await this.attemptApiRequest(toolResultMessageForAI)
+        if (assistantRawApiMessage && assistantRawApiMessage.role) {
+          // Update the API request message to show completion
+          await this.updateClineMessage('api_req_started', {
+            text: JSON.stringify({ request: `Processing tool result...`, status: 'completed' })
+          })
+
+          // Add AI's response to local API history
+          await this.addToApiConversationHistory(assistantRawApiMessage, false)
+
+          this.assistantMessageContent = parseAssistantMessage(assistantRawApiMessage)
+          await this.presentAssistantMessage()
+        }
+      } catch (error) {
+        console.error(`Task (${this.chatId}): Error processing tool result:`, error)
+        await this.say('error', `Error processing tool result: ${error.message}`, true, 'assistant')
+      }
     } catch (error) {
       console.error(`Task (${this.chatId}): Error executing tool ${toolName}:`, error)
-      // Show error API request for tool execution
+      // Show error API request message
       await this.say(
         'api_req_started',
         JSON.stringify({
-          request: `Executing ${toolName}...`,
+          request: `Error executing ${toolName}`,
           status: 'error',
           error: error.message
         }),
         true,
         'assistant'
       )
-      // Inform AI about tool execution error
+      // Send tool error directly to API without creating another API request message
       const toolErrorMessageForAI = {
         role: 'tool',
         tool_call_id: toolCallId, // Use the original toolCallId
         content: JSON.stringify({ error: `Tool execution failed: ${error.message}` })
         // name: toolName
       }
-      await this.initiateTaskLoop(toolErrorMessageForAI)
+
+      // Show loading state before making API request with tool error
+      await this.say(
+        'api_req_started',
+        JSON.stringify({ request: `Processing tool error...` }),
+        true,
+        'assistant'
+      )
+
+      try {
+        const assistantRawApiMessage = await this.attemptApiRequest(toolErrorMessageForAI)
+        if (assistantRawApiMessage && assistantRawApiMessage.role) {
+          // Update the API request message to show completion
+          await this.updateClineMessage('api_req_started', {
+            text: JSON.stringify({ request: `Processing tool error...`, status: 'completed' })
+          })
+
+          // Add AI's response to local API history
+          await this.addToApiConversationHistory(assistantRawApiMessage, false)
+
+          this.assistantMessageContent = parseAssistantMessage(assistantRawApiMessage)
+          await this.presentAssistantMessage()
+        }
+      } catch (apiError) {
+        console.error(`Task (${this.chatId}): Error processing tool error result:`, apiError)
+        // Update the API request message to show error
+        await this.updateClineMessage('api_req_started', {
+          text: JSON.stringify({
+            request: `Processing tool error...`,
+            status: 'error',
+            error: apiError.message
+          })
+        })
+      }
     }
   }
 
