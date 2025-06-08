@@ -128,19 +128,13 @@ class Controller {
       return {}
     }
 
-    // The user's action (approve/reject) should itself be a cline message
-    const userActionText =
-      response === 'approve' ? 'User approved tool execution.' : 'User rejected tool execution.'
-    const userActionClineMessage = {
-      ts: Date.now(),
-      type: 'say', // Or a more specific type like 'user_action'
-      say: 'text', // Or 'user_decision'
-      text: userActionText
-      // chatId: this.currentChatId // Task's say/ask methods will add chatId
-    }
-    // Manually add this to the store and persist it via the task or a direct call
-    if (this.task) {
-      await this.task.say('text', userActionText, true) // true to persist
+    // Don't display "User approved tool execution." message anymore
+    // Only record rejection messages for debugging purposes
+    if (response !== 'approve') {
+      const userActionText = 'User rejected tool execution.'
+      if (this.task) {
+        await this.task.say('text', userActionText, true) // true to persist
+      }
     }
 
     console.log('Controller: Processing approval/rejection:', response)

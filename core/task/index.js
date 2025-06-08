@@ -20,13 +20,13 @@ class Task {
     this.pendingToolCall = null
     this.waitingForApproval = false
     this.lastToolCallId = null
-    
+
     // Use provided environmentDetails or get from useGlobalStore
     this.environmentDetails = environmentDetails || {
       user: useGlobalStore.getState().user,
       system: useGlobalStore.getState().system
     }
-    
+
     console.log(`Task instantiated for chatId: ${this.chatId}`)
     console.log('Initial API History:', this.apiConversationHistory)
     console.log('Initial Cline Messages:', this.clineMessages)
@@ -125,7 +125,9 @@ class Task {
       }
 
       // Update the API request message to show it's completed
-      await this.updateClineMessage('api_req_started', { status: 'completed' })
+      await this.updateClineMessage('api_req_started', {
+        text: JSON.stringify({ request: userContent, status: 'completed' })
+      })
 
       // Add AI's response to local API history. Backend already saved it.
       await this.addToApiConversationHistory(assistantRawApiMessage, false) // false: don't saveToBackend, it's already saved
@@ -243,12 +245,7 @@ class Task {
       this.lastToolCallId = actualToolCallId
 
       console.log(`Task (${this.chatId}): Executing tool ${toolName} (ID: ${actualToolCallId})`)
-      await this.say(
-        'tool_execution_started',
-        JSON.stringify({ tool: toolName, params }),
-        true,
-        'assistant'
-      )
+      // Don't show loading state for tool execution, just show completed state after execution
 
       let toolModule
       try {
@@ -264,11 +261,11 @@ class Task {
       const result = await toolFunction(params)
       console.log(`Task (${this.chatId}): Tool ${toolName} result:`, result)
 
-      // Persist tool result as a cline message for UI
+      // Show completed API request for tool execution
       await this.say(
-        'tool_result',
-        JSON.stringify({ tool: toolName, result, toolCallId: actualToolCallId }),
-        true, // true to persist
+        'api_req_started',
+        JSON.stringify({ request: `Executing ${toolName}...`, status: 'completed' }),
+        true,
         'assistant'
       )
 
@@ -303,7 +300,17 @@ class Task {
       await this.initiateTaskLoop(toolResultMessageForAI)
     } catch (error) {
       console.error(`Task (${this.chatId}): Error executing tool ${toolName}:`, error)
-      await this.say('error', `Error executing tool ${toolName}: ${error.message}`, true, 'assistant')
+      // Show error API request for tool execution
+      await this.say(
+        'api_req_started',
+        JSON.stringify({
+          request: `Executing ${toolName}...`,
+          status: 'error',
+          error: error.message
+        }),
+        true,
+        'assistant'
+      )
       // Inform AI about tool execution error
       const toolErrorMessageForAI = {
         role: 'tool',
@@ -513,30 +520,25 @@ class Task {
 
     if (index !== -1) {
       // Update the message with the new properties
-      clineMessages[index] = {
+      const updatedMessage = {
         ...clineMessages[index],
         ...updates
       }
 
-      // Update the store
+      // Remove the old message and add the updated one
+      clineMessages.splice(index, 1)
+
+      // Update the store with the modified array
       store.setClineMessages(clineMessages)
 
-      // If we need to persist this to the backend
-      if (this.chatId) {
-        try {
-          // Removing PUT request that causes 405 errors
-          // The frontend state is already updated above with store.setClineMessages()
-          console.log(`Task (${this.chatId}): Updated cline message in local state only`)
-        } catch (error) {
-          console.error(`Task (${this.chatId}): Error updating cline message:`, error)
-        }
-      }
+      // Add the updated message back (this will trigger a re-render)
+      store.addClineMessage(updatedMessage)
+
+      console.log(`Task (${this.chatId}): Updated cline message successfully`)
+    } else {
+      console.warn(`Task (${this.chatId}): No message found with sayType: ${sayType}`)
     }
   }
 }
 
 export default Task
-
-
-
-

@@ -36,11 +36,20 @@ const UserAvatar = () => {
 }
 
 // --- ApiRequestMessage Component ---
-const ApiRequestMessage = ({ message, isCompleted = false }) => {
+const ApiRequestMessage = ({ message, isCompleted = false, hasError = false }) => {
   let taskContent = ''
+  let isToolExecution = false
+
   try {
     const parsedData = JSON.parse(message.text || '{}')
     taskContent = parsedData.request || ''
+
+    // Check if this is a tool execution (starts with "Executing")
+    if (taskContent.startsWith('Executing ') && taskContent.endsWith('...')) {
+      isToolExecution = true
+    }
+
+    // Handle regular API requests
     if (taskContent.includes('</environment_detail>')) {
       const parts = taskContent.split('</environment_detail>')
       taskContent = parts[0].replace('<task>', '').replace('</task>', '')
@@ -54,18 +63,23 @@ const ApiRequestMessage = ({ message, isCompleted = false }) => {
   return (
     <div className="flex flex-col space-y-2">
       <div className="flex items-center">
-        {isCompleted ? (
+        {hasError ? (
+          <XCircle size={18} className="mr-1.5 text-red-500" />
+        ) : isCompleted ? (
           <CheckCircle2 size={18} className="mr-1.5 text-green-500" />
         ) : (
           <Loader2 size={16} className="mr-1.5 animate-spin text-blue-500" />
         )}
         <span className="font-medium text-gray-700 dark:text-gray-300">
-          API Request{isCompleted ? '' : '...'}
+          API Request{isCompleted || hasError ? '' : '...'}
         </span>
       </div>
-      <pre className="whitespace-pre-wrap rounded-md bg-gray-50 p-3 text-sm text-gray-700 dark:bg-gray-700 dark:text-gray-200">
-        {`<task>${taskContent}</task>`}
-      </pre>
+      {/* Only show task content for non-tool executions or if it's not a simple tool execution message */}
+      {!isToolExecution && (
+        <pre className="whitespace-pre-wrap rounded-md bg-gray-50 p-3 text-sm text-gray-700 dark:bg-gray-700 dark:text-gray-200">
+          {taskContent.includes('<task>') ? taskContent : `<task>${taskContent}</task>`}
+        </pre>
+      )}
     </div>
   )
 }
@@ -116,8 +130,6 @@ const ToolApprovalRequest = ({ message }) => {
 
 // --- MessageItem Component ---
 const MessageItem = ({ message }) => {
-  const { setMessageInput, isFullscreen } = useChatStore()
-
   const renderContent = () => {
     if (message.type === 'ask' && message.ask === 'call_sys_tool') {
       return <ToolApprovalRequest message={message} />
@@ -126,7 +138,21 @@ const MessageItem = ({ message }) => {
     if (message.type === 'say') {
       switch (message.say) {
         case 'api_req_started':
-          return <ApiRequestMessage message={message} isCompleted={message.status === 'completed'} />
+          // Check if the message has a status field indicating completion or error
+          let isCompleted = false
+          let hasError = false
+          try {
+            const parsedData = JSON.parse(message.text || '{}')
+            isCompleted = parsedData.status === 'completed'
+            hasError = parsedData.status === 'error'
+          } catch (e) {
+            // If parsing fails, check the old way
+            isCompleted = message.status === 'completed'
+            hasError = message.status === 'error'
+          }
+          return (
+            <ApiRequestMessage message={message} isCompleted={isCompleted} hasError={hasError} />
+          )
         case 'text':
         default:
           return (
@@ -139,21 +165,7 @@ const MessageItem = ({ message }) => {
     return <pre className="text-xs">{JSON.stringify(message, null, 2)}</pre>
   }
 
-  return (
-    <div className="rounded-lg bg-white px-4 py-2 dark:bg-gray-800">
-      {renderContent()}
-    </div>
-  )
-}
-
-// --- Add a new component for the Copilot label ---
-const CopilotLabel = () => {
-  return (
-    <div className="mb-1 flex items-center text-sm font-medium text-gray-700 dark:text-gray-300">
-      <img src="/copilot-icon.svg" alt="Copilot" className="mr-1.5 h-4 w-4" />
-      Xmen Copilot
-    </div>
-  )
+  return <div className="rounded-lg bg-white px-4 py-2 dark:bg-gray-800">{renderContent()}</div>
 }
 
 // --- ChatView Component ---
@@ -176,10 +188,27 @@ const ChatView = () => {
           const isUser = message.role === 'user'
           const isApiRequest = message.type === 'say' && message.say === 'api_req_started'
 
+          // Handle API requests (including tool executions) without avatar/label
           if (isApiRequest) {
+            // Check if the message has a status field indicating completion or error
+            let isCompleted = false
+            let hasError = false
+            try {
+              const parsedData = JSON.parse(message.text || '{}')
+              isCompleted = parsedData.status === 'completed'
+              hasError = parsedData.status === 'error'
+            } catch (e) {
+              // If parsing fails, check the old way
+              isCompleted = message.status === 'completed'
+              hasError = message.status === 'error'
+            }
             return (
               <div key={`${message.ts}-${index}`}>
-                <ApiRequestMessage message={message} isCompleted={message.status === 'completed'} />
+                <ApiRequestMessage
+                  message={message}
+                  isCompleted={isCompleted}
+                  hasError={hasError}
+                />
               </div>
             )
           }
@@ -211,22 +240,6 @@ const ChatView = () => {
         <div ref={messagesEndRef} />
       </div>
     </div>
-  )
-}
-
-// --- Add a helper function to determine if a message is from the assistant ---
-const isAssistantMessage = (message) => {
-  return (
-    message.type === 'ask' ||
-    (message.type === 'say' &&
-      [
-        'tool_result',
-        'completion_result',
-        'error',
-        'tool_execution_started',
-        'api_req_started'
-      ].includes(message.say)) ||
-    message.role === 'assistant'
   )
 }
 
