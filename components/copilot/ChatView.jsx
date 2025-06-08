@@ -38,14 +38,18 @@ const UserAvatar = () => {
 // --- ApiRequestMessage Component ---
 const ApiRequestMessage = ({ message, isCompleted = false, hasError = false }) => {
   let taskContent = ''
+  let toolResult = null
   let isToolExecution = false
 
   try {
     const parsedData = JSON.parse(message.text || '{}')
     taskContent = parsedData.request || ''
+    toolResult = parsedData.toolResult || null
 
-    // Check if this is a tool execution (starts with "Executing")
+    // Check if this is a tool execution (starts with "Executing" or "Processing tool result")
     if (taskContent.startsWith('Executing ') && taskContent.endsWith('...')) {
+      isToolExecution = true
+    } else if (taskContent.startsWith('Processing tool result')) {
       isToolExecution = true
     }
 
@@ -74,10 +78,18 @@ const ApiRequestMessage = ({ message, isCompleted = false, hasError = false }) =
           API Request{isCompleted || hasError ? '' : '...'}
         </span>
       </div>
-      {/* Only show task content for non-tool executions or if it's not a simple tool execution message */}
+
+      {/* Show task content for non-tool executions */}
       {!isToolExecution && (
         <pre className="whitespace-pre-wrap rounded-md bg-gray-50 p-3 text-sm text-gray-700 dark:bg-gray-700 dark:text-gray-200">
           {taskContent.includes('<task>') ? taskContent : `<task>${taskContent}</task>`}
+        </pre>
+      )}
+
+      {/* Show tool result for completed tool executions */}
+      {isToolExecution && isCompleted && toolResult && (
+        <pre className="whitespace-pre-wrap rounded-md bg-gray-50 p-3 text-sm text-gray-700 dark:bg-gray-700 dark:text-gray-200">
+          {`<result>${typeof toolResult === 'string' ? toolResult : JSON.stringify(toolResult, null, 2)}</result>`}
         </pre>
       )}
     </div>

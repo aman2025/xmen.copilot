@@ -291,7 +291,7 @@ class Task {
       // Show loading state before making API request with tool result
       await this.say(
         'api_req_started',
-        JSON.stringify({ request: `Processing tool result...` }),
+        JSON.stringify({ request: `Processing tool result...`, toolResult: result }),
         true,
         'assistant'
       )
@@ -300,9 +300,13 @@ class Task {
       try {
         const assistantRawApiMessage = await this.attemptApiRequest(toolResultMessageForAI)
         if (assistantRawApiMessage && assistantRawApiMessage.role) {
-          // Update the API request message to show completion
+          // Update the API request message to show completion with tool result
           await this.updateClineMessage('api_req_started', {
-            text: JSON.stringify({ request: `Processing tool result...`, status: 'completed' })
+            text: JSON.stringify({
+              request: `Processing tool result...`,
+              status: 'completed',
+              toolResult: result
+            })
           })
 
           // Add AI's response to local API history
