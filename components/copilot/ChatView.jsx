@@ -86,8 +86,8 @@ const ApiRequestMessage = ({ message, isCompleted = false, hasError = false }) =
         </pre>
       )}
 
-      {/* Show tool result for completed tool executions */}
-      {isToolExecution && isCompleted && toolResult && (
+      {/* Show tool result for tool executions (both loading and completed) */}
+      {isToolExecution && toolResult && (
         <pre className="whitespace-pre-wrap rounded-md bg-gray-50 p-3 text-sm text-gray-700 dark:bg-gray-700 dark:text-gray-200">
           {`<result>${typeof toolResult === 'string' ? toolResult : JSON.stringify(toolResult, null, 2)}</result>`}
         </pre>
