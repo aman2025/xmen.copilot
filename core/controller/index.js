@@ -32,50 +32,84 @@ class Controller {
 
         const displayMessages = []
 
-        // 1. Reconstruct user messages from apiMessages to ensure they are in the correct UI format
-        if (chatSessionData.apiMessages) {
-          chatSessionData.apiMessages.forEach((apiMsg) => {
-            if (apiMsg.role === 'user' && apiMsg.content) {
-              // Extract original user input from the formatted content, which is between <task> tags
-              const taskMatch = apiMsg.content.match(/<task>([\s\S]*?)<\/task>/)
-              const userText = taskMatch ? taskMatch[1].trim() : apiMsg.content
+        // Find the first user API message to anchor our UI reconstruction
+        const firstUserApiMessage = chatSessionData.apiMessages?.find(
+          (msg) => msg.role === 'user'
+        )
+        let originalUserText = ''
 
-              displayMessages.push({
-                ts: new Date(apiMsg.timestamp).getTime(),
-                type: 'say',
-                say: 'text',
-                text: userText,
-                role: 'user'
-              })
-            }
+        if (firstUserApiMessage) {
+          const taskMatch = firstUserApiMessage.content.match(/<task>([\s\S]*?)<\/task>/)
+          originalUserText = taskMatch ? taskMatch[1].trim() : firstUserApiMessage.content
+
+          // Requirement 1: Add the user message first.
+          displayMessages.push({
+            ts: new Date(firstUserApiMessage.timestamp).getTime(),
+            type: 'say',
+            say: 'text',
+            text: originalUserText,
+            role: 'user'
+          })
+
+          // Requirement 2: Add the corresponding API Request message right after.
+          displayMessages.push({
+            ts: new Date(firstUserApiMessage.timestamp).getTime() + 1, // Ensure it's sorted after user message.
+            type: 'say',
+            say: 'api_req_started',
+            text: JSON.stringify({ request: firstUserApiMessage.content }),
+            role: 'assistant'
           })
         }
 
-        // 2. Normalize clineMessages from the database to match the live chat message structure
+        // Process clineMessages from the database, filtering out what we've reconstructed or what's unwanted.
         if (chatSessionData.clineMessages) {
           chatSessionData.clineMessages.forEach((clineMsg) => {
+            // Check if this is the initial API request we've already manually reconstructed.
+            if (
+              firstUserApiMessage &&
+              clineMsg.type === 'say' &&
+              clineMsg.subType === 'api_req_started'
+            ) {
+              try {
+                const parsedText = JSON.parse(clineMsg.text || '{}')
+                if (parsedText.request === originalUserText) {
+                  return // Skip this message, we've already added our own version.
+                }
+              } catch (e) {
+                /* ignore parse error */
+              }
+            }
+
+            // Requirement 3: Filter out the verbose assistant message with environment details.
+            if (
+              clineMsg.type === 'say' &&
+              clineMsg.subType === 'text' &&
+              clineMsg.text.includes('<environment_details>')
+            ) {
+              return // Skip this message.
+            }
+
             const normalizedMsg = {
               ...clineMsg,
               ts: Number(clineMsg.ts),
-              role: 'assistant' // All clineMessages from DB are assistant-generated
+              role: 'assistant' // All other clineMessages from DB are assistant-generated
             }
 
-            // Map subType to say/ask for component compatibility
             if (clineMsg.type === 'say') {
               normalizedMsg.say = clineMsg.subType
             } else if (clineMsg.type === 'ask') {
               normalizedMsg.ask = clineMsg.subType
             }
-            delete normalizedMsg.subType // Clean up the old property
+            delete normalizedMsg.subType
 
             displayMessages.push(normalizedMsg)
           })
         }
 
-        // 3. Sort all reconstructed and normalized messages chronologically
+        // Sort all reconstructed and normalized messages chronologically
         displayMessages.sort((a, b) => a.ts - b.ts)
 
-        // 4. Update the store with the unified message list for rendering
+        // Update the store with the unified message list for rendering
         useChatStore.getState().setClineMessages(displayMessages)
 
         this.task = new Task(

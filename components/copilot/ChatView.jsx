@@ -98,6 +98,7 @@ const ApiRequestMessage = ({ message, isCompleted = false, hasError = false }) =
 
 // --- Add a new component for Tool Approval Request ---
 const ToolApprovalRequest = ({ message }) => {
+  const { isWaitingForApproval } = useChatStore()
   let toolData = {}
   try {
     toolData = JSON.parse(message.text)
@@ -110,6 +111,8 @@ const ToolApprovalRequest = ({ message }) => {
     )
   }
 
+  const isHistorical = !isWaitingForApproval
+
   return (
     <div className="flex flex-col space-y-3">
       <div className="flex-grow">
@@ -119,6 +122,7 @@ const ToolApprovalRequest = ({ message }) => {
             <span className="font-medium text-gray-800 dark:text-gray-200">
               Copilot wants to execute this tool:
             </span>
+            {isHistorical && <CheckCircle2 size={16} className="ml-2 text-green-500" />}
           </div>
 
           <div className="text-sm text-gray-700 dark:text-gray-300">
@@ -132,9 +136,11 @@ const ToolApprovalRequest = ({ message }) => {
           </div>
         </div>
 
-        <p className="mt-2 text-sm italic text-gray-500 dark:text-gray-400">
-          waiting for user approving...
-        </p>
+        {!isHistorical && (
+          <p className="mt-2 text-sm italic text-gray-500 dark:text-gray-400">
+            waiting for user approving...
+          </p>
+        )}
       </div>
     </div>
   )
@@ -214,6 +220,14 @@ const ChatView = () => {
               isCompleted = message.status === 'completed'
               hasError = message.status === 'error'
             }
+
+            // For historical chats, any api_req_started message without a final status
+            // should be considered completed, as the task is no longer active.
+            // We use !isLoading to infer that we are not in the middle of a live request.
+            if (!isLoading && !isCompleted && !hasError) {
+              isCompleted = true
+            }
+
             return (
               <div key={`${message.ts}-${index}`}>
                 <ApiRequestMessage
