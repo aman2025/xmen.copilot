@@ -32,9 +32,9 @@ class Task {
     console.log('Initial Cline Messages:', this.clineMessages)
 
     if (this.chatId && !initialUserInput && existingClineMessages.length > 0) {
-      // Resuming task: populate store with loaded clineMessages
-      // Ensure not to add duplicates if store already has them from a previous load
-      useChatStore.getState().setClineMessages([...this.clineMessages]) // Use a setter to replace
+      // Resuming task: The Controller now populates the store with transformed messages.
+      // This ensures that historical data is correctly formatted for the UI before rendering.
+      // useChatStore.getState().setClineMessages([...this.clineMessages]) // This is now redundant.
       console.log(`Task for ${this.chatId} resumed, clineMessages restored to store.`)
       // Consider if any specific "resumption" message should be added to UI
       // this.say('text', '[Task Resumed]', true); // Example, true to persist
@@ -179,6 +179,7 @@ class Task {
         const needsApproval = this.doesToolNeedApproval() // Assuming this remains true for now
         if (needsApproval) {
           this.waitingForApproval = true
+          useChatStore.getState().setIsWaitingForApproval(true) // Set global state to true
           await this.ask(
             'call_sys_tool',
             JSON.stringify({
@@ -213,12 +214,14 @@ class Task {
       // Reset states just in case
       this.waitingForApproval = false
       this.pendingToolCall = null
+      useChatStore.getState().setIsWaitingForApproval(false) // Reset global state to false
       return
     }
 
     const { name, params, toolCallId } = this.pendingToolCall
     this.waitingForApproval = false
     this.pendingToolCall = null
+    useChatStore.getState().setIsWaitingForApproval(false) // Reset global state to false
 
     // The user's decision (approve/reject text) should have already been saved as a cline message by Controller.
 

@@ -18,6 +18,7 @@ class Controller {
   async initOrLoadTask(chatId = null, userInput = null) {
     console.log('Controller: initOrLoadTask called with chatId:', chatId, 'userInput:', userInput)
     useChatStore.getState().setIsLoading(true)
+    useChatStore.getState().setIsWaitingForApproval(false) // Reset approval state on any task load
 
     if (chatId) {
       // Load existing task
@@ -29,13 +30,61 @@ class Controller {
         }
         const chatSessionData = await response.json() // Expects { id, title, apiMessages, clineMessages, ... }
 
+        const displayMessages = []
+
+        // 1. Reconstruct user messages from apiMessages to ensure they are in the correct UI format
+        if (chatSessionData.apiMessages) {
+          chatSessionData.apiMessages.forEach((apiMsg) => {
+            if (apiMsg.role === 'user' && apiMsg.content) {
+              // Extract original user input from the formatted content, which is between <task> tags
+              const taskMatch = apiMsg.content.match(/<task>([\s\S]*?)<\/task>/)
+              const userText = taskMatch ? taskMatch[1].trim() : apiMsg.content
+
+              displayMessages.push({
+                ts: new Date(apiMsg.timestamp).getTime(),
+                type: 'say',
+                say: 'text',
+                text: userText,
+                role: 'user'
+              })
+            }
+          })
+        }
+
+        // 2. Normalize clineMessages from the database to match the live chat message structure
+        if (chatSessionData.clineMessages) {
+          chatSessionData.clineMessages.forEach((clineMsg) => {
+            const normalizedMsg = {
+              ...clineMsg,
+              ts: Number(clineMsg.ts),
+              role: 'assistant' // All clineMessages from DB are assistant-generated
+            }
+
+            // Map subType to say/ask for component compatibility
+            if (clineMsg.type === 'say') {
+              normalizedMsg.say = clineMsg.subType
+            } else if (clineMsg.type === 'ask') {
+              normalizedMsg.ask = clineMsg.subType
+            }
+            delete normalizedMsg.subType // Clean up the old property
+
+            displayMessages.push(normalizedMsg)
+          })
+        }
+
+        // 3. Sort all reconstructed and normalized messages chronologically
+        displayMessages.sort((a, b) => a.ts - b.ts)
+
+        // 4. Update the store with the unified message list for rendering
+        useChatStore.getState().setClineMessages(displayMessages)
+
         this.task = new Task(
           chatSessionData.id,
-          null, // No initial user input, we are loading
+          null, // No initial user input, we are loading an existing task
           chatSessionData.apiMessages || [],
-          chatSessionData.clineMessages || []
+          displayMessages // Pass the unified messages to the task instance
         )
-        // Task constructor should handle populating clineMessages to store
+
         useChatStore.getState().setCurrentChatId(chatSessionData.id)
         console.log('Controller: Loaded existing task', chatSessionData.id)
       } catch (error) {

@@ -10,7 +10,14 @@ from '../../store/chatActions'
 import { SendHorizontal, MessageSquarePlus } from 'lucide-react'
 
 const ChatBox = ({ presetQuestions, onPresetQuestionClick }) => {
-  const { currentChatId, messageInput, setMessageInput, isLoading, clineMessages } = useChatStore()
+  const {
+    currentChatId,
+    messageInput,
+    setMessageInput,
+    isLoading,
+    clineMessages,
+    isWaitingForApproval
+  } = useChatStore()
   const [pendingToolApproval, setPendingToolApproval] = useState(null)
   const [hasUserResponded, setHasUserResponded] = useState(false)
 
@@ -94,7 +101,7 @@ const ChatBox = ({ presetQuestions, onPresetQuestionClick }) => {
       </div>
       
       {/* Tool Approval Bar */}
-      {pendingToolApproval && !hasUserResponded && (
+      {pendingToolApproval && !hasUserResponded && isWaitingForApproval && (
         <div className="flex border-t border-gray-200 dark:border-gray-700">
           <button
             onClick={() => handleToolApproval('approve')}

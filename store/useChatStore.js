@@ -7,6 +7,7 @@ const useChatStore = create((set, get) => ({
   view: 'chat', // Current view ('chat' or 'history')
   isFullscreen: true,
   isLoading: false,
+  isWaitingForApproval: false, // New state to track active tool approval
   scrollToBottom: null, // Function to scroll chat to bottom
 
   // Message state for UI rendering
@@ -22,6 +23,7 @@ const useChatStore = create((set, get) => ({
   setView: (view) => set({ view }),
   setIsFullscreen: (isFullscreen) => set({ isFullscreen }),
   setIsLoading: (loading) => set({ isLoading: loading }),
+  setIsWaitingForApproval: (waiting) => set({ isWaitingForApproval: waiting }), // Setter for the new state
   setMessageInput: (text) => set({ messageInput: text }),
 
   // ClineMessage actions for UI
