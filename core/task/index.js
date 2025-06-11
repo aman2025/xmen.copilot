@@ -41,9 +41,7 @@ class Task {
       this.isInitialized = true // Mark as initialized if loading existing
     }
 
-    if (initialUserInput && this.chatId) {
-      this.startTask(initialUserInput)
-    } else if (!this.chatId) {
+    if (!this.chatId) {
       console.error('Task initialized without a chatId!')
     }
   }

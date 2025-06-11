@@ -151,8 +151,18 @@ class Controller {
         const newChatSession = await response.json() // Expects { chatId, title, createdAt }
         this.currentChatId = newChatSession.chatId
 
-        this.task = new Task(this.currentChatId, userInput, [], [userClineMessage], this.environmentDetails)
-        // The Task's startTask method will handle the first message processing and saving
+        this.task = new Task(
+          this.currentChatId,
+          null, // Pass null as initialUserInput; we will start the task manually.
+          [],
+          [userClineMessage],
+          this.environmentDetails
+        )
+        
+        // Explicitly await the task's startup process. This includes the first API call.
+        // This ensures isLoading=true remains set until the first response is handled.
+        await this.task.startTask(userInput)
+
         useChatStore.getState().setCurrentChatId(this.currentChatId)
         console.log('Controller: Initialized new task', this.currentChatId)
       } catch (error) {
