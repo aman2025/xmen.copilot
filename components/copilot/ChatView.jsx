@@ -14,7 +14,8 @@ import {
   SendHorizontal,
   User,
   Loader2,
-  Wrench
+  Wrench,
+  Check
 } from 'lucide-react'
 
 // --- CopilotAvatar Component ---
@@ -24,6 +25,35 @@ const CopilotAvatar = () => {
       <img src="/copilot-icon.svg" alt="Copilot" className="h-6 w-6" />
     </div>
   )
+}
+
+// --- TaskCompletedAvatar Component ---
+const TaskCompletedAvatar = () => {
+  return (
+    <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-green-100 dark:bg-green-900">
+      <Check size={18} className="text-green-600 dark:text-green-400" />
+    </div>
+  )
+}
+
+// --- Helper function to detect completion messages ---
+const isCompletionMessage = (message) => {
+  // Check if it's a completion_result message type
+  if (message.type === 'say' && message.say === 'completion_result') {
+    return true
+  }
+
+  // Check if the message content contains TASK_COMPLETE: marker
+  if (message.text && typeof message.text === 'string' && message.text.includes('TASK_COMPLETE:')) {
+    return true
+  }
+
+  // Check if it's an assistant message with content containing TASK_COMPLETE:
+  if (message.role === 'assistant' && message.content && typeof message.content === 'string' && message.content.includes('TASK_COMPLETE:')) {
+    return true
+  }
+
+  return false
 }
 
 // --- UserAvatar Component ---
@@ -171,6 +201,7 @@ const MessageItem = ({ message }) => {
           return (
             <ApiRequestMessage message={message} isCompleted={isCompleted} hasError={hasError} />
           )
+        case 'completion_result':
         case 'text':
         default:
           return (
@@ -241,12 +272,20 @@ const ChatView = () => {
 
           // Render user messages and other assistant messages
           if (isUser || message.role === 'assistant' || message.type === 'ask') {
+            const isTaskCompleted = !isUser && isCompletionMessage(message)
+
             return (
               <div key={`${message.ts}-${index}`} className="flex items-start gap-3">
-                {isUser ? <UserAvatar /> : <CopilotAvatar />}
+                {isUser ? (
+                  <UserAvatar />
+                ) : isTaskCompleted ? (
+                  <TaskCompletedAvatar />
+                ) : (
+                  <CopilotAvatar />
+                )}
                 <div className="flex flex-col">
                   <span className="mb-1 text-sm font-medium text-gray-700 dark:text-gray-300">
-                    {isUser ? 'You' : 'Xmen Copilot'}
+                    {isUser ? 'You' : isTaskCompleted ? 'Task Completed' : 'Xmen Copilot'}
                   </span>
                   <MessageItem message={message} />
                 </div>
