@@ -1,4 +1,5 @@
 import ContextManager from '../context/context-management/ContextManager'
+import EnvironmentContextManager from '../context/EnvironmentContextManager'
 import useChatStore from '../../store/useChatStore'
 import useGlobalStore from '../../store/useGlobalStore'
 import { parseAssistantMessage } from '../assistant-message/parse-assistant-message'
@@ -17,6 +18,7 @@ class Task {
     this.clineMessages = [...existingClineMessages] // Initialize with fetched history
     this.assistantMessageContent = null
     this.contextManager = new ContextManager()
+    this.environmentContextManager = new EnvironmentContextManager()
     this.pendingToolCall = null
     this.waitingForApproval = false
     this.lastToolCallId = null
@@ -265,11 +267,12 @@ class Task {
       // Tool execution completed successfully - no need to update message here
       // The API request message will be shown when sending tool result to AI
 
-      // Prepare tool result message for AI
+      // Prepare tool result message for AI with enhanced context
+      const enhancedContent = this.enhanceToolResultWithContext(result, toolName)
       const toolResultMessageForAI = {
         role: 'tool',
         tool_call_id: actualToolCallId,
-        content: typeof result === 'string' ? result : JSON.stringify(result)
+        content: enhancedContent
         // name: toolName // Mistral might expect 'name' here for 'tool' role messages
       }
 
@@ -334,10 +337,12 @@ class Task {
         'assistant'
       )
       // Send tool error directly to API without creating another API request message
+      const errorResult = { error: `Tool execution failed: ${error.message}` }
+      const enhancedErrorContent = this.enhanceToolResultWithContext(errorResult, toolName)
       const toolErrorMessageForAI = {
         role: 'tool',
         tool_call_id: toolCallId, // Use the original toolCallId
-        content: JSON.stringify({ error: `Tool execution failed: ${error.message}` })
+        content: enhancedErrorContent
         // name: toolName
       }
 
@@ -542,20 +547,29 @@ class Task {
 
   // Add a new method to format the user input
   formatUserInput(userInput) {
-    const { user, system } = this.environmentDetails
+    return this.environmentContextManager.enhanceUserInput(userInput, {
+      chatId: this.chatId,
+      taskStatus: this.isInitialized ? 'Active' : 'Initializing',
+      waitingForApproval: this.waitingForApproval
+    })
+  }
 
-    return `<task>
-    ${userInput}
-  </task>
+  // Add a new method to enhance tool results with context
+  enhanceToolResultWithContext(result, toolName) {
+    return this.environmentContextManager.enhanceToolResult(result, toolName, {
+      chatId: this.chatId,
+      taskStatus: this.isInitialized ? 'Active' : 'Initializing',
+      waitingForApproval: this.waitingForApproval
+    })
+  }
 
-  <environment_details>
-    # User info
-          Name: ${user.name}
-          Email: ${user.email}
-    # System info
-          Mode: ${system.mode}
-          Version: ${system.version}
-  </environment_details>`
+  // Get environment details from global store
+  getEnvironmentDetails() {
+    return this.environmentContextManager.getEnvironmentDetails({
+      chatId: this.chatId,
+      taskStatus: this.isInitialized ? 'Active' : 'Initializing',
+      waitingForApproval: this.waitingForApproval
+    })
   }
 
   // Add a new method to update existing cline messages

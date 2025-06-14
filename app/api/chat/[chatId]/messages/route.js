@@ -3,9 +3,11 @@ import { SYSTEM_PROMPT } from '@/prompts'
 import { INSTANCE_TOOLS } from '@/prompts/tools/instance'
 import { createMistral, formatMistralResponse } from '@/utils/ai-sdk/mistral'
 import ContextManager from '@/core/context/context-management/ContextManager'
+import EnvironmentContextManager from '@/core/context/EnvironmentContextManager'
 
 const prisma = new PrismaClient()
 const contextManager = new ContextManager()
+const environmentContextManager = new EnvironmentContextManager()
 
 // Fetches all messages (API and Cline) for a chat session
 export async function GET(request, { params }) {
@@ -146,8 +148,26 @@ export async function POST(request, { params }) {
           if (dbMsg.name) {
             messageOutput.name = dbMsg.name
           }
-          messageOutput.content =
+
+          // Ensure tool messages always include environment context
+          let toolContent =
             typeof dbMsg.content === 'string' ? dbMsg.content : JSON.stringify(dbMsg.content)
+
+          // Check if content already has environment details
+          if (!toolContent.includes('<environment_details>')) {
+            // Extract result content if it's wrapped in <result> tags
+            const resultMatch = toolContent.match(/<result>(.*?)<\/result>/s)
+            const resultContent = resultMatch ? resultMatch[1] : toolContent
+
+            // Enhance with environment context
+            toolContent = environmentContextManager.enhanceToolResult(
+              resultContent,
+              dbMsg.name || 'unknown_tool',
+              { chatId: chatId }
+            )
+          }
+
+          messageOutput.content = toolContent
         }
         return messageOutput
       })
