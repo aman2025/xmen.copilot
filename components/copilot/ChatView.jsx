@@ -15,7 +15,8 @@ import {
   User,
   Loader2,
   Wrench,
-  Check
+  Check,
+  ChevronsUpDown
 } from 'lucide-react'
 
 // --- CopilotAvatar Component ---
@@ -49,11 +50,80 @@ const isCompletionMessage = (message) => {
   }
 
   // Check if it's an assistant message with content containing TASK_COMPLETE:
-  if (message.role === 'assistant' && message.content && typeof message.content === 'string' && message.content.includes('TASK_COMPLETE:')) {
+  if (
+    message.role === 'assistant' &&
+    message.content &&
+    typeof message.content === 'string' &&
+    message.content.includes('TASK_COMPLETE:')
+  ) {
     return true
   }
 
   return false
+}
+
+// --- Helper functions to parse message content ---
+const parseResultContent = (content) => {
+  const resultMatch = content.match(/<result>(.*?)<\/result>/s)
+  return resultMatch ? resultMatch[1].trim() : null
+}
+
+const parseEnvironmentDetails = (content) => {
+  const envMatch = content.match(/<environment_details>(.*?)<\/environment_details>/s)
+  return envMatch ? envMatch[1].trim() : null
+}
+
+// --- Component for expandable result and environment details ---
+const ExpandableResultBlock = ({ resultContent, environmentDetails, isCompleted, hasError }) => {
+  const [isExpanded, setIsExpanded] = useState(false)
+
+  if (!resultContent && !environmentDetails) {
+    return null
+  }
+
+  return (
+    <div className="mt-2 rounded-md border border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-800">
+      <button
+        onClick={() => setIsExpanded(!isExpanded)}
+        className="flex w-full items-center justify-between p-3 text-left hover:bg-gray-100 dark:hover:bg-gray-700"
+      >
+        <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+          {resultContent && environmentDetails
+            ? 'Request & Environment Details'
+            : resultContent
+              ? 'Request Details'
+              : 'Environment Details'}
+        </span>
+        <ChevronsUpDown size={16} className="text-gray-500 dark:text-gray-400" />
+      </button>
+
+      {isExpanded && (
+        <div className="border-t border-gray-200 p-3 dark:border-gray-700">
+          {resultContent && (
+            <div className="mb-3">
+              <div className="mb-2 text-xs font-medium text-gray-600 dark:text-gray-400">
+                REQUEST:
+              </div>
+              <pre className="whitespace-pre-wrap text-sm text-gray-700 dark:text-gray-200">
+                {resultContent}
+              </pre>
+            </div>
+          )}
+
+          {environmentDetails && (
+            <div>
+              <div className="mb-2 text-xs font-medium text-gray-600 dark:text-gray-400">
+                ENVIRONMENT DETAILS:
+              </div>
+              <pre className="whitespace-pre-wrap text-xs text-gray-600 dark:text-gray-400">
+                {environmentDetails}
+              </pre>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  )
 }
 
 // --- UserAvatar Component ---
@@ -70,6 +140,8 @@ const ApiRequestMessage = ({ message, isCompleted = false, hasError = false }) =
   let taskContent = ''
   let toolResult = null
   let isToolExecution = false
+  let resultContent = null
+  let environmentDetails = null
 
   try {
     const parsedData = JSON.parse(message.text || '{}')
@@ -83,15 +155,58 @@ const ApiRequestMessage = ({ message, isCompleted = false, hasError = false }) =
       isToolExecution = true
     }
 
-    // Handle regular API requests
-    if (taskContent.includes('</environment_detail>')) {
-      const parts = taskContent.split('</environment_detail>')
-      taskContent = parts[0].replace('<task>', '').replace('</task>', '')
-    } else if (taskContent.includes('<task>')) {
-      taskContent = taskContent.replace('<task>', '').replace('</task>', '')
+    // For API request messages, we need to handle the content differently
+    // First, try to parse enhanced content from the request field
+    if (taskContent) {
+      resultContent = parseResultContent(taskContent)
+      environmentDetails = parseEnvironmentDetails(taskContent)
+
+      // If no enhanced content found, extract task content from enhanced format
+      if (taskContent.includes('</environment_details>')) {
+        const parts = taskContent.split('</environment_details>')
+        taskContent = parts[0].replace('<task>', '').replace('</task>', '')
+      } else if (taskContent.includes('<task>')) {
+        taskContent = taskContent.replace('<task>', '').replace('</task>', '')
+      }
+    }
+
+    // For tool executions, use toolResult as result content
+    if (isToolExecution && toolResult && !resultContent) {
+      resultContent =
+        typeof toolResult === 'string' ? toolResult : JSON.stringify(toolResult, null, 2)
+    }
+
+    // For regular API requests (non-tool executions), use the cleaned task content as result
+    if (!isToolExecution && taskContent && !resultContent) {
+      resultContent = taskContent
+    }
+
+    // If we have a completed API request but no environment details,
+    // generate them using global store data
+    if ((isCompleted || isToolExecution || resultContent) && !environmentDetails) {
+      const globalState = useGlobalStore.getState()
+      const { user, system } = globalState
+
+      // Create basic environment details
+      environmentDetails = `# User Information
+    Name: ${user?.name || user?.username || 'Unknown'}
+    Email: ${user?.email || 'Unknown'}
+
+# System Information
+    Mode: ${system?.mode || 'Unknown'}
+    Version: ${system?.version || 'Unknown'}
+    Timestamp: ${new Date().toISOString()}
+
+# Task Context
+    Chat ID: ${message.chatId || 'Unknown'}
+    Task Status: ${isCompleted ? 'Completed' : 'Active'}
+    Tool Name: ${isToolExecution ? 'tool_execution' : 'api_request'}`
     }
   } catch (e) {
     taskContent = message.text || ''
+    // Try to parse result and environment details from raw text
+    resultContent = parseResultContent(taskContent)
+    environmentDetails = parseEnvironmentDetails(taskContent)
   }
 
   return (
@@ -109,17 +224,18 @@ const ApiRequestMessage = ({ message, isCompleted = false, hasError = false }) =
         </span>
       </div>
 
-      {/* Show task content for non-tool executions */}
-      {!isToolExecution && (
+      {/* Show expandable result and environment details block */}
+      <ExpandableResultBlock
+        resultContent={resultContent}
+        environmentDetails={environmentDetails}
+        isCompleted={isCompleted}
+        hasError={hasError}
+      />
+
+      {/* Show task content for non-tool executions when no result/environment details */}
+      {!isToolExecution && !resultContent && !environmentDetails && taskContent && (
         <pre className="whitespace-pre-wrap rounded-md bg-gray-50 p-3 text-sm text-gray-700 dark:bg-gray-700 dark:text-gray-200">
           {taskContent.includes('<task>') ? taskContent : `<task>${taskContent}</task>`}
-        </pre>
-      )}
-
-      {/* Show tool result for tool executions (both loading and completed) */}
-      {isToolExecution && toolResult && (
-        <pre className="whitespace-pre-wrap rounded-md bg-gray-50 p-3 text-sm text-gray-700 dark:bg-gray-700 dark:text-gray-200">
-          {`<result>${typeof toolResult === 'string' ? toolResult : JSON.stringify(toolResult, null, 2)}</result>`}
         </pre>
       )}
     </div>
@@ -204,9 +320,45 @@ const MessageItem = ({ message }) => {
         case 'completion_result':
         case 'text':
         default:
+          // Check if the message contains result and environment details
+          const messageText = message.text || ''
+          const resultContent = parseResultContent(messageText)
+          const environmentDetails = parseEnvironmentDetails(messageText)
+
+          // If we have result or environment details, show expandable block
+          if (resultContent || environmentDetails) {
+            return (
+              <div className="flex flex-col space-y-2">
+                <ExpandableResultBlock
+                  resultContent={resultContent}
+                  environmentDetails={environmentDetails}
+                  isCompleted={true}
+                  hasError={false}
+                />
+                {/* Show remaining text content after removing result/environment tags */}
+                {(() => {
+                  let cleanText = messageText
+                  if (resultContent) {
+                    cleanText = cleanText.replace(/<result>.*?<\/result>/s, '').trim()
+                  }
+                  if (environmentDetails) {
+                    cleanText = cleanText
+                      .replace(/<environment_details>.*?<\/environment_details>/s, '')
+                      .trim()
+                  }
+                  return cleanText ? (
+                    <div className="prose prose-sm max-w-none dark:prose-invert">
+                      <ReactMarkdown remarkPlugins={[remarkGfm]}>{cleanText}</ReactMarkdown>
+                    </div>
+                  ) : null
+                })()}
+              </div>
+            )
+          }
+
           return (
             <div className="prose prose-sm max-w-none dark:prose-invert">
-              <ReactMarkdown remarkPlugins={[remarkGfm]}>{message.text || ''}</ReactMarkdown>
+              <ReactMarkdown remarkPlugins={[remarkGfm]}>{messageText}</ReactMarkdown>
             </div>
           )
       }
