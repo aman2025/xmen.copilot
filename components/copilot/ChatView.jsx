@@ -74,11 +74,33 @@ const parseEnvironmentDetails = (content) => {
 }
 
 // --- Component for expandable result and environment details ---
-const ExpandableResultBlock = ({ resultContent, environmentDetails, isCompleted, hasError }) => {
+const ExpandableResultBlock = ({
+  resultContent,
+  environmentDetails,
+  isCompleted,
+  hasError,
+  contentType = 'task'
+}) => {
   const [isExpanded, setIsExpanded] = useState(false)
 
   if (!resultContent && !environmentDetails) {
     return null
+  }
+
+  const getHeaderText = () => {
+    if (resultContent && environmentDetails) {
+      return contentType === 'result'
+        ? 'Result & Environment Details'
+        : 'Task & Environment Details'
+    }
+    if (resultContent) {
+      return contentType === 'result' ? 'Result Details' : 'Task Details'
+    }
+    return 'Environment Details'
+  }
+
+  const getContentLabel = () => {
+    return contentType === 'result' ? 'RESULT:' : 'TASK:'
   }
 
   return (
@@ -88,11 +110,7 @@ const ExpandableResultBlock = ({ resultContent, environmentDetails, isCompleted,
         className="flex w-full items-center justify-between p-3 text-left hover:bg-gray-100 dark:hover:bg-gray-700"
       >
         <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-          {resultContent && environmentDetails
-            ? 'Request & Environment Details'
-            : resultContent
-              ? 'Request Details'
-              : 'Environment Details'}
+          {getHeaderText()}
         </span>
         <ChevronsUpDown size={16} className="text-gray-500 dark:text-gray-400" />
       </button>
@@ -102,7 +120,7 @@ const ExpandableResultBlock = ({ resultContent, environmentDetails, isCompleted,
           {resultContent && (
             <div className="mb-3">
               <div className="mb-2 text-xs font-medium text-gray-600 dark:text-gray-400">
-                REQUEST:
+                {getContentLabel()}
               </div>
               <pre className="whitespace-pre-wrap text-sm text-gray-700 dark:text-gray-200">
                 {resultContent}
@@ -161,12 +179,20 @@ const ApiRequestMessage = ({ message, isCompleted = false, hasError = false }) =
       resultContent = parseResultContent(taskContent)
       environmentDetails = parseEnvironmentDetails(taskContent)
 
-      // If no enhanced content found, extract task content from enhanced format
+      // Extract clean task content from enhanced format
       if (taskContent.includes('</environment_details>')) {
         const parts = taskContent.split('</environment_details>')
-        taskContent = parts[0].replace('<task>', '').replace('</task>', '')
+        const taskPart = parts[0]
+        // Extract content between <task> tags
+        const taskMatch = taskPart.match(/<task>(.*?)<\/task>/s)
+        taskContent = taskMatch
+          ? taskMatch[1].trim()
+          : taskPart.replace('<task>', '').replace('</task>', '').trim()
       } else if (taskContent.includes('<task>')) {
-        taskContent = taskContent.replace('<task>', '').replace('</task>', '')
+        const taskMatch = taskContent.match(/<task>(.*?)<\/task>/s)
+        taskContent = taskMatch
+          ? taskMatch[1].trim()
+          : taskContent.replace('<task>', '').replace('</task>', '').trim()
       }
     }
 
@@ -181,8 +207,7 @@ const ApiRequestMessage = ({ message, isCompleted = false, hasError = false }) =
       resultContent = taskContent
     }
 
-    // If we have a completed API request but no environment details,
-    // generate them using global store data
+    // Only generate environment details if we don't already have them from parsing
     if ((isCompleted || isToolExecution || resultContent) && !environmentDetails) {
       const globalState = useGlobalStore.getState()
       const { user, system } = globalState
@@ -230,6 +255,7 @@ const ApiRequestMessage = ({ message, isCompleted = false, hasError = false }) =
         environmentDetails={environmentDetails}
         isCompleted={isCompleted}
         hasError={hasError}
+        contentType={isToolExecution ? 'result' : 'task'}
       />
 
       {/* Show task content for non-tool executions when no result/environment details */}
@@ -334,6 +360,7 @@ const MessageItem = ({ message }) => {
                   environmentDetails={environmentDetails}
                   isCompleted={true}
                   hasError={false}
+                  contentType="result"
                 />
                 {/* Show remaining text content after removing result/environment tags */}
                 {(() => {
