@@ -563,15 +563,6 @@ class Task {
     })
   }
 
-  // Get environment details from global store
-  getEnvironmentDetails() {
-    return this.environmentContextManager.getEnvironmentDetails({
-      chatId: this.chatId,
-      taskStatus: this.isInitialized ? 'Active' : 'Initializing',
-      waitingForApproval: this.waitingForApproval
-    })
-  }
-
   // Add a new method to update existing cline messages
   async updateClineMessage(sayType, updates) {
     // Get the current clineMessages from the store
