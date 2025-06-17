@@ -33,9 +33,7 @@ class Controller {
         const displayMessages = []
 
         // Find the first user API message to anchor our UI reconstruction
-        const firstUserApiMessage = chatSessionData.apiMessages?.find(
-          (msg) => msg.role === 'user'
-        )
+        const firstUserApiMessage = chatSessionData.apiMessages?.find((msg) => msg.role === 'user')
         let originalUserText = ''
 
         if (firstUserApiMessage) {
@@ -158,7 +156,7 @@ class Controller {
           [userClineMessage],
           this.environmentDetails
         )
-        
+
         // Explicitly await the task's startup process. This includes the first API call.
         // This ensures isLoading=true remains set until the first response is handled.
         await this.task.startTask(userInput)
@@ -241,18 +239,6 @@ class Controller {
     }
   }
 
-  // Method to switch or load a task when selected from history
-  async setActiveTask(chatId) {
-    if (this.currentChatId === chatId && this.task) {
-      console.log('Controller: Task already active.', chatId)
-      // Potentially ensure UI is updated if needed, though store should handle it
-      useChatStore.getState().setIsLoading(false) // Ensure loading is false
-      return
-    }
-    console.log('Controller: Setting active task to', chatId)
-    useChatStore.getState().clearMessages() // Clear old messages before loading new ones
-    await this.initOrLoadTask(chatId, null)
-  }
 
   // Method to get the current task instance, if any
   getCurrentTask() {
@@ -261,4 +247,3 @@ class Controller {
 }
 
 export default Controller
-

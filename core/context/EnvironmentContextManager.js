@@ -19,9 +19,9 @@ export class EnvironmentContextManager {
   getEnvironmentDetails(additionalContext = {}) {
     const cacheKey = JSON.stringify(additionalContext)
     const now = Date.now()
-    
+
     // Check cache first
-    if (this.contextCache.has(cacheKey) && (now - this.lastCacheUpdate) < this.cacheTimeout) {
+    if (this.contextCache.has(cacheKey) && now - this.lastCacheUpdate < this.cacheTimeout) {
       return this.contextCache.get(cacheKey)
     }
 
@@ -48,7 +48,16 @@ export class EnvironmentContextManager {
    * @returns {string} Formatted environment details
    */
   formatEnvironmentDetails(context) {
-    const { user, system, timestamp, chatId, taskStatus, waitingForApproval, toolName, ...additional } = context
+    const {
+      user,
+      system,
+      timestamp,
+      chatId,
+      taskStatus,
+      waitingForApproval,
+      toolName,
+      ...additional
+    } = context
 
     let details = `# User Information
     Name: ${user?.name || user?.username || 'Unknown'}
@@ -66,7 +75,8 @@ export class EnvironmentContextManager {
 # Task Context`
       if (chatId) details += `\n    Chat ID: ${chatId}`
       if (taskStatus !== undefined) details += `\n    Task Status: ${taskStatus}`
-      if (waitingForApproval !== undefined) details += `\n    Waiting for Approval: ${waitingForApproval ? 'Yes' : 'No'}`
+      if (waitingForApproval !== undefined)
+        details += `\n    Waiting for Approval: ${waitingForApproval ? 'Yes' : 'No'}`
       if (toolName) details += `\n    Last Tool: ${toolName}`
     }
 
@@ -98,7 +108,7 @@ export class EnvironmentContextManager {
       toolName,
       ...additionalContext
     })
-    
+
     return `<result>${resultContent}</result>
 
 <environment_details>
@@ -114,7 +124,7 @@ ${environmentDetails}
    */
   enhanceUserInput(userInput, additionalContext = {}) {
     const environmentDetails = this.getEnvironmentDetails(additionalContext)
-    
+
     return `<task>
     ${userInput}
   </task>

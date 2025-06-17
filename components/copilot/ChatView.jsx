@@ -5,19 +5,7 @@ import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import useChatStore from '../../store/useChatStore'
 import useGlobalStore from '../../store/useGlobalStore'
-import { handleResponse as handleApprovalResponseAction } from '../../store/chatActions'
-import {
-  CheckCircle2,
-  AlertTriangle,
-  XCircle,
-  Info,
-  SendHorizontal,
-  User,
-  Loader2,
-  Wrench,
-  Check,
-  ChevronsUpDown
-} from 'lucide-react'
+import { CheckCircle2, XCircle, User, Loader2, Wrench, Check, ChevronsUpDown } from 'lucide-react'
 
 // --- CopilotAvatar Component ---
 const CopilotAvatar = () => {
