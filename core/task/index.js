@@ -3,6 +3,7 @@ import EnvironmentContextManager from '../context/EnvironmentContextManager'
 import useChatStore from '../../store/useChatStore'
 import useGlobalStore from '../../store/useGlobalStore'
 import { parseAssistantMessage } from '../assistant-message/parse-assistant-message'
+import callTool, { ToolError, validateTool, hasToolAvailable, getTools, listTools } from '../../tool-calls/index.js'
 
 class Task {
   constructor(
@@ -242,26 +243,56 @@ class Task {
   }
 
   async executeTool(toolName, params, toolCallId) {
+    const actualToolCallId = toolCallId || this.generateToolCallId() // Should always have toolCallId from AI
+    this.lastToolCallId = actualToolCallId
+
+    // Pre-execution validation - handle errors before creating any UI messages
     try {
       if (!toolName) throw new Error('Tool name is required')
-      const actualToolCallId = toolCallId || this.generateToolCallId() // Should always have toolCallId from AI
-      this.lastToolCallId = actualToolCallId
 
       console.log(`Task (${this.chatId}): Executing tool ${toolName} (ID: ${actualToolCallId})`)
-      // Don't show loading state here - it will be shown when making API request
 
-      let toolModule
-      try {
-        toolModule = await import(`../../tool-calls/tools/${toolName}.js`)
-      } catch (importError) {
-        console.error(`Task (${this.chatId}): Error importing tool ${toolName}:`, importError)
-        throw new Error(`Tool '${toolName}' not found`)
+      // Check if tool is available using the new tool utility system
+      if (!hasToolAvailable(toolName)) {
+        throw new Error(`Tool '${toolName}' is not registered in the tool system`)
       }
-      const toolFunction = toolModule.default
-      if (typeof toolFunction !== 'function')
-        throw new Error(`Tool '${toolName}' is not a function`)
 
-      const result = await toolFunction(params)
+      // Validate tool parameters before execution
+      const validation = validateTool(toolName, params)
+      if (!validation.isValid) {
+        const errorMessage = `Parameter validation failed for tool '${toolName}': ${validation.errors.join(', ')}`
+        console.error(`Task (${this.chatId}): ${errorMessage}`)
+        throw new Error(errorMessage)
+      }
+    } catch (preExecutionError) {
+      // Handle pre-execution errors (validation, tool not found, etc.)
+      // Send error directly to AI without creating intermediate API request messages
+      console.error(`Task (${this.chatId}): Pre-execution error for tool ${toolName}:`, preExecutionError.message)
+
+      const errorResult = {
+        error: `Tool execution failed: ${preExecutionError.message}`,
+        toolName,
+        phase: 'validation'
+      }
+      const enhancedErrorContent = this.enhanceToolResultWithContext(errorResult, toolName)
+      const toolErrorMessageForAI = {
+        role: 'tool',
+        tool_call_id: actualToolCallId,
+        content: enhancedErrorContent
+      }
+
+      // Send error to AI with a single API request message
+      await this.sendToolResultToAI(toolErrorMessageForAI, `Tool validation error for ${toolName}`, errorResult)
+      return
+    }
+
+    // Tool execution phase - now we know the tool is valid and parameters are correct
+    try {
+      // Execute tool using the new tool utility system
+      const toolResult = await callTool(toolName, params)
+      const result = toolResult.data // Extract the actual data from the tool result wrapper
+
+      console.log(`Task (${this.chatId}): Tool ${toolName} executed successfully in ${toolResult.executionTime}ms`)
       console.log(`Task (${this.chatId}): Tool ${toolName} result:`, result)
 
       // Tool execution completed successfully - no need to update message here
@@ -292,93 +323,87 @@ class Task {
         // Potentially construct a placeholder if critical for context, though backend handles history now.
       }
 
-      // Show loading state before making API request with tool result
-      await this.say(
-        'api_req_started',
-        JSON.stringify({ request: `Processing tool result...`, toolResult: result }),
-        true,
-        'assistant'
-      )
-
-      // Send tool result directly to API
-      try {
-        const assistantRawApiMessage = await this.attemptApiRequest(toolResultMessageForAI)
-        if (assistantRawApiMessage && assistantRawApiMessage.role) {
-          // Update the API request message to show completion with tool result
-          await this.updateClineMessage('api_req_started', {
-            text: JSON.stringify({
-              request: `Processing tool result...`,
-              status: 'completed',
-              toolResult: result
-            })
-          })
-
-          // Add AI's response to local API history
-          await this.addToApiConversationHistory(assistantRawApiMessage, false)
-
-          this.assistantMessageContent = parseAssistantMessage(assistantRawApiMessage)
-          await this.presentAssistantMessage()
-        }
-      } catch (error) {
-        console.error(`Task (${this.chatId}): Error processing tool result:`, error)
-        await this.say('error', `Error processing tool result: ${error.message}`, true, 'assistant')
-      }
+      // Send successful tool result to AI
+      await this.sendToolResultToAI(toolResultMessageForAI, `Processing tool result for ${toolName}`, result)
     } catch (error) {
-      console.error(`Task (${this.chatId}): Error executing tool ${toolName}:`, error)
-      // Show error API request message
-      await this.say(
-        'api_req_started',
-        JSON.stringify({
-          request: `Error executing ${toolName}`,
-          status: 'error',
-          error: error.message
-        }),
-        true,
-        'assistant'
-      )
-      // Send tool error directly to API without creating another API request message
-      const errorResult = { error: `Tool execution failed: ${error.message}` }
+      // Handle execution errors (after validation passed)
+      let errorMessage = error.message
+      let errorDetails = {}
+
+      if (error instanceof ToolError) {
+        console.error(`Task (${this.chatId}): ToolError executing ${toolName}:`, {
+          message: error.message,
+          toolName: error.toolName,
+          originalError: error.originalError?.message
+        })
+        errorDetails = {
+          toolName: error.toolName,
+          originalError: error.originalError?.message
+        }
+      } else {
+        console.error(`Task (${this.chatId}): Error executing tool ${toolName}:`, error)
+      }
+
+      // Send execution error to AI
+      const errorResult = {
+        error: `Tool execution failed: ${errorMessage}`,
+        toolName,
+        details: errorDetails,
+        phase: 'execution'
+      }
       const enhancedErrorContent = this.enhanceToolResultWithContext(errorResult, toolName)
       const toolErrorMessageForAI = {
         role: 'tool',
-        tool_call_id: toolCallId, // Use the original toolCallId
+        tool_call_id: actualToolCallId,
         content: enhancedErrorContent
-        // name: toolName
       }
 
-      // Show loading state before making API request with tool error
-      await this.say(
-        'api_req_started',
-        JSON.stringify({ request: `Processing tool error...` }),
-        true,
-        'assistant'
-      )
+      await this.sendToolResultToAI(toolErrorMessageForAI, `Tool execution error for ${toolName}`, errorResult)
+    }
+  }
 
-      try {
-        const assistantRawApiMessage = await this.attemptApiRequest(toolErrorMessageForAI)
-        if (assistantRawApiMessage && assistantRawApiMessage.role) {
-          // Update the API request message to show completion
-          await this.updateClineMessage('api_req_started', {
-            text: JSON.stringify({ request: `Processing tool error...`, status: 'completed' })
-          })
+  // Helper method to send tool results to AI with consistent API request handling
+  async sendToolResultToAI(toolMessage, requestDescription, resultData) {
+    // Show loading state before making API request
+    await this.say(
+      'api_req_started',
+      JSON.stringify({
+        request: requestDescription,
+        toolResult: resultData
+      }),
+      true,
+      'assistant'
+    )
 
-          // Add AI's response to local API history
-          await this.addToApiConversationHistory(assistantRawApiMessage, false)
-
-          this.assistantMessageContent = parseAssistantMessage(assistantRawApiMessage)
-          await this.presentAssistantMessage()
-        }
-      } catch (apiError) {
-        console.error(`Task (${this.chatId}): Error processing tool error result:`, apiError)
-        // Update the API request message to show error
+    try {
+      const assistantRawApiMessage = await this.attemptApiRequest(toolMessage)
+      if (assistantRawApiMessage && assistantRawApiMessage.role) {
+        // Update the API request message to show completion
         await this.updateClineMessage('api_req_started', {
           text: JSON.stringify({
-            request: `Processing tool error...`,
-            status: 'error',
-            error: apiError.message
+            request: requestDescription,
+            status: 'completed',
+            toolResult: resultData
           })
         })
+
+        // Add AI's response to local API history
+        await this.addToApiConversationHistory(assistantRawApiMessage, false)
+
+        this.assistantMessageContent = parseAssistantMessage(assistantRawApiMessage)
+        await this.presentAssistantMessage()
       }
+    } catch (apiError) {
+      console.error(`Task (${this.chatId}): Error processing tool result:`, apiError)
+      // Update the API request message to show error
+      await this.updateClineMessage('api_req_started', {
+        text: JSON.stringify({
+          request: requestDescription,
+          status: 'error',
+          error: apiError.message,
+          toolResult: resultData
+        })
+      })
     }
   }
 
@@ -594,10 +619,51 @@ class Task {
       // Add the updated message back (this will trigger a re-render)
       store.addClineMessage(updatedMessage)
 
-      console.log(`Task (${this.chatId}): Updated cline message successfully`)
+      console.log(`Task (${this.chatId}): Updated cline message successfully for sayType: ${sayType}`)
     } else {
       console.warn(`Task (${this.chatId}): No message found with sayType: ${sayType}`)
+      console.log(`Task (${this.chatId}): Available messages:`, clineMessages.map(m => ({ type: m.type, say: m.say, ts: m.ts })))
+
+      // Don't create a new message here - let the caller handle this case
+      // This prevents duplicate messages when update fails
     }
+  }
+
+  // New utility methods for tool system integration
+
+  /**
+   * Get information about all available tools
+   * @returns {Object} Tools information including count and metadata
+   */
+  getAvailableTools() {
+    return getTools()
+  }
+
+  /**
+   * Get list of available tool names
+   * @returns {string[]} Array of tool names
+   */
+  listAvailableTools() {
+    return listTools()
+  }
+
+  /**
+   * Check if a specific tool is available before attempting execution
+   * @param {string} toolName - Name of the tool to check
+   * @returns {boolean} True if tool is available
+   */
+  isToolAvailable(toolName) {
+    return hasToolAvailable(toolName)
+  }
+
+  /**
+   * Validate tool parameters without executing the tool
+   * @param {string} toolName - Name of the tool
+   * @param {Object} params - Parameters to validate
+   * @returns {Object} Validation result with isValid and errors
+   */
+  validateToolParams(toolName, params) {
+    return validateTool(toolName, params)
   }
 }
 
