@@ -16,6 +16,7 @@ const useChatStore = create((set, get) => ({
   // clineMessages is the source of truth for UI.
   clineMessages: [],
   messageInput: '',
+  attachedFiles: [], // Array of attached JSON files with content
 
   // Basic setters
   setCurrentChatId: (id) => set({ currentChatId: id }),
@@ -25,6 +26,17 @@ const useChatStore = create((set, get) => ({
   setIsLoading: (loading) => set({ isLoading: loading }),
   setIsWaitingForApproval: (waiting) => set({ isWaitingForApproval: waiting }), // Setter for the new state
   setMessageInput: (text) => set({ messageInput: text }),
+
+  // File attachment actions
+  addAttachedFile: (file) =>
+    set((state) => ({
+      attachedFiles: [...state.attachedFiles, file]
+    })),
+  removeAttachedFile: (fileId) =>
+    set((state) => ({
+      attachedFiles: state.attachedFiles.filter(file => file.id !== fileId)
+    })),
+  clearAttachedFiles: () => set({ attachedFiles: [] }),
 
   // ClineMessage actions for UI
   // Adds a single cline message to the list
@@ -62,7 +74,7 @@ const useChatStore = create((set, get) => ({
   // Clears messages, typically when starting a new chat or clearing UI
   clearMessages: () => {
     console.log('Clearing clineMessages from store')
-    return set({ clineMessages: [], messageInput: '' }) // Also clear input
+    return set({ clineMessages: [], messageInput: '', attachedFiles: [] }) // Also clear input and files
   }
 }))
 

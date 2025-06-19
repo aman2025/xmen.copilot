@@ -19,29 +19,40 @@ export const initController = () => {
 /**
  * Handles sending a new message to the AI assistant
  * @param {string} content - The message content from the user
+ * @param {Array} attachedFiles - Optional array of attached JSON files
  */
-export const sendMessage = async (content) => {
-  if (!content.trim()) return
+export const sendMessage = async (content, attachedFiles = []) => {
+  if (!content.trim() && attachedFiles.length === 0) return
 
   const store = useChatStore.getState()
   store.setIsLoading(true)
   const activeController = initController() // Ensure controller is initialized
+
+  // Prepare message content with file context if files are attached
+  let messageContent = content
+  if (attachedFiles.length > 0) {
+    const fileContext = attachedFiles.map(file =>
+      `\n\n--- JSON File: ${file.name} ---\n${JSON.stringify(file.content, null, 2)}\n--- End of ${file.name} ---`
+    ).join('')
+    messageContent = `${content}${fileContext}`
+  }
 
   try {
     if (store.currentChatId && activeController.getCurrentTask()) {
       // Send message to the existing, active task
       console.log('chatActions: Sending message to existing task:', store.currentChatId)
       // The controller's handleUserMessage will internally call task.handleUserProvidedInput
-      await activeController.handleUserMessage(content)
+      await activeController.handleUserMessage(messageContent)
     } else {
       // No active chat or task, so start a new one
-      console.log('chatActions: Starting new task with user input:', content)
+      console.log('chatActions: Starting new task with user input:', messageContent)
       // initOrLoadTask will create a new chat session via API, get a chatId,
       // then create a new Task instance which handles the first message.
-      await activeController.initOrLoadTask(null, content)
+      await activeController.initOrLoadTask(null, messageContent)
       // The new task's constructor/startTask should add initial cline messages to the store.
     }
     store.setMessageInput('') // Clear input field after sending
+    store.clearAttachedFiles() // Clear attached files after sending
   } catch (error) {
     console.error('chatActions: Error sending message:', error)
     store.addClineMessage({
