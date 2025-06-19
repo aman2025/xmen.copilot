@@ -5,9 +5,14 @@ alwaysApply: true
 ---
 # Code Standard and Best Practices
 
-## Modular Code Structure
-- Organize code into modules based on functionality (e.g., components, hooks, utils).
+Our goal is to evolve the codebase towards a more modular, maintainable, and professional development practices.
 
-## Help Functions
-- Create reusable helper functions for common tasks (e.g., formatting dates, manipulating strings).
+1. Separation of Concerns (SoC)
+    - Each module, component, or service should have a single, well-defined responsibility.
+    - clarity and ensures adherence to the Single Responsibility Principle (SRP), which is fundamental to creating maintainable code.
+    
+2. Organize utilities into more granular, domain-specific files 
+
+
+
 
