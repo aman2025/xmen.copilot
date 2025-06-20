@@ -42,22 +42,41 @@ const useChatStore = create((set, get) => ({
   // Adds a single cline message to the list
   addClineMessage: (message) =>
     set((state) => {
-      // Prevent duplicates based on timestamp and text (simple check)
-      const exists = state.clineMessages.some(
-        (m) =>
+      // Enhanced duplicate prevention for user messages with file attachments
+      const exists = state.clineMessages.some((m) => {
+        // For user messages, check role and text content more carefully
+        if (message.role === 'user' && m.role === 'user') {
+          // Check if the text content is identical (handles JSON file attachments)
+          return m.text === message.text && m.type === message.type
+        }
+
+        // For other messages, use the original logic with timestamp
+        return (
           m.ts === message.ts &&
           m.text === message.text &&
           m.type === message.type &&
           m.say === message.say
-      )
+        )
+      })
+
       if (exists) {
-        console.log('Prevented duplicate cline message addition to store:', message)
+        console.log('Prevented duplicate cline message addition to store:', {
+          role: message.role,
+          type: message.type,
+          textLength: message.text?.length || 0,
+          textPreview: message.text?.substring(0, 50) || ''
+        })
         return {} // No change
       }
+
       const newState = {
         clineMessages: [...state.clineMessages, message]
       }
-      console.log('Cline Messages updated (added one):', newState.clineMessages.length, message)
+      console.log('Cline Messages updated (added one):', newState.clineMessages.length, {
+        role: message.role,
+        type: message.type,
+        textLength: message.text?.length || 0
+      })
       return newState
     }),
 

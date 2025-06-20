@@ -67,11 +67,15 @@ class Task {
 
     // The corresponding cline message for UI. Also saved by POST messages route.
     // But we add it to UI immediately.
+    // Enhanced duplicate check for user messages with file attachments
     const userMessageExists = this.clineMessages.some(
-      (msg) => msg.text === taskInputText && msg.role === 'user'
+      (msg) => msg.text === taskInputText && msg.role === 'user' && msg.type === 'say'
     )
     if (!userMessageExists) {
+      console.log(`Task (${this.chatId}): Adding user message to clineMessages (startTask)`)
       await this.say('text', taskInputText, true, 'user')
+    } else {
+      console.log(`Task (${this.chatId}): User message already exists in clineMessages (startTask)`)
     }
 
     this.isInitialized = true
@@ -91,11 +95,15 @@ class Task {
     // The optimistic update in the controller already added the message to the UI.
     // The task just needs to proceed with the API request.
     // We ensure the message is saved if it wasn't already.
+    // Enhanced duplicate check for user messages with file attachments
     const userMessageExists = this.clineMessages.some(
-      (msg) => msg.text === userInputText && msg.role === 'user'
+      (msg) => msg.text === userInputText && msg.role === 'user' && msg.type === 'say'
     )
     if (!userMessageExists) {
+      console.log(`Task (${this.chatId}): Adding user message to clineMessages (handleUserProvidedInput)`)
       await this.say('text', userInputText, true, 'user') // Persist this cline message
+    } else {
+      console.log(`Task (${this.chatId}): User message already exists in clineMessages (handleUserProvidedInput)`)
     }
 
     // Make API request with this new user input

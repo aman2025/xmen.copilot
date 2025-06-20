@@ -135,6 +135,10 @@ class Controller {
         text: userInput,
         role: 'user'
       }
+      console.log('Controller: Adding initial user message to store (new task):', {
+        textLength: userInput?.length || 0,
+        hasJsonFiles: userInput?.includes('--- JSON File:') || false
+      })
       useChatStore.getState().addClineMessage(userClineMessage)
 
       try {
@@ -194,6 +198,10 @@ class Controller {
         text: text,
         role: 'user'
       }
+      console.log('Controller: Adding user message to store (existing task):', {
+        textLength: text?.length || 0,
+        hasJsonFiles: text?.includes('--- JSON File:') || false
+      })
       useChatStore.getState().addClineMessage(userClineMessage)
       console.log('Controller: Sending message to existing task:', this.currentChatId)
       await this.task.handleUserProvidedInput(text)
