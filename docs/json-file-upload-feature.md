@@ -1,16 +1,16 @@
-# JSON File Upload Feature
+# Multi-Format File Upload Feature
 
 ## Overview
 
-The ChatInput component now supports uploading JSON files as context for AI conversations. Users can attach multiple JSON files to provide structured data context to the AI assistant.
+The ChatInput component now supports uploading multiple file formats as context for AI conversations. Users can attach JSON, YAML, and XML files to provide structured data context to the AI assistant.
 
 ## Features
 
 ### File Upload Support
-- **File Types**: Only JSON files (.json extension)
-- **Multiple Files**: Support for uploading multiple JSON files simultaneously
+- **File Types**: JSON (.json), YAML (.yml, .yaml), and XML (.xml) files
+- **Multiple Files**: Support for uploading multiple files simultaneously
 - **File Size Limit**: Maximum 1MB per file
-- **Validation**: Automatic JSON format validation
+- **Format Validation**: Automatic format validation and parsing for each supported type
 
 ### User Interface
 - **Attachment Icon**: Paperclip icon positioned to the left of the text input
@@ -27,9 +27,9 @@ The ChatInput component now supports uploading JSON files as context for AI conv
 
 ### For Users
 1. Click the paperclip icon in the chat input
-2. Select one or more JSON files from your computer
+2. Select one or more supported files (JSON, YAML, or XML) from your computer
 3. Files will appear as tags above the input field
-4. Type your message and send - the JSON content will be included as context
+4. Type your message and send - the file content will be included as context
 5. Remove individual files by clicking the X button on each file tag
 
 ### For Developers
@@ -44,13 +44,20 @@ The feature is implemented across several components:
 - File content is formatted and appended to message content
 
 #### ChatInput Component (`components/copilot/ChatInput.jsx`)
-- Added file input handling with validation
+- Added multi-format file input handling with validation
 - Implemented UI for file attachment and management
 - Added error handling and user feedback
+- Integrated with file parser utility for format-specific parsing
+
+#### File Parser Utility (`utils/fileParser.js`)
+- Handles parsing of JSON, YAML, and XML formats
+- Provides format validation and error handling
+- Supports async parsing for YAML files
+- Includes utility functions for format checking
 
 ## File Format
 
-Attached JSON files are processed and included in the message context as follows:
+Attached files are processed and included in the message context as follows:
 
 ```
 User message content
@@ -61,29 +68,47 @@ User message content
   "with": "proper indentation"
 }
 --- End of filename.json ---
+
+--- YAML File: config.yml ---
+database:
+  host: localhost
+  port: 5432
+--- End of config.yml ---
+
+--- XML File: data.xml ---
+<configuration>
+  <setting name="debug" value="true" />
+</configuration>
+--- End of data.xml ---
 ```
 
 ## Error Handling
 
 The system handles various error scenarios:
-- **Invalid File Type**: Only .json files are accepted
+- **Invalid File Type**: Only JSON, YAML, and XML files are accepted
 - **File Size Limit**: Files larger than 1MB are rejected
-- **Invalid JSON**: Files with malformed JSON are rejected with specific error messages
+- **Format-Specific Errors**: Files with malformed content are rejected with specific error messages
+  - Invalid JSON format
+  - Invalid YAML syntax
+  - Invalid XML structure
 - **Read Errors**: File reading failures are handled gracefully
 
 ## Testing
 
-Sample JSON files are provided in the `test/` directory:
-- `test/sample-data.json` - User data example
-- `test/config-data.json` - Configuration data example
+Sample files are provided in the `test/` directory:
+- `test/sample-data.json` - User data example (JSON)
+- `test/config-data.json` - Configuration data example (JSON)
+- `test/sample-data.yml` - User data example (YAML)
+- `test/config-data.xml` - Configuration data example (XML)
+- `test/fileParserTest.js` - Test script for file parser utility
 
 ## Technical Implementation
 
 ### File Processing Flow
 1. User selects files through hidden file input
-2. Files are validated for type and size
+2. Files are validated for supported format and size
 3. File content is read using FileReader API
-4. JSON content is parsed and validated
+4. Content is parsed based on file extension (JSON/YAML/XML)
 5. Valid files are added to store with metadata
 6. Files are displayed in UI with removal options
 7. On message send, file content is formatted and included
@@ -95,19 +120,31 @@ Sample JSON files are provided in the `test/` directory:
   attachedFiles: [
     {
       id: "filename-timestamp",
-      name: "filename.json",
+      name: "filename.json", // or .yml, .yaml, .xml
       size: 1024,
-      content: { /* parsed JSON object */ }
+      content: { /* parsed object from JSON/YAML/XML */ }
     }
   ]
 }
 ```
 
+### Dependencies
+
+The feature requires the following packages:
+- `yaml` - For YAML parsing (already available)
+- `fast-xml-parser` - For XML parsing (needs to be installed)
+
+Install the XML parser with:
+```bash
+npm install fast-xml-parser
+```
+
 ## Future Enhancements
 
 Potential improvements for future versions:
-- Support for additional file formats (CSV, XML, YAML)
+- Support for additional file formats (CSV, TOML)
 - File content preview/summary
 - Drag and drop file upload
 - File compression for large datasets
 - Persistent file attachments across sessions
+- Schema validation for structured data

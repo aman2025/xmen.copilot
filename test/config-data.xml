@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+  <database>
+    <host>localhost</host>
+    <port>5432</port>
+    <name>copilot_db</name>
+    <username>admin</username>
+    <ssl>true</ssl>
+  </database>
+  <api>
+    <baseUrl>https://api.example.com</baseUrl>
+    <timeout>30000</timeout>
+    <retries>3</retries>
+    <endpoints>
+      <endpoint name="users" path="/api/users" />
+      <endpoint name="auth" path="/api/auth" />
+      <endpoint name="data" path="/api/data" />
+    </endpoints>
+  </api>
+  <features>
+    <feature name="darkMode" enabled="true" />
+    <feature name="notifications" enabled="false" />
+    <feature name="analytics" enabled="true" />
+  </features>
+  <logging>
+    <level>info</level>
+    <format>json</format>
+    <outputs>
+      <output type="console" />
+      <output type="file" path="/var/log/app.log" />
+    </outputs>
+  </logging>
+</configuration>

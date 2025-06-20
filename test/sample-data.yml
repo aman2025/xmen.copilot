@@ -1,0 +1,21 @@
+name: "John Doe"
+age: 30
+email: "john.doe@example.com"
+address:
+  street: "123 Main St"
+  city: "Anytown"
+  state: "CA"
+  zipCode: "12345"
+skills:
+  - "JavaScript"
+  - "React"
+  - "Node.js"
+  - "Python"
+preferences:
+  theme: "dark"
+  notifications: true
+  language: "en"
+metadata:
+  createdAt: "2024-01-15T10:30:00Z"
+  updatedAt: "2024-01-20T14:45:00Z"
+  version: 1.2

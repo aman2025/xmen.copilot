@@ -4,6 +4,7 @@ import { SendHorizontal, Paperclip, X } from 'lucide-react'
 import useChatStore from '../../store/useChatStore'
 import { sendMessage, initController } from '../../store/chatActions'
 import { useEffect, useRef, useState } from 'react'
+import { parseFileContent, isSupportedFileFormat, getSupportedFileExtensions, getSupportedFormatsText } from '../../utils/fileParser'
 
 const ChatInput = () => {
   const {
@@ -47,8 +48,8 @@ const ChatInput = () => {
 
     for (const file of files) {
       // Validate file type
-      if (!file.name.toLowerCase().endsWith('.json')) {
-        setFileError('Only JSON files are supported')
+      if (!isSupportedFileFormat(file.name)) {
+        setFileError(`Only ${getSupportedFormatsText()} are supported`)
         continue
       }
 
@@ -60,19 +61,19 @@ const ChatInput = () => {
 
       try {
         const content = await readFileAsText(file)
-        const jsonContent = JSON.parse(content)
+        const parsedContent = await parseFileContent(content, file.name)
 
         const fileData = {
           id: `${file.name}-${Date.now()}`,
           name: file.name,
           size: file.size,
-          content: jsonContent
+          content: parsedContent
         }
 
         // Try to add the file - duplicate prevention is handled silently in the store
         addAttachedFile(fileData)
       } catch (error) {
-        setFileError(`Error reading ${file.name}: Invalid JSON format`)
+        setFileError(`Error reading ${file.name}: ${error.message}`)
       }
     }
 
@@ -129,7 +130,7 @@ const ChatInput = () => {
             type="button"
             onClick={handleFileAttach}
             className="mr-2 rounded-lg p-1 text-gray-400 transition-colors hover:text-blue-600 dark:text-gray-300 dark:hover:text-gray-100"
-            title="Attach JSON files"
+            title={`Attach ${getSupportedFormatsText()}`}
           >
             <Paperclip className="h-4 w-4" />
           </button>
@@ -138,7 +139,7 @@ const ChatInput = () => {
           <input
             ref={fileInputRef}
             type="file"
-            accept=".json"
+            accept={getSupportedFileExtensions()}
             multiple
             onChange={handleFileChange}
             className="hidden"

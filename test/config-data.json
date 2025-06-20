@@ -1,0 +1,41 @@
+{
+  "database": {
+    "host": "localhost",
+    "port": 5432,
+    "name": "xmen_copilot",
+    "ssl": true,
+    "pool": {
+      "min": 2,
+      "max": 10,
+      "idle_timeout": 30000
+    }
+  },
+  "api": {
+    "base_url": "https://api.example.com",
+    "version": "v1",
+    "timeout": 5000,
+    "retry_attempts": 3,
+    "rate_limit": {
+      "requests_per_minute": 100,
+      "burst_limit": 20
+    }
+  },
+  "features": {
+    "file_upload": true,
+    "real_time_chat": true,
+    "ai_assistance": true,
+    "multi_language": false,
+    "analytics": true
+  },
+  "security": {
+    "jwt_expiry": "24h",
+    "password_policy": {
+      "min_length": 8,
+      "require_uppercase": true,
+      "require_lowercase": true,
+      "require_numbers": true,
+      "require_symbols": false
+    },
+    "session_timeout": 3600
+  }
+}
