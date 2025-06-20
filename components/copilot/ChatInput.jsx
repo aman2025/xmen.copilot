@@ -69,6 +69,7 @@ const ChatInput = () => {
           content: jsonContent
         }
 
+        // Try to add the file - duplicate prevention is handled silently in the store
         addAttachedFile(fileData)
       } catch (error) {
         setFileError(`Error reading ${file.name}: Invalid JSON format`)

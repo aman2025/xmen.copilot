@@ -28,10 +28,35 @@ const useChatStore = create((set, get) => ({
   setMessageInput: (text) => set({ messageInput: text }),
 
   // File attachment actions
-  addAttachedFile: (file) =>
+  addAttachedFile: (file) => {
+    const state = useChatStore.getState()
+
+    // Check for duplicates by comparing file name and content
+    const isDuplicate = state.attachedFiles.some(existingFile => {
+      // Compare by name first (most common case)
+      if (existingFile.name !== file.name) return false
+
+      // If names match, compare content to handle renamed files with same content
+      try {
+        return JSON.stringify(existingFile.content) === JSON.stringify(file.content)
+      } catch (error) {
+        // If content comparison fails, fall back to name comparison
+        console.warn('Error comparing file content for duplicate detection:', error)
+        return true
+      }
+    })
+
+    if (isDuplicate) {
+      console.log('Prevented duplicate file attachment:', file.name)
+      return false // Return false to indicate file was not added
+    }
+
+    // Add the file and return true to indicate success
     set((state) => ({
       attachedFiles: [...state.attachedFiles, file]
-    })),
+    }))
+    return true
+  },
   removeAttachedFile: (fileId) =>
     set((state) => ({
       attachedFiles: state.attachedFiles.filter(file => file.id !== fileId)
