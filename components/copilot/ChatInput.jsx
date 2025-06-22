@@ -4,7 +4,13 @@ import { SendHorizontal, Paperclip, X } from 'lucide-react'
 import useChatStore from '../../store/useChatStore'
 import { sendMessage, initController } from '../../store/chatActions'
 import { useEffect, useRef, useState } from 'react'
-import { parseFileContent, isSupportedFileFormat, getSupportedFileExtensions, getSupportedFormatsText } from '../../utils/fileParser'
+import {
+  parseFileContent,
+  isSupportedFileFormat,
+  getSupportedFileExtensions,
+  getSupportedFormatsText,
+  getFileFormatLabel
+} from '../../utils/fileParser'
 
 const ChatInput = () => {
   const {
@@ -61,13 +67,19 @@ const ChatInput = () => {
 
       try {
         const content = await readFileAsText(file)
-        const parsedContent = await parseFileContent(content, file.name)
+        const extension = file.name.toLowerCase().split('.').pop()
+
+        // For YAML files, preserve raw format for better display
+        const preserveRaw = extension === 'yml' || extension === 'yaml'
+        const parsedContent = await parseFileContent(content, file.name, preserveRaw)
 
         const fileData = {
           id: `${file.name}-${Date.now()}`,
           name: file.name,
           size: file.size,
-          content: parsedContent
+          content: parsedContent,
+          rawContent: content, // Always store raw content for reference
+          formatLabel: getFileFormatLabel(file.name)
         }
 
         // Try to add the file - duplicate prevention is handled silently in the store
@@ -116,11 +128,7 @@ const ChatInput = () => {
       )}
 
       {/* Error message */}
-      {fileError && (
-        <div className="px-4 text-sm text-red-600 dark:text-red-400">
-          {fileError}
-        </div>
-      )}
+      {fileError && <div className="px-4 text-sm text-red-600 dark:text-red-400">{fileError}</div>}
 
       {/* Input form */}
       <form onSubmit={handleSubmit} className="relative flex items-center">

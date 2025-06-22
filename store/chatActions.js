@@ -31,10 +31,25 @@ export const sendMessage = async (content, attachedFiles = []) => {
   // Prepare message content with file context if files are attached
   let messageContent = content
   if (attachedFiles.length > 0) {
-    console.log('chatActions: Processing attached files:', attachedFiles.map(f => ({ name: f.name, size: f.size })))
-    const fileContext = attachedFiles.map(file =>
-      `\n\n--- JSON File: ${file.name} ---\n${JSON.stringify(file.content, null, 2)}\n--- End of ${file.name} ---`
-    ).join('')
+    console.log(
+      'chatActions: Processing attached files:',
+      attachedFiles.map((f) => ({ name: f.name, size: f.size }))
+    )
+    const fileContext = attachedFiles
+      .map((file) => {
+        const formatLabel = file.formatLabel || 'File'
+
+        // For YAML files, use raw content if available, otherwise format as JSON
+        if (formatLabel === 'YAML File' && typeof file.content === 'string') {
+          return `\n\n--- ${formatLabel}: ${file.name} ---\n${file.content}\n--- End of ${file.name} ---`
+        } else {
+          // For JSON, XML, or parsed YAML objects, format as JSON
+          const contentToDisplay =
+            typeof file.content === 'string' ? file.content : JSON.stringify(file.content, null, 2)
+          return `\n\n--- ${formatLabel}: ${file.name} ---\n${contentToDisplay}\n--- End of ${file.name} ---`
+        }
+      })
+      .join('')
     messageContent = `${content}${fileContext}`
     console.log('chatActions: Combined message length:', messageContent.length)
   }

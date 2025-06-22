@@ -31,14 +31,17 @@ const useChatStore = create((set, get) => ({
   addAttachedFile: (file) => {
     const state = useChatStore.getState()
 
-    // Check for duplicates by comparing file name and content
-    const isDuplicate = state.attachedFiles.some(existingFile => {
+    // Check for duplicates by comparing file name and raw content
+    const isDuplicate = state.attachedFiles.some((existingFile) => {
       // Compare by name first (most common case)
       if (existingFile.name !== file.name) return false
 
-      // If names match, compare content to handle renamed files with same content
+      // If names match, compare raw content to handle renamed files with same content
       try {
-        return JSON.stringify(existingFile.content) === JSON.stringify(file.content)
+        // Use rawContent for comparison if available, otherwise fall back to content
+        const existingContent = existingFile.rawContent || JSON.stringify(existingFile.content)
+        const newContent = file.rawContent || JSON.stringify(file.content)
+        return existingContent === newContent
       } catch (error) {
         // If content comparison fails, fall back to name comparison
         console.warn('Error comparing file content for duplicate detection:', error)
@@ -59,7 +62,7 @@ const useChatStore = create((set, get) => ({
   },
   removeAttachedFile: (fileId) =>
     set((state) => ({
-      attachedFiles: state.attachedFiles.filter(file => file.id !== fileId)
+      attachedFiles: state.attachedFiles.filter((file) => file.id !== fileId)
     })),
   clearAttachedFiles: () => set({ attachedFiles: [] }),
 

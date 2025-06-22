@@ -4,11 +4,19 @@ import { XMLParser } from 'fast-xml-parser'
  * Parse file content based on file extension
  * @param {string} content - Raw file content as string
  * @param {string} fileName - Name of the file to determine format
- * @returns {Promise<Object>} Parsed content object
+ * @param {boolean} preserveRawFormat - Whether to preserve raw format for display
+ * @returns {Promise<Object|string>} Parsed content object or raw content string
  * @throws {Error} If parsing fails or format is unsupported
  */
-export const parseFileContent = async (content, fileName) => {
+export const parseFileContent = async (content, fileName, preserveRawFormat = false) => {
   const extension = getFileExtension(fileName)
+
+  // If preserveRawFormat is true, return raw content for YAML files
+  if (preserveRawFormat && (extension === 'yml' || extension === 'yaml')) {
+    // Validate YAML syntax but return raw content
+    await parseYAML(content) // This will throw if invalid
+    return content
+  }
 
   switch (extension) {
     case 'json':
@@ -30,6 +38,27 @@ export const parseFileContent = async (content, fileName) => {
  */
 const getFileExtension = (fileName) => {
   return fileName.toLowerCase().split('.').pop()
+}
+
+/**
+ * Get appropriate file format label for display
+ * @param {string} fileName - Name of the file
+ * @returns {string} Format label (e.g., 'YAML File', 'JSON File', 'XML File')
+ */
+export const getFileFormatLabel = (fileName) => {
+  const extension = getFileExtension(fileName)
+
+  switch (extension) {
+    case 'json':
+      return 'JSON File'
+    case 'yml':
+    case 'yaml':
+      return 'YAML File'
+    case 'xml':
+      return 'XML File'
+    default:
+      return 'File'
+  }
 }
 
 /**

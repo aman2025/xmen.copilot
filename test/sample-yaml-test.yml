@@ -1,0 +1,33 @@
+# Sample YAML file for testing raw format display
+name: John Doe
+age: 30
+email: john.doe@example.com
+
+# Address information
+address:
+  street: 123 Main St
+  city: Anytown
+  state: CA
+  zipCode: "12345"
+
+# Skills array
+skills:
+  - JavaScript
+  - React
+  - Node.js
+  - Python
+
+# User preferences
+preferences:
+  theme: dark
+  notifications: true
+  language: en
+
+# Metadata with timestamps
+metadata:
+  createdAt: "2024-01-15T10:30:00Z"
+  updatedAt: "2024-01-20T14:45:00Z"
+  version: 1.2
+  
+# Comments should be preserved in raw format
+# This is important for YAML readability
