@@ -59,16 +59,16 @@ The feature is implemented across several components:
 
 #### File Parser Utility (`utils/fileParser.js`)
 
-- Handles parsing of JSON, YAML, and XML formats
+- Validates supported file formats (JSON, YAML, XML)
+- Returns raw file content for optimal AI processing
 - Provides format validation and error handling
-- Supports async parsing for YAML files
 - Includes utility functions for format checking
 
 ## File Format
 
-Attached files are processed and included in the message context as follows:
+All attached files are processed and included in the message context with their raw content preserved for optimal AI understanding:
 
-### YAML Files (Raw Format Preserved)
+### All File Types (Raw Content Preserved)
 
 ```
 User message content
@@ -81,37 +81,32 @@ database:
   # Connection settings
   timeout: 30
 --- End of config.yml ---
-```
 
-### JSON Files (Formatted)
-
-```
-User message content
-
---- JSON File: filename.json ---
+--- JSON File: data.json ---
 {
-  "formatted": "json content",
-  "with": "proper indentation"
-}
---- End of filename.json ---
-```
-
-### XML Files (Converted to JSON)
-
-```
-User message content
-
---- XML File: data.xml ---
-{
-  "configuration": {
-    "setting": {
-      "@_name": "debug",
-      "@_value": "true"
-    }
+  "name": "example",
+  "settings": {
+    "debug": true,
+    "timeout": 30
   }
 }
---- End of data.xml ---
+--- End of data.json ---
+
+--- XML File: config.xml ---
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+  <setting name="debug" value="true"/>
+  <database host="localhost" port="5432"/>
+</configuration>
+--- End of config.xml ---
 ```
+
+**Benefits of Raw Content Approach:**
+- Preserves original formatting, indentation, and comments
+- Maintains XML attributes and structure exactly as authored
+- Allows AI to understand context from original formatting choices
+- Eliminates parsing artifacts and potential data loss
+- Better AI comprehension through contextual understanding
 
 ## Error Handling
 
@@ -119,10 +114,7 @@ The system handles various error scenarios:
 
 - **Invalid File Type**: Only JSON, YAML, and XML files are accepted
 - **File Size Limit**: Files larger than 1MB are rejected
-- **Format-Specific Errors**: Files with malformed content are rejected with specific error messages
-  - Invalid JSON format
-  - Invalid YAML syntax
-  - Invalid XML structure
+- **Format Validation**: Files are validated for supported formats but content is preserved as-is for AI processing
 - **Read Errors**: File reading failures are handled gracefully
 
 ## Testing
@@ -142,10 +134,10 @@ Sample files are provided in the `test/` directory:
 1. User selects files through hidden file input
 2. Files are validated for supported format and size
 3. File content is read using FileReader API
-4. Content is parsed based on file extension (JSON/YAML/XML)
+4. Raw content is preserved for optimal AI processing
 5. Valid files are added to store with metadata
 6. Files are displayed in UI with removal options
-7. On message send, file content is formatted and included
+7. On message send, raw file content is included with format headers
 8. Files are cleared from store after successful send
 
 ### State Structure
@@ -155,21 +147,24 @@ Sample files are provided in the `test/` directory:
   attachedFiles: [
     {
       id: 'filename-timestamp',
-      name: 'config.yml', // YAML file example
+      name: 'config.yml',
       size: 1024,
-      content: 'raw YAML string', // For YAML files, raw content is preserved
-      rawContent: 'original file content', // Always stored for reference
+      content: 'raw YAML content as string', // Raw content for all file types
       formatLabel: 'YAML File' // Display label for the file type
     },
     {
       id: 'filename2-timestamp',
-      name: 'data.json', // JSON file example
+      name: 'data.json',
       size: 2048,
-      content: {
-        /* parsed JSON object */
-      },
-      rawContent: 'original JSON string',
+      content: 'raw JSON content as string', // Raw content preserved
       formatLabel: 'JSON File'
+    },
+    {
+      id: 'filename3-timestamp',
+      name: 'config.xml',
+      size: 1536,
+      content: 'raw XML content as string', // Raw content preserved
+      formatLabel: 'XML File'
     }
   ]
 }
@@ -177,16 +172,11 @@ Sample files are provided in the `test/` directory:
 
 ### Dependencies
 
-The feature requires the following packages:
+The feature has minimal dependencies since it processes raw content:
 
-- `yaml` - For YAML parsing (already available)
-- `fast-xml-parser` - For XML parsing (needs to be installed)
-
-Install the XML parser with:
-
-```bash
-npm install fast-xml-parser
-```
+- No additional parsing libraries required
+- Uses native FileReader API for file reading
+- Leverages built-in JavaScript string handling
 
 ## Future Enhancements
 

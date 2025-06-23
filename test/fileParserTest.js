@@ -1,4 +1,4 @@
-// Simple test script to verify file parser functionality
+// Simple test script to verify file parser functionality (raw content processing)
 // Run with: node test/fileParserTest.js
 
 import { readFileSync } from 'fs'
@@ -34,13 +34,14 @@ async function testFileParser() {
       const content = readFileSync(testFile.path, 'utf8')
       console.log(`   📄 File size: ${content.length} characters`)
       
-      // Parse content
-      const parsed = await parseFileContent(content, testFile.path)
-      console.log(`   ✅ Parsing successful`)
-      console.log(`   📊 Parsed object keys:`, Object.keys(parsed))
-      
-      // Show a sample of the parsed content
-      console.log(`   📝 Sample content:`, JSON.stringify(parsed, null, 2).substring(0, 200) + '...')
+      // Process content (now returns raw content for AI)
+      const processedContent = await parseFileContent(content, testFile.path)
+      console.log(`   ✅ Processing successful`)
+      console.log(`   📊 Content type:`, typeof processedContent)
+      console.log(`   📏 Content length:`, processedContent.length)
+
+      // Show a sample of the raw content
+      console.log(`   📝 Sample content:`, processedContent.substring(0, 200) + '...')
       
     } catch (error) {
       console.log(`   ❌ Error: ${error.message}`)

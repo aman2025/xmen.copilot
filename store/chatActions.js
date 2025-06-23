@@ -39,15 +39,8 @@ export const sendMessage = async (content, attachedFiles = []) => {
       .map((file) => {
         const formatLabel = file.formatLabel || 'File'
 
-        // For YAML files, use raw content if available, otherwise format as JSON
-        if (formatLabel === 'YAML File' && typeof file.content === 'string') {
-          return `\n\n--- ${formatLabel}: ${file.name} ---\n${file.content}\n--- End of ${file.name} ---`
-        } else {
-          // For JSON, XML, or parsed YAML objects, format as JSON
-          const contentToDisplay =
-            typeof file.content === 'string' ? file.content : JSON.stringify(file.content, null, 2)
-          return `\n\n--- ${formatLabel}: ${file.name} ---\n${contentToDisplay}\n--- End of ${file.name} ---`
-        }
+        // Use raw content directly for all file types - better for AI understanding
+        return `\n\n--- ${formatLabel}: ${file.name} ---\n${file.content}\n--- End of ${file.name} ---`
       })
       .join('')
     messageContent = `${content}${fileContext}`

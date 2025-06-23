@@ -67,18 +67,15 @@ const ChatInput = () => {
 
       try {
         const content = await readFileAsText(file)
-        const extension = file.name.toLowerCase().split('.').pop()
 
-        // For YAML files, preserve raw format for better display
-        const preserveRaw = extension === 'yml' || extension === 'yaml'
-        const parsedContent = await parseFileContent(content, file.name, preserveRaw)
+        // Validate file format but keep raw content for AI processing
+        await parseFileContent(content, file.name)
 
         const fileData = {
           id: `${file.name}-${Date.now()}`,
           name: file.name,
           size: file.size,
-          content: parsedContent,
-          rawContent: content, // Always store raw content for reference
+          content: content, // Store raw content directly for AI processing
           formatLabel: getFileFormatLabel(file.name)
         }
 

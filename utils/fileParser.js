@@ -1,34 +1,21 @@
-import { XMLParser } from 'fast-xml-parser'
-
 /**
- * Parse file content based on file extension
+ * Get raw file content for AI processing
  * @param {string} content - Raw file content as string
  * @param {string} fileName - Name of the file to determine format
- * @param {boolean} preserveRawFormat - Whether to preserve raw format for display
- * @returns {Promise<Object|string>} Parsed content object or raw content string
- * @throws {Error} If parsing fails or format is unsupported
+ * @returns {Promise<string>} Raw content string for AI processing
+ * @throws {Error} If file format is unsupported
  */
-export const parseFileContent = async (content, fileName, preserveRawFormat = false) => {
+export const parseFileContent = async (content, fileName) => {
   const extension = getFileExtension(fileName)
 
-  // If preserveRawFormat is true, return raw content for YAML files
-  if (preserveRawFormat && (extension === 'yml' || extension === 'yaml')) {
-    // Validate YAML syntax but return raw content
-    await parseYAML(content) // This will throw if invalid
-    return content
+  // Validate that the file format is supported
+  if (!isSupportedFileFormat(fileName)) {
+    throw new Error(`Unsupported file format: ${extension}`)
   }
 
-  switch (extension) {
-    case 'json':
-      return parseJSON(content)
-    case 'yml':
-    case 'yaml':
-      return await parseYAML(content)
-    case 'xml':
-      return parseXML(content)
-    default:
-      throw new Error(`Unsupported file format: ${extension}`)
-  }
+  // Return raw content directly for AI processing
+  // AI models can better understand and parse raw content contextually
+  return content
 }
 
 /**
@@ -58,55 +45,6 @@ export const getFileFormatLabel = (fileName) => {
       return 'XML File'
     default:
       return 'File'
-  }
-}
-
-/**
- * Parse JSON content
- * @param {string} content - JSON string content
- * @returns {Object} Parsed JSON object
- */
-const parseJSON = (content) => {
-  try {
-    return JSON.parse(content)
-  } catch (error) {
-    throw new Error('Invalid JSON format')
-  }
-}
-
-/**
- * Parse YAML content
- * @param {string} content - YAML string content
- * @returns {Object} Parsed YAML object
- */
-const parseYAML = async (content) => {
-  try {
-    // Use dynamic import for client-side compatibility
-    const { parse } = await import('yaml')
-    return parse(content)
-  } catch (error) {
-    throw new Error('Invalid YAML format')
-  }
-}
-
-/**
- * Parse XML content
- * @param {string} content - XML string content
- * @returns {Object} Parsed XML object
- */
-const parseXML = (content) => {
-  try {
-    const parser = new XMLParser({
-      ignoreAttributes: false,
-      attributeNamePrefix: '@_',
-      textNodeName: '#text',
-      parseAttributeValue: true,
-      parseTagValue: true,
-      trimValues: true
-    })
-    return parser.parse(content)
-  } catch (error) {
-    throw new Error('Invalid XML format')
   }
 }
 
