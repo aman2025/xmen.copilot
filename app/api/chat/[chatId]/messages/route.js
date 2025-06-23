@@ -105,7 +105,8 @@ export async function POST(request, { params }) {
             ts: BigInt(Date.now()),
             type: 'say',
             subType: 'text',
-            text: message.content
+            text: message.content,
+            role: 'user' // Explicitly set role for user messages
           }
         })
       }

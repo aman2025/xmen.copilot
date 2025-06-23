@@ -36,8 +36,8 @@ export async function POST(request, { params }) {
         ts: BigInt(clineMessageData.ts), // Ensure ts is BigInt
         type: clineMessageData.type,
         subType: clineMessageData.subType,
-        text: clineMessageData.text
-        // Add any other relevant fields from clineMessageData if they exist in your model
+        text: clineMessageData.text,
+        role: clineMessageData.role || null // Store the role if provided
       }
     })
 

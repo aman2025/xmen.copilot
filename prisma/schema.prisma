@@ -43,7 +43,8 @@ model ClineMessage {
   type          String // "ask" or "say"
   subType       String // Detailed type: e.g., "text", "api_req_started", "tool_result", "call_sys_tool", "completion_result", "error"
   text          String // Content, could be plain text or stringified JSON
+  role          String? // "user", "assistant", "system" - to properly identify message origin for display
   createdAt     DateTime  @default(now())
 
   @@index([chatSessionId, ts])
-} 
+}

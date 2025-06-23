@@ -90,7 +90,7 @@ class Controller {
             const normalizedMsg = {
               ...clineMsg,
               ts: Number(clineMsg.ts),
-              role: 'assistant' // All other clineMessages from DB are assistant-generated
+              role: clineMsg.role || 'assistant' // Use stored role, default to assistant for backward compatibility
             }
 
             if (clineMsg.type === 'say') {
