@@ -6,6 +6,8 @@ import remarkGfm from 'remark-gfm'
 import useChatStore from '../../store/useChatStore'
 import useGlobalStore from '../../store/useGlobalStore'
 import { CheckCircle2, XCircle, User, Loader2, Wrench, Check, ChevronsUpDown } from 'lucide-react'
+import FileAttachment from './FileAttachment'
+import { extractFileAttachments, hasFileAttachments } from '../../utils/messageParser'
 
 // --- CopilotAvatar Component ---
 const CopilotAvatar = () => {
@@ -309,6 +311,39 @@ const ToolApprovalRequest = ({ message }) => {
 // --- MessageItem Component ---
 const MessageItem = ({ message }) => {
   const renderContent = () => {
+    // Handle user messages with potential file attachments
+    if (message.role === 'user') {
+      const messageText = message.text || ''
+
+      // Check if this user message contains file attachments
+      if (hasFileAttachments(messageText)) {
+        const { cleanText, attachments } = extractFileAttachments(messageText)
+
+        return (
+          <div className="space-y-2">
+            {/* Display the clean message text if it exists */}
+            {cleanText && (
+              <div className="prose prose-sm max-w-none dark:prose-invert">
+                <ReactMarkdown remarkPlugins={[remarkGfm]}>{cleanText}</ReactMarkdown>
+              </div>
+            )}
+
+            {/* Display file attachments */}
+            {attachments.map((attachment) => (
+              <FileAttachment key={attachment.id} attachment={attachment} />
+            ))}
+          </div>
+        )
+      }
+
+      // Regular user message without file attachments
+      return (
+        <div className="prose prose-sm max-w-none dark:prose-invert">
+          <ReactMarkdown remarkPlugins={[remarkGfm]}>{messageText}</ReactMarkdown>
+        </div>
+      )
+    }
+
     if (message.type === 'ask' && message.ask === 'call_sys_tool') {
       return <ToolApprovalRequest message={message} />
     }
