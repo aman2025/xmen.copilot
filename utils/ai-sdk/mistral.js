@@ -156,7 +156,7 @@ export const createMistral = async (messages, tools) => {
 
   try {
     const response = await client.chat({
-      model: 'mistral-large-latest',
+      model: 'magistral-medium-2506',
       messages: processedMessages,
       tools,
       temperature: 0.7,
@@ -182,7 +182,7 @@ export const createMistral = async (messages, tools) => {
  */
 export const formatMistralResponse = async (response) => {
   let message = response.choices[0].message
-
+   
   // If we have content but no tool_calls, and the content starts with obvious text markers,
   // we should just return the message as-is
   if (
