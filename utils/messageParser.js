@@ -54,3 +54,44 @@ export const hasFileAttachments = (messageText) => {
   const filePattern = /--- .+?: .+? ---[\s\S]*?--- End of .+? ---/
   return filePattern.test(messageText)
 }
+
+/**
+ * Extracts thinking content from AI message text
+ * @param {string} messageText - The full message text that may contain <think> or <thinking> tags
+ * @returns {Object} - Object containing thinkingContent and cleanText
+ */
+export const extractThinkingContent = (messageText) => {
+  if (!messageText || typeof messageText !== 'string') {
+    return { thinkingContent: null, cleanText: messageText || '' }
+  }
+
+  // Pattern to match both <think>...</think> and <thinking>...</thinking> content
+  const thinkPattern = /<think(?:ing)?>([\s\S]*?)<\/think(?:ing)?>/
+  const match = messageText.match(thinkPattern)
+
+  if (!match) {
+    return { thinkingContent: null, cleanText: messageText }
+  }
+
+  const thinkingContent = match[1].trim()
+  const cleanText = messageText.replace(thinkPattern, '').trim()
+
+  return {
+    thinkingContent,
+    cleanText
+  }
+}
+
+/**
+ * Checks if a message contains thinking content
+ * @param {string} messageText - The message text to check
+ * @returns {boolean} - True if the message contains <think> or <thinking> tags
+ */
+export const hasThinkingContent = (messageText) => {
+  if (!messageText || typeof messageText !== 'string') {
+    return false
+  }
+
+  const thinkPattern = /<think(?:ing)?>[\s\S]*?<\/think(?:ing)?>/
+  return thinkPattern.test(messageText)
+}

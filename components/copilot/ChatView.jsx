@@ -5,9 +5,9 @@ import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import useChatStore from '../../store/useChatStore'
 import useGlobalStore from '../../store/useGlobalStore'
-import { CheckCircle2, XCircle, User, Loader2, Wrench, Check, ChevronsUpDown } from 'lucide-react'
+import { CheckCircle2, XCircle, User, Loader2, Wrench, Check, ChevronsUpDown, Brain, ChevronDown, ChevronRight } from 'lucide-react'
 import FileAttachment from './FileAttachment'
-import { extractFileAttachments, hasFileAttachments } from '../../utils/messageParser'
+import { extractFileAttachments, hasFileAttachments, extractThinkingContent } from '../../utils/messageParser'
 
 // --- CopilotAvatar Component ---
 const CopilotAvatar = () => {
@@ -128,6 +128,44 @@ const ExpandableResultBlock = ({
               </pre>
             </div>
           )}
+        </div>
+      )}
+    </div>
+  )
+}
+
+// --- Component for expandable thinking content ---
+const ThinkingBlock = ({ thinkingContent }) => {
+  const [isExpanded, setIsExpanded] = useState(false)
+
+  if (!thinkingContent) {
+    return null
+  }
+
+  return (
+    <div className="mb-3 rounded-md border border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-800">
+      <button
+        onClick={() => setIsExpanded(!isExpanded)}
+        className="flex w-full items-center justify-between p-3 text-left hover:bg-gray-100 dark:hover:bg-gray-700"
+      >
+        <div className="flex items-center gap-2">
+          <Brain size={16} className="text-gray-500 dark:text-gray-400" />
+          <span className="text-sm font-medium text-gray-500 dark:text-gray-400">
+            Thinking
+          </span>
+        </div>
+        {isExpanded ? (
+          <ChevronDown size={16} className="text-gray-500 dark:text-gray-400" />
+        ) : (
+          <ChevronRight size={16} className="text-gray-500 dark:text-gray-400" />
+        )}
+      </button>
+
+      {isExpanded && (
+        <div className="border-t border-gray-200 p-3 dark:border-gray-700">
+          <div className="prose prose-sm max-w-none text-gray-500 dark:prose-invert dark:text-gray-400">
+            <ReactMarkdown remarkPlugins={[remarkGfm]}>{thinkingContent}</ReactMarkdown>
+          </div>
         </div>
       )}
     </div>
@@ -344,6 +382,46 @@ const MessageItem = ({ message }) => {
       )
     }
 
+    // Handle direct assistant messages (role === 'assistant' without type === 'say')
+    if (message.role === 'assistant' && message.type !== 'say') {
+      const messageText = message.text || message.content || ''
+      const { thinkingContent, cleanText: textWithoutThinking } = extractThinkingContent(messageText)
+
+      // Build the content components
+      const components = []
+
+      // Add thinking block if present
+      if (thinkingContent) {
+        components.push(
+          <ThinkingBlock key="thinking" thinkingContent={thinkingContent} />
+        )
+      }
+
+      // Add main content if present
+      if (textWithoutThinking) {
+        components.push(
+          <div key="content" className="prose prose-sm max-w-none dark:prose-invert">
+            <ReactMarkdown remarkPlugins={[remarkGfm]}>{textWithoutThinking}</ReactMarkdown>
+          </div>
+        )
+      }
+
+      // Return components or fallback to original text
+      if (components.length > 0) {
+        return (
+          <div className="flex flex-col space-y-2">
+            {components}
+          </div>
+        )
+      }
+
+      return (
+        <div className="prose prose-sm max-w-none dark:prose-invert">
+          <ReactMarkdown remarkPlugins={[remarkGfm]}>{messageText}</ReactMarkdown>
+        </div>
+      )
+    }
+
     if (message.type === 'ask' && message.ask === 'call_sys_tool') {
       return <ToolApprovalRequest message={message} />
     }
@@ -369,39 +447,61 @@ const MessageItem = ({ message }) => {
         case 'completion_result':
         case 'text':
         default:
-          // Check if the message contains result and environment details
+          // Check if the message contains thinking, result and environment details
           const messageText = message.text || ''
-          const resultContent = parseResultContent(messageText)
-          const environmentDetails = parseEnvironmentDetails(messageText)
+          const { thinkingContent, cleanText: textWithoutThinking } = extractThinkingContent(messageText)
+          const resultContent = parseResultContent(textWithoutThinking)
+          const environmentDetails = parseEnvironmentDetails(textWithoutThinking)
 
-          // If we have result or environment details, show expandable block
+          // Build the content components
+          const components = []
+
+          // Add thinking block if present
+          if (thinkingContent) {
+            components.push(
+              <ThinkingBlock key="thinking" thinkingContent={thinkingContent} />
+            )
+          }
+
+          // Add result/environment block if present
           if (resultContent || environmentDetails) {
+            components.push(
+              <ExpandableResultBlock
+                key="result"
+                resultContent={resultContent}
+                environmentDetails={environmentDetails}
+                isCompleted={true}
+                hasError={false}
+                contentType="result"
+              />
+            )
+          }
+
+          // Calculate final clean text after removing all special tags
+          let finalCleanText = textWithoutThinking
+          if (resultContent) {
+            finalCleanText = finalCleanText.replace(/<result>.*?<\/result>/s, '').trim()
+          }
+          if (environmentDetails) {
+            finalCleanText = finalCleanText
+              .replace(/<environment_details>.*?<\/environment_details>/s, '')
+              .trim()
+          }
+
+          // Add main content if present
+          if (finalCleanText) {
+            components.push(
+              <div key="content" className="prose prose-sm max-w-none dark:prose-invert">
+                <ReactMarkdown remarkPlugins={[remarkGfm]}>{finalCleanText}</ReactMarkdown>
+              </div>
+            )
+          }
+
+          // Return components or fallback to original text
+          if (components.length > 0) {
             return (
               <div className="flex flex-col space-y-2">
-                <ExpandableResultBlock
-                  resultContent={resultContent}
-                  environmentDetails={environmentDetails}
-                  isCompleted={true}
-                  hasError={false}
-                  contentType="result"
-                />
-                {/* Show remaining text content after removing result/environment tags */}
-                {(() => {
-                  let cleanText = messageText
-                  if (resultContent) {
-                    cleanText = cleanText.replace(/<result>.*?<\/result>/s, '').trim()
-                  }
-                  if (environmentDetails) {
-                    cleanText = cleanText
-                      .replace(/<environment_details>.*?<\/environment_details>/s, '')
-                      .trim()
-                  }
-                  return cleanText ? (
-                    <div className="prose prose-sm max-w-none dark:prose-invert">
-                      <ReactMarkdown remarkPlugins={[remarkGfm]}>{cleanText}</ReactMarkdown>
-                    </div>
-                  ) : null
-                })()}
+                {components}
               </div>
             )
           }
