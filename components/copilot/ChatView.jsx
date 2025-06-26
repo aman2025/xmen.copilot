@@ -576,6 +576,26 @@ const ChatView = () => {
           if (isUser || message.role === 'assistant' || message.type === 'ask') {
             const isTaskCompleted = !isUser && isCompletionMessage(message)
 
+            // Check if this is a ToolApprovalRequest that should be displayed without avatar
+            const isToolApproval = message.type === 'ask' && message.ask === 'call_sys_tool'
+            const shouldHideAvatar = isToolApproval && index > 0 && (() => {
+              // Check if the previous message is an assistant text message
+              const prevMessage = displayMessages[index - 1]
+              return prevMessage &&
+                     prevMessage.type === 'say' &&
+                     prevMessage.say === 'text' &&
+                     !prevMessage.role // Assistant messages from Task.say() don't have role set
+            })()
+
+            if (shouldHideAvatar) {
+              // Render ToolApprovalRequest without avatar for tool_use_with_content case
+              return (
+                <div key={`${message.ts}-${index}`} className="ml-11">
+                  <MessageItem message={message} />
+                </div>
+              )
+            }
+
             return (
               <div key={`${message.ts}-${index}`} className="flex items-start gap-3">
                 {isUser ? (

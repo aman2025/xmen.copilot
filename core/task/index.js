@@ -179,6 +179,35 @@ class Task {
         }
         break
       }
+      case 'tool_use_with_content': {
+        // First, display the content (which may include thinking content)
+        await this.say('text', block.content, true, 'assistant')
+
+        // Then handle the tool call
+        this.pendingToolCall = {
+          name: block.name,
+          params: block.params,
+          toolCallId: block.toolCallId
+        }
+        const needsApproval = this.doesToolNeedApproval()
+        if (needsApproval) {
+          this.waitingForApproval = true
+          useChatStore.getState().setIsWaitingForApproval(true)
+          await this.ask(
+            'call_sys_tool',
+            JSON.stringify({
+              tool: block.name,
+              parameters: block.params,
+              toolCallId: block.toolCallId,
+              description: `Execute ${block.name} with parameters: ${JSON.stringify(block.params)}`
+            }),
+            true
+          )
+        } else {
+          await this.executeTool(block.name, block.params, block.toolCallId)
+        }
+        break
+      }
       case 'tool_use': {
         this.pendingToolCall = {
           name: block.name,
