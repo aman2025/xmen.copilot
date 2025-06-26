@@ -5,7 +5,7 @@ import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import useChatStore from '../../store/useChatStore'
 import useGlobalStore from '../../store/useGlobalStore'
-import { CheckCircle2, XCircle, User, Loader2, Wrench, Check, ChevronsUpDown, Brain, ChevronDown, ChevronRight } from 'lucide-react'
+import { CheckCircle2, XCircle, User, Loader2, Wrench, ChevronsUpDown, Brain, ChevronDown, ChevronRight } from 'lucide-react'
 import FileAttachment from './FileAttachment'
 import { extractFileAttachments, hasFileAttachments, extractThinkingContent } from '../../utils/messageParser'
 
@@ -18,39 +18,7 @@ const CopilotAvatar = () => {
   )
 }
 
-// --- TaskCompletedAvatar Component ---
-const TaskCompletedAvatar = () => {
-  return (
-    <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-green-100 dark:bg-green-900">
-      <Check size={18} className="text-green-600 dark:text-green-400" />
-    </div>
-  )
-}
 
-// --- Helper function to detect completion messages ---
-const isCompletionMessage = (message) => {
-  // Check if it's a completion_result message type
-  if (message.type === 'say' && message.say === 'completion_result') {
-    return true
-  }
-
-  // Check if the message content contains TASK_COMPLETE: marker
-  if (message.text && typeof message.text === 'string' && message.text.includes('TASK_COMPLETE:')) {
-    return true
-  }
-
-  // Check if it's an assistant message with content containing TASK_COMPLETE:
-  if (
-    message.role === 'assistant' &&
-    message.content &&
-    typeof message.content === 'string' &&
-    message.content.includes('TASK_COMPLETE:')
-  ) {
-    return true
-  }
-
-  return false
-}
 
 // --- Helper functions to parse message content ---
 const parseResultContent = (content) => {
@@ -67,8 +35,6 @@ const parseEnvironmentDetails = (content) => {
 const ExpandableResultBlock = ({
   resultContent,
   environmentDetails,
-  isCompleted,
-  hasError,
   contentType = 'task'
 }) => {
   const [isExpanded, setIsExpanded] = useState(false)
@@ -281,8 +247,6 @@ const ApiRequestMessage = ({ message, isCompleted = false, hasError = false }) =
       <ExpandableResultBlock
         resultContent={resultContent}
         environmentDetails={environmentDetails}
-        isCompleted={isCompleted}
-        hasError={hasError}
         contentType={isToolExecution ? 'result' : 'task'}
       />
 
@@ -444,7 +408,6 @@ const MessageItem = ({ message }) => {
           return (
             <ApiRequestMessage message={message} isCompleted={isCompleted} hasError={hasError} />
           )
-        case 'completion_result':
         case 'text':
         default:
           // Check if the message contains thinking, result and environment details
@@ -470,8 +433,6 @@ const MessageItem = ({ message }) => {
                 key="result"
                 resultContent={resultContent}
                 environmentDetails={environmentDetails}
-                isCompleted={true}
-                hasError={false}
                 contentType="result"
               />
             )
@@ -574,8 +535,6 @@ const ChatView = () => {
 
           // Render user messages and other assistant messages
           if (isUser || message.role === 'assistant' || message.type === 'ask') {
-            const isTaskCompleted = !isUser && isCompletionMessage(message)
-
             // Check if this is a ToolApprovalRequest that should be displayed without avatar
             const isToolApproval = message.type === 'ask' && message.ask === 'call_sys_tool'
             const shouldHideAvatar = isToolApproval && index > 0 && (() => {
@@ -600,14 +559,12 @@ const ChatView = () => {
               <div key={`${message.ts}-${index}`} className="flex items-start gap-3">
                 {isUser ? (
                   <UserAvatar />
-                ) : isTaskCompleted ? (
-                  <TaskCompletedAvatar />
                 ) : (
                   <CopilotAvatar />
                 )}
                 <div className="flex flex-col">
                   <span className="mb-1 text-sm font-medium text-gray-700 dark:text-gray-300">
-                    {isUser ? 'You' : isTaskCompleted ? 'Task Completed' : 'Xmen Copilot'}
+                    {isUser ? 'You' : 'Xmen Copilot'}
                   </span>
                   <MessageItem message={message} />
                 </div>

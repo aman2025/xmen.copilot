@@ -30,8 +30,3 @@ alwaysApply: true
   - Show a loading indicator during tool execution
   - Display the tool execution result in a formatted manner
   - Indicate that results are being sent back to the AI
-
-### Phase 4: Task Completion
-- When AI responds without tool calls:
-  - Display a check icon with "Task Completed" title
-  - Show the AI response content in a properly formatted message
