@@ -1,7 +1,13 @@
 import { PrismaClient } from '@prisma/client'
 import { SYSTEM_PROMPT } from '@/prompts'
 import { INSTANCE_TOOLS } from '@/prompts/tools/instance'
-import { createMistral, formatMistralResponse } from '@/utils/ai-sdk/mistral'
+import {
+  createMistral,
+  formatMistralResponse,
+  createMistralStream,
+  processStreamChunk,
+  accumulateStreamChunks
+} from '@/utils/ai-sdk/mistral'
 import ContextManager from '@/core/context/context-management/ContextManager'
 import EnvironmentContextManager from '@/core/context/EnvironmentContextManager'
 
@@ -70,6 +76,8 @@ export async function GET(request, { params }) {
 // Handles a new message from the user, gets AI response, and saves messages
 export async function POST(request, { params }) {
   const { chatId } = params
+  const url = new URL(request.url)
+  const stream = url.searchParams.get('stream') === 'true'
 
   try {
     const { message } = await request.json()
@@ -180,32 +188,37 @@ export async function POST(request, { params }) {
       'Optimized messages:',
       optimizedMessages.map((m) => ({ role: m.role, content: m.content?.substring(0, 50) }))
     )
-
     // --- Call Mistral AI (outside of a transaction) ---
-    let aiRawResponse
-    try {
-      const mistralResponse = await createMistral(optimizedMessages, INSTANCE_TOOLS)
-      aiRawResponse = await formatMistralResponse(mistralResponse)
-    } catch (aiError) {
-      console.error('Error calling Mistral API:', aiError)
-      throw new Error(`AI API Error: ${aiError.message}`)
-    }
-
-    // --- Save the AI's ApiMessage (separate operation) ---
-    const assistantApiMessage = await prisma.apiMessage.create({
-      data: {
-        chatSessionId: chatId,
-        role: aiRawResponse.role || 'assistant',
-        content: aiRawResponse.content,
-        tool_calls: aiRawResponse.tool_calls || undefined
+    if (stream) {
+      // Handle streaming response
+      return handleStreamingResponse(chatId, optimizedMessages, INSTANCE_TOOLS)
+    } else {
+      // Handle non-streaming response (existing logic)
+      let aiRawResponse
+      try {
+        const mistralResponse = await createMistral(optimizedMessages, INSTANCE_TOOLS)
+        aiRawResponse = await formatMistralResponse(mistralResponse)
+      } catch (aiError) {
+        console.error('Error calling Mistral API:', aiError)
+        throw new Error(`AI API Error: ${aiError.message}`)
       }
-    })
 
-    return new Response(JSON.stringify(assistantApiMessage), {
-      // Return the AI message
-      status: 200,
-      headers: { 'Content-Type': 'application/json' }
-    })
+      // --- Save the AI's ApiMessage (separate operation) ---
+      const assistantApiMessage = await prisma.apiMessage.create({
+        data: {
+          chatSessionId: chatId,
+          role: aiRawResponse.role || 'assistant',
+          content: aiRawResponse.content,
+          tool_calls: aiRawResponse.tool_calls || undefined
+        }
+      })
+
+      return new Response(JSON.stringify(assistantApiMessage), {
+        // Return the AI message
+        status: 200,
+        headers: { 'Content-Type': 'application/json' }
+      })
+    }
   } catch (error) {
     console.error(`Failed to process message for chat ${chatId}:`, error)
     if (
@@ -243,4 +256,150 @@ export async function POST(request, { params }) {
       }
     )
   }
+}
+
+/**
+ * Handles streaming response from Mistral AI
+ * @param {string} chatId - Chat session ID
+ * @param {Array} messages - Optimized messages for AI
+ * @param {Array} tools - Available tools
+ * @returns {Response} - Streaming response
+ */
+async function handleStreamingResponse(chatId, messages, tools) {
+  const encoder = new TextEncoder()
+
+  const stream = new ReadableStream({
+    async start(controller) {
+      try {
+        const mistralStream = await createMistralStream(messages, tools)
+        const chunks = []
+        let accumulatedContent = ''
+        let accumulatedToolCalls = []
+
+        // Generate unique streaming ID
+        const streamingId = `stream_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+
+        // Send initial streaming start event
+        const startEvent = {
+          type: 'stream_start',
+          streamingId,
+          timestamp: Date.now()
+        }
+        controller.enqueue(encoder.encode(`data: ${JSON.stringify(startEvent)}\n\n`))
+
+        // Process the async iterator from Mistral
+        for await (const chunk of mistralStream) {
+          console.log('Raw Mistral chunk:', chunk)
+          const processedChunk = processStreamChunk(chunk)
+
+          if (processedChunk) {
+            chunks.push(processedChunk)
+            console.log('Processed chunk:', processedChunk)
+
+            if (processedChunk.type === 'content') {
+              accumulatedContent += processedChunk.content
+
+              // Send content chunk to client
+              const contentEvent = {
+                type: 'content_chunk',
+                streamingId,
+                content: processedChunk.content,
+                accumulatedContent,
+                timestamp: Date.now()
+              }
+              controller.enqueue(encoder.encode(`data: ${JSON.stringify(contentEvent)}\n\n`))
+            } else if (processedChunk.type === 'tool_calls') {
+              accumulatedToolCalls = processedChunk.tool_calls
+
+              // Send tool calls chunk to client
+              const toolEvent = {
+                type: 'tool_calls_chunk',
+                streamingId,
+                tool_calls: processedChunk.tool_calls,
+                timestamp: Date.now()
+              }
+              controller.enqueue(encoder.encode(`data: ${JSON.stringify(toolEvent)}\n\n`))
+            } else if (processedChunk.type === 'finish') {
+              // Stream finished, accumulate final message
+              const finalMessage = accumulateStreamChunks(chunks)
+
+              // Save the final AI message to database
+              const assistantApiMessage = await prisma.apiMessage.create({
+                data: {
+                  chatSessionId: chatId,
+                  role: finalMessage.role || 'assistant',
+                  content: finalMessage.content || accumulatedContent,
+                  tool_calls:
+                    finalMessage.tool_calls ||
+                    (accumulatedToolCalls.length > 0 ? accumulatedToolCalls : undefined)
+                }
+              })
+
+              // Send final completion event
+              const completeEvent = {
+                type: 'stream_complete',
+                streamingId,
+                finalMessage: assistantApiMessage,
+                finish_reason: processedChunk.finish_reason,
+                timestamp: Date.now()
+              }
+              controller.enqueue(encoder.encode(`data: ${JSON.stringify(completeEvent)}\n\n`))
+              controller.close()
+              return
+            }
+          }
+        }
+
+        // This block is now a fallback for streams that end without a 'finish' event.
+        if (chunks.length > 0) {
+          const finalMessage = accumulateStreamChunks(chunks)
+
+          // Save the final AI message to database if not already saved
+          const assistantApiMessage = await prisma.apiMessage.create({
+            data: {
+              chatSessionId: chatId,
+              role: finalMessage.role || 'assistant',
+              content: finalMessage.content || accumulatedContent,
+              tool_calls:
+                finalMessage.tool_calls ||
+                (accumulatedToolCalls.length > 0 ? accumulatedToolCalls : undefined)
+            }
+          })
+
+          // Send final completion event
+          const completeEvent = {
+            type: 'stream_complete',
+            streamingId,
+            finalMessage: assistantApiMessage,
+            finish_reason: 'stop',
+            timestamp: Date.now()
+          }
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify(completeEvent)}\n\n`))
+        }
+
+        controller.close()
+      } catch (error) {
+        console.error('Error in streaming response:', error)
+
+        // Send error event
+        const errorEvent = {
+          type: 'stream_error',
+          error: error.message,
+          timestamp: Date.now()
+        }
+        controller.enqueue(encoder.encode(`data: ${JSON.stringify(errorEvent)}\n\n`))
+        controller.close()
+      }
+    }
+  })
+
+  return new Response(stream, {
+    headers: {
+      'Content-Type': 'text/event-stream',
+      'Cache-Control': 'no-cache',
+      Connection: 'keep-alive',
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Headers': 'Content-Type'
+    }
+  })
 }

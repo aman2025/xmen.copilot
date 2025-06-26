@@ -128,7 +128,22 @@ class Task {
     await this.say('api_req_started', JSON.stringify({ request: userContent }), true, 'assistant') // Use actual userContent
 
     try {
-      const assistantRawApiMessage = await this.attemptApiRequest(payloadForApi)
+      // Try streaming first for better user experience
+      let assistantRawApiMessage
+      try {
+        const streamingResponse = await this.attemptStreamingApiRequest(payloadForApi)
+        assistantRawApiMessage = await this.handleStreamingResponse(streamingResponse)
+      } catch (streamingError) {
+        console.warn(`Task (${this.chatId}): Streaming failed, falling back to regular API:`, streamingError)
+
+        // Reset streaming state
+        useChatStore.getState().setIsStreaming(false)
+        useChatStore.getState().setStreamingMessageId(null)
+
+        // Fallback to regular API request
+        assistantRawApiMessage = await this.attemptApiRequest(payloadForApi)
+      }
+
       if (!assistantRawApiMessage || !assistantRawApiMessage.role) {
         throw new Error('Received invalid or empty response from API.')
       }
@@ -147,6 +162,10 @@ class Task {
     } catch (error) {
       console.error(`Task (${this.chatId}): Error in task loop:`, error)
       await this.say('error', `Error: ${error.message}`, true, 'assistant') // Persist error message
+
+      // Reset streaming state on error
+      useChatStore.getState().setIsStreaming(false)
+      useChatStore.getState().setStreamingMessageId(null)
     }
   }
 
@@ -598,6 +617,34 @@ class Task {
     }
   }
 
+  async attemptStreamingApiRequest(messagePayloadToPost) {
+    // messagePayloadToPost is the user/tool message
+    if (!this.chatId) {
+      console.error(`Task (${this.chatId}): Cannot make streaming API request without chatId.`)
+      throw new Error('Chat ID is missing for streaming API request.')
+    }
+    console.log(`Task (${this.chatId}): Attempting streaming API request with payload:`, messagePayloadToPost)
+
+    try {
+      const response = await fetch(`/api/chat/${this.chatId}/messages?stream=true`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: messagePayloadToPost })
+      })
+
+      if (!response.ok) {
+        const errorText = await response.text()
+        console.error(`Task (${this.chatId}): Streaming API request failed (${response.status}):`, errorText)
+        throw new Error(`Streaming API request failed: ${response.status} ${errorText}`)
+      }
+
+      return response // Return the response for streaming processing
+    } catch (error) {
+      console.error(`Task (${this.chatId}): Error in attemptStreamingApiRequest:`, error)
+      throw error
+    }
+  }
+
   generateToolCallId() {
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'
     let result = ''
@@ -605,6 +652,93 @@ class Task {
       result += chars.charAt(Math.floor(Math.random() * chars.length))
     }
     return `clt_${result}` // Prefix to denote client-generated if ever needed for debugging
+  }
+
+  async handleStreamingResponse(response) {
+    const reader = response.body.getReader()
+    const decoder = new TextDecoder()
+    let accumulatedContent = ''
+    let streamingMessageId = null
+    let finalMessage = null
+
+    try {
+      while (true) {
+        const { done, value } = await reader.read()
+
+        if (done) break
+
+        const chunk = decoder.decode(value, { stream: true })
+        const lines = chunk.split('\n')
+
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            try {
+              const eventData = JSON.parse(line.slice(6))
+
+              switch (eventData.type) {
+                case 'stream_start':
+                  streamingMessageId = eventData.streamingId
+                  // Add initial streaming message to UI
+                  const streamingMessage = {
+                    chatId: this.chatId,
+                    ts: Date.now(),
+                    type: 'say',
+                    say: 'text',
+                    text: '',
+                    role: 'assistant',
+                    isStreaming: true,
+                    streamingId: streamingMessageId
+                  }
+                  this.clineMessages.push(streamingMessage)
+                  useChatStore.getState().addClineMessage(streamingMessage)
+                  useChatStore.getState().setIsStreaming(true)
+                  useChatStore.getState().setStreamingMessageId(streamingMessageId)
+                  break
+
+                case 'content_chunk':
+                  accumulatedContent = eventData.accumulatedContent
+                  // Update the streaming message in the store
+                  useChatStore.getState().updateStreamingMessage(streamingMessageId, accumulatedContent)
+                  break
+
+                case 'tool_calls_chunk':
+                  // Handle tool calls if needed
+                  console.log('Received tool calls chunk:', eventData.tool_calls)
+                  break
+
+                case 'stream_complete':
+                  finalMessage = eventData.finalMessage
+                  // Finalize the streaming message
+                  useChatStore.getState().finalizeStreamingMessage(
+                    streamingMessageId,
+                    finalMessage.content || accumulatedContent,
+                    finalMessage.tool_calls
+                  )
+                  console.log(`Task (${this.chatId}): Streaming completed with final message:`, finalMessage)
+                  break
+
+                case 'stream_error':
+                  console.error(`Task (${this.chatId}): Streaming error:`, eventData.error)
+                  useChatStore.getState().setIsStreaming(false)
+                  useChatStore.getState().setStreamingMessageId(null)
+                  throw new Error(eventData.error)
+              }
+            } catch (parseError) {
+              console.error('Error parsing streaming event:', parseError)
+            }
+          }
+        }
+      }
+
+      return finalMessage
+    } catch (error) {
+      console.error(`Task (${this.chatId}): Error handling streaming response:`, error)
+      useChatStore.getState().setIsStreaming(false)
+      useChatStore.getState().setStreamingMessageId(null)
+      throw error
+    } finally {
+      reader.releaseLock()
+    }
   }
 
   // Add a new method to format the user input

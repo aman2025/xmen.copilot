@@ -410,6 +410,11 @@ const MessageItem = ({ message }) => {
           )
         case 'text':
         default:
+          // Handle streaming messages
+          if (message.isStreaming) {
+            return <StreamingMessage message={message} />
+          }
+
           // Check if the message contains thinking, result and environment details
           const messageText = message.text || ''
           const { thinkingContent, cleanText: textWithoutThinking } = extractThinkingContent(messageText)
@@ -480,14 +485,67 @@ const MessageItem = ({ message }) => {
   return <div className="rounded-lg bg-white px-4 py-2 dark:bg-gray-800">{renderContent()}</div>
 }
 
+// --- StreamingMessage Component ---
+const StreamingMessage = ({ message }) => {
+  const [displayText, setDisplayText] = useState('')
+  const [showCursor, setShowCursor] = useState(true)
+
+  useEffect(() => {
+    // Update display text when message text changes
+    setDisplayText(message.text || '')
+  }, [message.text])
+
+  useEffect(() => {
+    // Blinking cursor effect
+    const interval = setInterval(() => {
+      setShowCursor(prev => !prev)
+    }, 500)
+
+    return () => clearInterval(interval)
+  }, [])
+
+  const { thinkingContent, cleanText: textWithoutThinking } = extractThinkingContent(displayText)
+
+  return (
+    <div className="prose prose-sm max-w-none dark:prose-invert">
+      {/* Thinking content if present */}
+      {thinkingContent && (
+        <ThinkingBlock thinkingContent={thinkingContent} />
+      )}
+
+      {/* Main content with streaming effect */}
+      <div className="relative">
+        <ReactMarkdown remarkPlugins={[remarkGfm]}>
+          {textWithoutThinking}
+        </ReactMarkdown>
+
+        {/* Blinking cursor */}
+        {message.isStreaming && (
+          <span
+            className={`inline-block w-2 h-4 bg-blue-500 ml-1 ${showCursor ? 'opacity-100' : 'opacity-0'} transition-opacity duration-100`}
+          />
+        )}
+      </div>
+
+      {/* Loading indicator */}
+      {message.isStreaming && (
+        <div className="flex items-center gap-2 mt-2 text-sm text-gray-500 dark:text-gray-400">
+          <Loader2 className="h-3 w-3 animate-spin" />
+          <span>AI is thinking...</span>
+        </div>
+      )}
+    </div>
+  )
+}
+
 // --- ChatView Component ---
 const ChatView = () => {
-  const { clineMessages, isLoading } = useChatStore()
+  const { clineMessages, isLoading, isStreaming } = useChatStore()
   const messagesEndRef = useRef(null)
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [clineMessages, isLoading])
+  }, [clineMessages, isLoading, isStreaming])
 
   const displayMessages = [...(clineMessages || [])]
     .filter((message) => message && message.ts != null && !isNaN(Number(message.ts)))

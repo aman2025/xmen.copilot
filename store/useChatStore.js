@@ -8,6 +8,8 @@ const useChatStore = create((set, get) => ({
   isFullscreen: true,
   isLoading: false,
   isWaitingForApproval: false, // New state to track active tool approval
+  isStreaming: false, // Track if AI is currently streaming a response
+  streamingMessageId: null, // ID of the message currently being streamed
   scrollToBottom: null, // Function to scroll chat to bottom
 
   // Message state for UI rendering
@@ -119,8 +121,85 @@ const useChatStore = create((set, get) => ({
   // Clears messages, typically when starting a new chat or clearing UI
   clearMessages: () => {
     console.log('Clearing clineMessages from store')
-    return set({ clineMessages: [], messageInput: '', attachedFiles: [] }) // Also clear input and files
-  }
+    return set({ clineMessages: [], messageInput: '', attachedFiles: [], isStreaming: false, streamingMessageId: null }) // Also clear input and files
+  },
+
+  // Streaming-related actions
+  setIsStreaming: (isStreaming) => set({ isStreaming }),
+  setStreamingMessageId: (messageId) => set({ streamingMessageId: messageId }),
+
+  // Updates a specific message by timestamp and type
+  updateClineMessage: (ts, type, updates) =>
+    set((state) => {
+      const messageIndex = state.clineMessages.findIndex(
+        (m) => m.ts === ts && m.type === type
+      )
+
+      if (messageIndex === -1) {
+        console.warn('Message not found for update:', { ts, type })
+        return {}
+      }
+
+      const updatedMessages = [...state.clineMessages]
+      updatedMessages[messageIndex] = {
+        ...updatedMessages[messageIndex],
+        ...updates
+      }
+
+      console.log('Updated cline message:', { ts, type, updates })
+      return { clineMessages: updatedMessages }
+    }),
+
+  // Updates streaming message content
+  updateStreamingMessage: (messageId, content) =>
+    set((state) => {
+      const messageIndex = state.clineMessages.findIndex(
+        (m) => m.streamingId === messageId
+      )
+
+      if (messageIndex === -1) {
+        console.warn('Streaming message not found for update:', messageId)
+        return {}
+      }
+
+      const updatedMessages = [...state.clineMessages]
+      updatedMessages[messageIndex] = {
+        ...updatedMessages[messageIndex],
+        text: content,
+        isStreaming: true
+      }
+
+      return { clineMessages: updatedMessages }
+    }),
+
+  // Finalizes a streaming message
+  finalizeStreamingMessage: (messageId, finalContent, toolCalls = null) =>
+    set((state) => {
+      const messageIndex = state.clineMessages.findIndex(
+        (m) => m.streamingId === messageId
+      )
+
+      if (messageIndex === -1) {
+        console.warn('Streaming message not found for finalization:', messageId)
+        return {}
+      }
+
+      const updatedMessages = [...state.clineMessages]
+      updatedMessages[messageIndex] = {
+        ...updatedMessages[messageIndex],
+        text: finalContent,
+        tool_calls: toolCalls,
+        isStreaming: false,
+        streamingId: undefined
+      }
+
+      console.log('Finalized streaming message:', messageId)
+      return {
+        clineMessages: updatedMessages,
+        isStreaming: false,
+        streamingMessageId: null
+      }
+    })
 }))
 
 export default useChatStore

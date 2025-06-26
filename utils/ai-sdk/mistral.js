@@ -164,6 +164,7 @@ export const createMistral = async (messages, tools) => {
       max_tokens: 1000,
       stream: false
     })
+
     console.log('***********Mistral response:**********', response.choices[0].message)
 
     return response
@@ -172,6 +173,40 @@ export const createMistral = async (messages, tools) => {
 
     // Re-throw the error. The fallback logic for 'Not the same number of function calls and responses'
     // has been removed as per user request.
+    throw error
+  }
+}
+
+/**
+ * Creates a streaming chat completion using Mistral AI API
+ * @param {Array} messages - Array of message objects with role and content
+ * @param {Array} tools - Array of tool objects
+ * @returns {Promise<AsyncIterable>} - Streaming response iterator
+ */
+export const createMistralStream = async (messages, tools) => {
+  const client = new MistralClient(process.env.MISTRAL_API_KEY)
+
+  // Log the messages to see if they have the proper formatting
+  console.log('***********streaming request messages:**********', JSON.stringify(messages, null, 2))
+
+  // Preprocess messages to ensure each tool call has a corresponding tool response
+  // and that tool calls are well-formed.
+  const processedMessages = preprocessMessages(messages)
+
+  try {
+    const streamResponse = client.chatStream({
+      model: 'magistral-medium-2506',
+      messages: processedMessages,
+      tools,
+      temperature: 0.7,
+      prompt_mode: 'reasoning',
+      max_tokens: 1000
+    })
+
+    console.log('***********Mistral streaming started**********')
+    return streamResponse
+  } catch (error) {
+    console.error('Error in Mistral streaming API call:', error)
     throw error
   }
 }
@@ -249,6 +284,121 @@ export const formatMistralResponse = async (response) => {
       console.log('Content is not JSON format, returning original message')
       return message
     }
+  }
+
+  return message
+}
+
+/**
+ * Processes streaming chunks from Mistral AI API
+ * @param {Object} chunk - Individual chunk from the stream
+ * @returns {Object} - Processed chunk data
+ */
+export const processStreamChunk = (chunk) => {
+  try {
+    // Mistral streaming format: chunk.choices[0].delta
+    const data = chunk
+    if (!data || !data.choices || data.choices.length === 0) {
+      return null
+    }
+
+    const choice = data.choices[0]
+    const delta = choice.delta
+
+    if (!delta) {
+      return null
+    }
+
+    // Handle content streaming
+    if (delta.content) {
+      return {
+        type: 'content',
+        content: delta.content,
+        role: delta.role || 'assistant'
+      }
+    }
+
+    // Handle tool calls streaming
+    if (delta.tool_calls && delta.tool_calls.length > 0) {
+      return {
+        type: 'tool_calls',
+        tool_calls: delta.tool_calls,
+        role: delta.role || 'assistant'
+      }
+    }
+
+    // Handle finish reason
+    if (choice.finish_reason) {
+      return {
+        type: 'finish',
+        finish_reason: choice.finish_reason
+      }
+    }
+
+    return null
+  } catch (error) {
+    console.error('Error processing stream chunk:', error)
+    return null
+  }
+}
+
+/**
+ * Accumulates streaming chunks into a complete message
+ * @param {Array} chunks - Array of processed chunks
+ * @returns {Object} - Complete message object
+ */
+export const accumulateStreamChunks = (chunks) => {
+  const message = {
+    role: 'assistant',
+    content: '',
+    tool_calls: []
+  }
+
+  const toolCallsMap = new Map()
+
+  for (const chunk of chunks) {
+    if (!chunk) continue
+
+    if (chunk.type === 'content') {
+      message.content += chunk.content
+      message.role = chunk.role
+    } else if (chunk.type === 'tool_calls') {
+      for (const toolCall of chunk.tool_calls) {
+        if (toolCall.index !== undefined) {
+          const index = toolCall.index
+          if (!toolCallsMap.has(index)) {
+            toolCallsMap.set(index, {
+              id: toolCall.id || `tool_call_${index}`,
+              type: 'function',
+              function: {
+                name: toolCall.function?.name || '',
+                arguments: toolCall.function?.arguments || ''
+              }
+            })
+          } else {
+            const existing = toolCallsMap.get(index)
+            if (toolCall.function?.name) {
+              existing.function.name += toolCall.function.name
+            }
+            if (toolCall.function?.arguments) {
+              existing.function.arguments += toolCall.function.arguments
+            }
+          }
+        }
+      }
+    }
+  }
+
+  // Convert tool calls map to array
+  if (toolCallsMap.size > 0) {
+    message.tool_calls = Array.from(toolCallsMap.values())
+  } else {
+    delete message.tool_calls
+  }
+
+  // Clean up empty content
+  if (!message.content) {
+    delete message.content
   }
 
   return message

@@ -17,6 +17,7 @@ const ChatInput = () => {
     messageInput,
     setMessageInput,
     isLoading,
+    isStreaming,
     attachedFiles,
     addAttachedFile,
     removeAttachedFile
@@ -34,6 +35,7 @@ const ChatInput = () => {
   const handleSubmit = async (e) => {
     e.preventDefault()
     if (!messageInput.trim() && attachedFiles.length === 0) return
+    if (isLoading || isStreaming) return
     sendMessage(messageInput, attachedFiles)
   }
 
@@ -158,14 +160,14 @@ const ChatInput = () => {
             onKeyDown={handleKeyDown}
             placeholder="Ask Copilot"
             className="flex-1 bg-transparent text-gray-800 placeholder-gray-400 focus:outline-none dark:text-white"
-            disabled={isLoading}
+            disabled={isLoading || isStreaming}
             autoComplete="off"
           />
           <button
             type="submit"
-            disabled={isLoading || (!messageInput.trim() && attachedFiles.length === 0)}
+            disabled={isLoading || isStreaming || (!messageInput.trim() && attachedFiles.length === 0)}
             className={`ml-2 rounded-lg p-2 transition-colors ${
-              isLoading || (!messageInput.trim() && attachedFiles.length === 0)
+              isLoading || isStreaming || (!messageInput.trim() && attachedFiles.length === 0)
                 ? 'not-allowed text-gray-300'
                 : 'text-gray-400 hover:text-blue-600 dark:text-gray-300 dark:hover:text-gray-100'
             }`}
