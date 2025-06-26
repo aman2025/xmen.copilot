@@ -584,7 +584,7 @@ const ChatView = () => {
               return prevMessage &&
                      prevMessage.type === 'say' &&
                      prevMessage.say === 'text' &&
-                     !prevMessage.role // Assistant messages from Task.say() don't have role set
+                     prevMessage.role === 'assistant' // Assistant messages from Task.say() with role set
             })()
 
             if (shouldHideAvatar) {
