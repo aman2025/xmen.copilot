@@ -492,7 +492,10 @@ class Task {
       ask: askType,
       text
     }
-    await this.addToClineMessages(clineMessage, saveToBackend)
+    await this.addToClineMessages(clineMessage)
+    if (saveToBackend) {
+      await this.saveClineMessage(clineMessage)
+    }
   }
 
   async say(sayType, text, saveToBackend = false, role = null) {
@@ -505,10 +508,13 @@ class Task {
       text,
       role
     }
-    await this.addToClineMessages(clineMessage, saveToBackend)
+    await this.addToClineMessages(clineMessage)
+    if (saveToBackend) {
+      await this.saveClineMessage(clineMessage)
+    }
   }
 
-  async addToClineMessages(message, saveToBackend = false) {
+  async addToClineMessages(message) {
     // Ensure message has chatId if not already present
     if (!message.chatId && this.chatId) {
       message.chatId = this.chatId
@@ -517,38 +523,6 @@ class Task {
     this.clineMessages.push(message) // Add to local cache
     // Update Zustand store. This should append, not replace, unless it's an initial load.
     useChatStore.getState().addClineMessage(message)
-
-    if (saveToBackend && this.chatId && message.chatId === this.chatId) {
-      try {
-        // Prepare the payload for the backend, ensuring 'subType' is correctly mapped.
-        const payloadForBackend = {
-          ts: Number(message.ts), // Ensure ts is a number
-          type: message.type,
-          subType: message.type === 'say' ? message.say : message.ask,
-          text: message.text,
-          role: message.role
-          // chatId is taken from the URL parameters on the backend, so not needed in the body here.
-        }
-
-        const response = await fetch(`/api/chat/${this.chatId}/cline-messages`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payloadForBackend) // Send the corrected payload
-        })
-        if (!response.ok) {
-          console.error(
-            `Task (${this.chatId}): Failed to save cline message to backend: ${response.statusText}`,
-            await response.text()
-          )
-        } else {
-          console.log(`Task (${this.chatId}): Cline message saved to backend successfully.`)
-        }
-      } catch (error) {
-        console.error(`Task (${this.chatId}): Error saving cline message to backend`, error)
-      }
-    } else if (saveToBackend && !this.chatId) {
-      console.warn(`Task (${this.chatId}): Cannot save cline message, chatId is missing.`)
-    }
   }
 
   // addToApiConversationHistory: only adds to local history. Backend manages persistence.
@@ -600,8 +574,6 @@ class Task {
   // validateConversationHistory - This logic is now primarily on the backend before calling Mistral.
   // The client sends individual messages, and the backend assembles and validates history.
 
-
-
   async attemptApiRequest(messagePayloadToPost) {
     // messagePayloadToPost is the user/tool message
     if (!this.chatId) {
@@ -645,6 +617,7 @@ class Task {
     let accumulatedContent = ''
     let streamingMessageId = null
     let finalMessage = null
+    let streamingMessageToSave = null
 
     try {
       while (true) {
@@ -674,6 +647,7 @@ class Task {
                     isStreaming: true,
                     streamingId: streamingMessageId
                   }
+                  streamingMessageToSave = streamingMessage
                   this.clineMessages.push(streamingMessage)
                   useChatStore.getState().addClineMessage(streamingMessage)
                   useChatStore.getState().setIsStreaming(true)
@@ -715,6 +689,16 @@ class Task {
         }
       }
 
+      if (finalMessage && streamingMessageToSave) {
+        if (!finalMessage.tool_calls || finalMessage.tool_calls.length === 0) {
+          const finalContent = finalMessage.content || accumulatedContent
+          const messageToSave = { ...streamingMessageToSave, text: finalContent }
+          delete messageToSave.isStreaming
+          delete messageToSave.streamingId
+          await this.saveClineMessage(messageToSave)
+        }
+      }
+
       return finalMessage
     } catch (error) {
       console.error(`Task (${this.chatId}): Error handling streaming response:`, error)
@@ -733,6 +717,39 @@ class Task {
       taskStatus: this.isInitialized ? 'Active' : 'Initializing',
       waitingForApproval: this.waitingForApproval
     })
+  }
+
+  // Add a new method to save a single cline message to the backend
+  async saveClineMessage(message) {
+    if (this.chatId && message.chatId === this.chatId) {
+      try {
+        const payloadForBackend = {
+          ts: Number(message.ts),
+          type: message.type,
+          subType: message.type === 'say' ? message.say : message.ask,
+          text: message.text,
+          role: message.role
+        }
+
+        const response = await fetch(`/api/chat/${this.chatId}/cline-messages`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payloadForBackend)
+        })
+        if (!response.ok) {
+          console.error(
+            `Task (${this.chatId}): Failed to save cline message to backend: ${response.statusText}`,
+            await response.text()
+          )
+        } else {
+          console.log(`Task (${this.chatId}): Cline message saved to backend successfully.`)
+        }
+      } catch (error) {
+        console.error(`Task (${this.chatId}): Error saving cline message to backend`, error)
+      }
+    } else if (!this.chatId) {
+      console.warn(`Task: Cannot save cline message, chatId is missing.`)
+    }
   }
 
   // Add a new method to enhance tool results with context
