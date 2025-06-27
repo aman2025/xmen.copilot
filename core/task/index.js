@@ -144,9 +144,12 @@ class Task {
       // Add AI's response to local API history. Backend already saved it.
       await this.addToApiConversationHistory(assistantRawApiMessage, false) // false: don't saveToBackend, it's already saved
 
-      this.assistantMessageContent = parseAssistantMessage(assistantRawApiMessage)
-
-      await this.presentAssistantMessage() // This will generate and save clineMessages
+      // If the message from the AI contains tool_calls, we need to process them.
+      // Otherwise, streaming has already handled the text content.
+      if (assistantRawApiMessage.tool_calls && assistantRawApiMessage.tool_calls.length > 0) {
+        this.assistantMessageContent = parseAssistantMessage(assistantRawApiMessage)
+        await this.presentAssistantMessage() // This will generate and save clineMessages
+      }
     } catch (error) {
       console.error(`Task (${this.chatId}): Error in task loop:`, error)
       await this.say('error', `Error: ${error.message}`, true, 'assistant') // Persist error message
@@ -165,6 +168,25 @@ class Task {
     if (!block) {
       console.warn(`Task (${this.chatId}): No assistant message content to present`)
       return
+    }
+
+    // This is a defensive check to prevent duplicate messages after streaming.
+    // If the last message in our local list has the same content as the current text block,
+    // we can assume it was just added by the streaming handler and should not be added again.
+    if (block.type === 'text') {
+      const lastMessage = this.clineMessages[this.clineMessages.length - 1]
+      if (
+        lastMessage &&
+        lastMessage.role === 'assistant' &&
+        lastMessage.type === 'say' &&
+        lastMessage.say === 'text' &&
+        lastMessage.text === block.content
+      ) {
+        console.log(
+          `Task (${this.chatId}): Skipping duplicate text presentation after streaming.`
+        )
+        return
+      }
     }
 
     const { type } = block
@@ -188,7 +210,7 @@ class Task {
       }
       case 'tool_use_with_content': {
         // First, display the content (which may include thinking content)
-        await this.say('text', block.content, true, 'assistant')
+        // await this.say('text', block.content, true, 'assistant') // Removed this line as streaming already handled it
 
         // Then handle the tool call
         this.pendingToolCall = {
@@ -437,8 +459,12 @@ class Task {
         // Add AI's response to local API history
         await this.addToApiConversationHistory(assistantRawApiMessage, false)
 
-        this.assistantMessageContent = parseAssistantMessage(assistantRawApiMessage)
-        await this.presentAssistantMessage()
+        // If the message from the AI is just content, streaming has already handled it.
+        // If there are tool_calls, we need to process them.
+        if (assistantRawApiMessage.tool_calls && assistantRawApiMessage.tool_calls.length > 0) {
+          this.assistantMessageContent = parseAssistantMessage(assistantRawApiMessage)
+          await this.presentAssistantMessage()
+        }
       }
     } catch (apiError) {
       console.error(`Task (${this.chatId}): Error processing tool result:`, apiError)
