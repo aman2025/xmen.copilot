@@ -20,7 +20,7 @@ export const extractFileAttachments = (messageText) => {
   let match
   while ((match = filePattern.exec(messageText)) !== null) {
     const [fullMatch, formatLabel, fileName, content] = match
-    
+
     attachments.push({
       id: `${fileName}-${Date.now()}-${Math.random()}`,
       name: fileName,
@@ -57,7 +57,7 @@ export const hasFileAttachments = (messageText) => {
 
 /**
  * Extracts thinking content from AI message text
- * @param {string} messageText - The full message text that may contain <thinking> tags
+ * @param {string} messageText - The full message text that may contain <think> or <thinking> tags
  * @returns {Object} - Object containing thinkingContent and cleanText
  */
 export const extractThinkingContent = (messageText) => {
@@ -65,8 +65,8 @@ export const extractThinkingContent = (messageText) => {
     return { thinkingContent: null, cleanText: messageText || '' }
   }
 
-  // Pattern to match <thinking>...</thinking> content only
-  const thinkPattern = /<thinking>([\s\S]*?)<\/thinking>/
+  // Pattern to match both <think>...</think> and <thinking>...</thinking> content
+  const thinkPattern = /<think(?:ing)?>([\s\S]*?)<\/think(?:ing)?>/
   const match = messageText.match(thinkPattern)
 
   if (!match) {
@@ -85,13 +85,13 @@ export const extractThinkingContent = (messageText) => {
 /**
  * Checks if a message contains thinking content
  * @param {string} messageText - The message text to check
- * @returns {boolean} - True if the message contains <thinking> tags
+ * @returns {boolean} - True if the message contains <think> or <thinking> tags
  */
 export const hasThinkingContent = (messageText) => {
   if (!messageText || typeof messageText !== 'string') {
     return false
   }
 
-  const thinkPattern = /<thinking>[\s\S]*?<\/thinking>/
+  const thinkPattern = /<think(?:ing)?>[\s\S]*?<\/think(?:ing)?>/
   return thinkPattern.test(messageText)
 }
