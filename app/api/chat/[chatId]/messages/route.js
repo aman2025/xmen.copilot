@@ -2,8 +2,6 @@ import { PrismaClient } from '@prisma/client'
 import { SYSTEM_PROMPT } from '@/prompts'
 import { INSTANCE_TOOLS } from '@/prompts/tools/instance'
 import {
-  createMistral,
-  formatMistralResponse,
   createMistralStream,
   processStreamChunk,
   accumulateStreamChunks
@@ -76,8 +74,6 @@ export async function GET(request, { params }) {
 // Handles a new message from the user, gets AI response, and saves messages
 export async function POST(request, { params }) {
   const { chatId } = params
-  const url = new URL(request.url)
-  const stream = url.searchParams.get('stream') === 'true'
 
   try {
     const { message } = await request.json()
@@ -188,37 +184,8 @@ export async function POST(request, { params }) {
       'Optimized messages:',
       optimizedMessages.map((m) => ({ role: m.role, content: m.content?.substring(0, 50) }))
     )
-    // --- Call Mistral AI (outside of a transaction) ---
-    if (stream) {
-      // Handle streaming response
-      return handleStreamingResponse(chatId, optimizedMessages, INSTANCE_TOOLS)
-    } else {
-      // Handle non-streaming response (existing logic)
-      let aiRawResponse
-      try {
-        const mistralResponse = await createMistral(optimizedMessages, INSTANCE_TOOLS)
-        aiRawResponse = await formatMistralResponse(mistralResponse)
-      } catch (aiError) {
-        console.error('Error calling Mistral API:', aiError)
-        throw new Error(`AI API Error: ${aiError.message}`)
-      }
-
-      // --- Save the AI's ApiMessage (separate operation) ---
-      const assistantApiMessage = await prisma.apiMessage.create({
-        data: {
-          chatSessionId: chatId,
-          role: aiRawResponse.role || 'assistant',
-          content: aiRawResponse.content,
-          tool_calls: aiRawResponse.tool_calls || undefined
-        }
-      })
-
-      return new Response(JSON.stringify(assistantApiMessage), {
-        // Return the AI message
-        status: 200,
-        headers: { 'Content-Type': 'application/json' }
-      })
-    }
+    // --- Call Mistral AI with streaming (streaming-only mode) ---
+    return handleStreamingResponse(chatId, optimizedMessages, INSTANCE_TOOLS)
   } catch (error) {
     console.error(`Failed to process message for chat ${chatId}:`, error)
     if (

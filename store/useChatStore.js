@@ -6,8 +6,8 @@ const useChatStore = create((set, get) => ({
   currentChatTitle: null, // Title of the current chat
   view: 'chat', // Current view ('chat' or 'history')
   isFullscreen: true,
-  isLoading: false,
-  isWaitingForApproval: false, // New state to track active tool approval
+  isLoading: false, // To track loading states for async actions
+  isWaitingForApproval: false, // Track active tool approval
   isStreaming: false, // Track if AI is currently streaming a response
   streamingMessageId: null, // ID of the message currently being streamed
   scrollToBottom: null, // Function to scroll chat to bottom
@@ -26,7 +26,7 @@ const useChatStore = create((set, get) => ({
   setView: (view) => set({ view }),
   setIsFullscreen: (isFullscreen) => set({ isFullscreen }),
   setIsLoading: (loading) => set({ isLoading: loading }),
-  setIsWaitingForApproval: (waiting) => set({ isWaitingForApproval: waiting }), // Setter for the new state
+  setIsWaitingForApproval: (waiting) => set({ isWaitingForApproval: waiting }),
   setMessageInput: (text) => set({ messageInput: text }),
 
   // File attachment actions
@@ -121,7 +121,13 @@ const useChatStore = create((set, get) => ({
   // Clears messages, typically when starting a new chat or clearing UI
   clearMessages: () => {
     console.log('Clearing clineMessages from store')
-    return set({ clineMessages: [], messageInput: '', attachedFiles: [], isStreaming: false, streamingMessageId: null }) // Also clear input and files
+    return set({
+      clineMessages: [],
+      messageInput: '',
+      attachedFiles: [],
+      isStreaming: false,
+      streamingMessageId: null
+    })
   },
 
   // Streaming-related actions

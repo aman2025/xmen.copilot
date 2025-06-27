@@ -138,47 +138,11 @@ const preprocessMessages = (messages) => {
   return processedMessages
 }
 
-/**
- * Creates a chat completion using Mistral AI API
- * @param {Array} messages - Array of message objects with role and content
- * @param {Array} tools - Array of tool objects
- * @returns {Promise<Object>} - Mistral API response
- */
-export const createMistral = async (messages, tools) => {
-  const client = new MistralClient(process.env.MISTRAL_API_KEY)
 
-  // Log the messages to see if they have the proper formatting
-  console.log('***********request messages:**********', JSON.stringify(messages, null, 2))
-
-  // Preprocess messages to ensure each tool call has a corresponding tool response
-  // and that tool calls are well-formed.
-  const processedMessages = preprocessMessages(messages)
-
-  try {
-    const response = await client.chat({
-      model: 'magistral-medium-2506',
-      messages: processedMessages,
-      tools,
-      temperature: 0.7,
-      prompt_mode: 'reasoning',
-      max_tokens: 1000,
-      stream: false
-    })
-
-    console.log('***********Mistral response:**********', response.choices[0].message)
-
-    return response
-  } catch (error) {
-    console.error('Error in Mistral API call:', error)
-
-    // Re-throw the error. The fallback logic for 'Not the same number of function calls and responses'
-    // has been removed as per user request.
-    throw error
-  }
-}
 
 /**
  * Creates a streaming chat completion using Mistral AI API
+ * This is the primary method for AI communication - all responses are streamed
  * @param {Array} messages - Array of message objects with role and content
  * @param {Array} tools - Array of tool objects
  * @returns {Promise<AsyncIterable>} - Streaming response iterator
@@ -187,7 +151,7 @@ export const createMistralStream = async (messages, tools) => {
   const client = new MistralClient(process.env.MISTRAL_API_KEY)
 
   // Log the messages to see if they have the proper formatting
-  console.log('***********streaming request messages:**********', JSON.stringify(messages, null, 2))
+  console.log('***********request messages:**********', JSON.stringify(messages, null, 2))
 
   // Preprocess messages to ensure each tool call has a corresponding tool response
   // and that tool calls are well-formed.
@@ -211,83 +175,7 @@ export const createMistralStream = async (messages, tools) => {
   }
 }
 
-/**
- * Formats the Mistral API response and attempts to correct malformed tool calls.
- * @param {Object} response - The raw response object from the Mistral client.
- * @returns {Promise<Object>} - The assistant's message object, potentially corrected.
- */
-export const formatMistralResponse = async (response) => {
-  let message = response.choices[0].message
 
-  // If we have content but no tool_calls, and the content starts with obvious text markers,
-  // we should just return the message as-is
-  if (
-    (!message.tool_calls || message.tool_calls.length === 0) &&
-    message.content &&
-    typeof message.content === 'string' &&
-    (message.content.startsWith('The') ||
-      message.content.startsWith('|') ||
-      message.content.includes('\n'))
-  ) {
-    return message
-  }
-
-  // Only attempt JSON parsing if the content looks like it might be JSON
-  if (
-    (!message.tool_calls || message.tool_calls.length === 0) &&
-    message.content &&
-    typeof message.content === 'string' &&
-    (message.content.startsWith('[') || message.content.startsWith('{'))
-  ) {
-    try {
-      const potentialToolCalls = JSON.parse(message.content)
-
-      if (Array.isArray(potentialToolCalls) && potentialToolCalls.length > 0) {
-        // Check if the first item looks like a tool call structure
-        // (e.g., has 'name' and 'arguments' which is common for LLMs to put in content).
-        const firstPotentialToolCall = potentialToolCalls[0]
-        if (
-          firstPotentialToolCall &&
-          typeof firstPotentialToolCall.name === 'string' &&
-          firstPotentialToolCall.arguments !== undefined
-        ) {
-          console.warn(
-            'Mistral response seems to have tool_calls in message.content. Attempting to reformat.'
-          )
-
-          // Reformat the parsed content into the valid tool_calls structure.
-          const newToolCalls = potentialToolCalls.map((tc, index) => {
-            // Ensure arguments are stringified, as required by the Mistral API for tool_calls.
-            const stringifiedArguments =
-              typeof tc.arguments === 'string' ? tc.arguments : JSON.stringify(tc.arguments)
-
-            return {
-              // Generate a unique ID for the tool call if the LLM didn't provide one.
-              // This is crucial for the tool execution flow.
-              id: tc.id || `corr_tool_call_${Date.now()}_${index}`,
-              type: 'function', // Standard type for tool calls
-              function: {
-                name: tc.name,
-                arguments: stringifiedArguments
-              }
-            }
-          })
-
-          message.tool_calls = newToolCalls
-          // Clear the content field or set it to a generic message,
-          // as the tool call information has been moved.
-          message.content = null
-          console.log('Reformatted message with tool_calls:', message)
-        }
-      }
-    } catch (e) {
-      console.log('Content is not JSON format, returning original message')
-      return message
-    }
-  }
-
-  return message
-}
 
 /**
  * Processes streaming chunks from Mistral AI API

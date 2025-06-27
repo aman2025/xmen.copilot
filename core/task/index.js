@@ -128,21 +128,9 @@ class Task {
     await this.say('api_req_started', JSON.stringify({ request: userContent }), true, 'assistant') // Use actual userContent
 
     try {
-      // Try streaming first for better user experience
-      let assistantRawApiMessage
-      try {
-        const streamingResponse = await this.attemptStreamingApiRequest(payloadForApi)
-        assistantRawApiMessage = await this.handleStreamingResponse(streamingResponse)
-      } catch (streamingError) {
-        console.warn(`Task (${this.chatId}): Streaming failed, falling back to regular API:`, streamingError)
-
-        // Reset streaming state
-        useChatStore.getState().setIsStreaming(false)
-        useChatStore.getState().setStreamingMessageId(null)
-
-        // Fallback to regular API request
-        assistantRawApiMessage = await this.attemptApiRequest(payloadForApi)
-      }
+      // Use streaming for AI communication (streaming-only mode)
+      const streamingResponse = await this.attemptApiRequest(payloadForApi)
+      const assistantRawApiMessage = await this.handleStreamingResponse(streamingResponse)
 
       if (!assistantRawApiMessage || !assistantRawApiMessage.role) {
         throw new Error('Received invalid or empty response from API.')
@@ -432,7 +420,10 @@ class Task {
     )
 
     try {
-      const assistantRawApiMessage = await this.attemptApiRequest(toolMessage)
+      // Use streaming approach for tool result communication
+      const streamingResponse = await this.attemptApiRequest(toolMessage)
+      const assistantRawApiMessage = await this.handleStreamingResponse(streamingResponse)
+
       if (assistantRawApiMessage && assistantRawApiMessage.role) {
         // Update the API request message to show completion
         await this.updateClineMessage('api_req_started', {
@@ -583,6 +574,8 @@ class Task {
   // validateConversationHistory - This logic is now primarily on the backend before calling Mistral.
   // The client sends individual messages, and the backend assembles and validates history.
 
+
+
   async attemptApiRequest(messagePayloadToPost) {
     // messagePayloadToPost is the user/tool message
     if (!this.chatId) {
@@ -595,7 +588,6 @@ class Task {
       const response = await fetch(`/api/chat/${this.chatId}/messages`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        // The body should be structured as the API expects, e.g., { message: messagePayloadToPost }
         body: JSON.stringify({ message: messagePayloadToPost })
       })
 
@@ -604,43 +596,10 @@ class Task {
         console.error(`Task (${this.chatId}): API request failed (${response.status}):`, errorText)
         throw new Error(`API request failed: ${response.status} ${errorText}`)
       }
-      const assistantRawApiResponse = await response.json() // Expects the raw AI message object
-      console.log(`Task (${this.chatId}): Received raw AI response:`, assistantRawApiResponse)
-      return assistantRawApiResponse
-    } catch (error) {
-      console.error(`Task (${this.chatId}): Error in attemptApiRequest:`, error)
-      // Return a structured error that can be parsed by parseAssistantMessage
-      return {
-        role: 'assistant',
-        content: `I encountered an error trying to process your request: ${error.message}. Please try again.`
-      }
-    }
-  }
-
-  async attemptStreamingApiRequest(messagePayloadToPost) {
-    // messagePayloadToPost is the user/tool message
-    if (!this.chatId) {
-      console.error(`Task (${this.chatId}): Cannot make streaming API request without chatId.`)
-      throw new Error('Chat ID is missing for streaming API request.')
-    }
-    console.log(`Task (${this.chatId}): Attempting streaming API request with payload:`, messagePayloadToPost)
-
-    try {
-      const response = await fetch(`/api/chat/${this.chatId}/messages?stream=true`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: messagePayloadToPost })
-      })
-
-      if (!response.ok) {
-        const errorText = await response.text()
-        console.error(`Task (${this.chatId}): Streaming API request failed (${response.status}):`, errorText)
-        throw new Error(`Streaming API request failed: ${response.status} ${errorText}`)
-      }
 
       return response // Return the response for streaming processing
     } catch (error) {
-      console.error(`Task (${this.chatId}): Error in attemptStreamingApiRequest:`, error)
+      console.error(`Task (${this.chatId}): Error in attemptApiRequest:`, error)
       throw error
     }
   }
