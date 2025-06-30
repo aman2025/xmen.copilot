@@ -209,8 +209,9 @@ class Task {
         break
       }
       case 'tool_use_with_content': {
-        // First, display the content (which may include thinking content)
-        // await this.say('text', block.content, true, 'assistant') // Removed this line as streaming already handled it
+        // For tool_use_with_content, the content was already displayed and saved via streaming
+        // The handleStreamingResponse method now saves all streaming messages to backend
+        // So we don't need to create any additional messages here - just handle the tool call
 
         // Then handle the tool call
         this.pendingToolCall = {
@@ -690,13 +691,14 @@ class Task {
       }
 
       if (finalMessage && streamingMessageToSave) {
-        if (!finalMessage.tool_calls || finalMessage.tool_calls.length === 0) {
-          const finalContent = finalMessage.content || accumulatedContent
-          const messageToSave = { ...streamingMessageToSave, text: finalContent }
-          delete messageToSave.isStreaming
-          delete messageToSave.streamingId
-          await this.saveClineMessage(messageToSave)
-        }
+        const finalContent = finalMessage.content || accumulatedContent
+        const messageToSave = { ...streamingMessageToSave, text: finalContent }
+        delete messageToSave.isStreaming
+        delete messageToSave.streamingId
+
+        // Always save the streaming message content to backend for historical consistency
+        // This ensures both text-only and tool_use_with_content messages are persisted
+        await this.saveClineMessage(messageToSave)
       }
 
       return finalMessage
