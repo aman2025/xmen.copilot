@@ -138,8 +138,6 @@ const preprocessMessages = (messages) => {
   return processedMessages
 }
 
-
-
 /**
  * Creates a streaming chat completion using Mistral AI API
  * This is the primary method for AI communication - all responses are streamed
@@ -175,17 +173,19 @@ export const createMistralStream = async (messages, tools) => {
   }
 }
 
-
-
 /**
- * Processes streaming chunks from Mistral AI API
+ * Processes streaming chunks from Mistral AI API v1.7.2+
  * @param {Object} chunk - Individual chunk from the stream
  * @returns {Object} - Processed chunk data
  */
 export const processStreamChunk = (chunk) => {
   try {
-    // Mistral streaming format: chunk.choices[0].delta
-    const data = chunk
+    // Log the raw chunk for debugging
+    console.log('RAW CHUNK:', JSON.stringify(chunk, null, 2))
+
+    // Mistral v1.7.2+ streaming format: chunk.choices[0].delta (OpenAI-compatible)
+    // The chunk data may be wrapped in a `data` property.
+    const data = chunk.data || chunk
     if (!data || !data.choices || data.choices.length === 0) {
       return null
     }
@@ -193,34 +193,39 @@ export const processStreamChunk = (chunk) => {
     const choice = data.choices[0]
     const delta = choice.delta
 
-    if (!delta) {
-      return null
-    }
+    // Log the delta object for debugging
+    console.log('DELTA OBJECT:', JSON.stringify(delta, null, 2))
 
     // Handle content streaming
-    if (delta.content) {
-      return {
+    if (delta && delta.content) {
+      const result = {
         type: 'content',
         content: delta.content,
         role: delta.role || 'assistant'
       }
+      console.log('CONTENT CHUNK:', JSON.stringify(result, null, 2))
+      return result
     }
 
     // Handle tool calls streaming
-    if (delta.tool_calls && delta.tool_calls.length > 0) {
-      return {
+    if (delta && delta.tool_calls && delta.tool_calls.length > 0) {
+      const result = {
         type: 'tool_calls',
         tool_calls: delta.tool_calls,
         role: delta.role || 'assistant'
       }
+      console.log('TOOL CALLS CHUNK:', JSON.stringify(result, null, 2))
+      return result
     }
 
     // Handle finish reason
     if (choice.finish_reason) {
-      return {
+      const result = {
         type: 'finish',
         finish_reason: choice.finish_reason
       }
+      console.log('FINISH CHUNK:', JSON.stringify(result, null, 2))
+      return result
     }
 
     return null
@@ -288,6 +293,9 @@ export const accumulateStreamChunks = (chunks) => {
   if (!message.content) {
     delete message.content
   }
+
+  // Add debug logging for final accumulated message
+  console.log('FINAL ACCUMULATED MESSAGE:', JSON.stringify(message, null, 2))
 
   return message
 }

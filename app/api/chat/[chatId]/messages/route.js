@@ -320,6 +320,9 @@ async function handleStreamingResponse(chatId, messages, tools) {
         // This block is now a fallback for streams that end without a 'finish' event.
         if (chunks.length > 0) {
           const finalMessage = accumulateStreamChunks(chunks)
+          
+          // Debug log for final message
+          console.log('FINAL MESSAGE BEFORE DB SAVE:', JSON.stringify(finalMessage, null, 2))
 
           // Save the final AI message to database if not already saved
           const assistantApiMessage = await prisma.apiMessage.create({
@@ -332,6 +335,9 @@ async function handleStreamingResponse(chatId, messages, tools) {
                 (accumulatedToolCalls.length > 0 ? accumulatedToolCalls : undefined)
             }
           })
+
+          // Debug log for saved message
+          console.log('SAVED DB MESSAGE:', JSON.stringify(assistantApiMessage, null, 2))
 
           // Send final completion event
           const completeEvent = {
@@ -370,3 +376,4 @@ async function handleStreamingResponse(chatId, messages, tools) {
     }
   })
 }
+
